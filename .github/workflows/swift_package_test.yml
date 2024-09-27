@@ -6,7 +6,7 @@ on:
       swift_versions:
         type: string
         description: "Swift version list"
-        default: ["5.8", "5.9", "5.10", "nightly-main", "nightly-6.0"]
+        default: ["5.8", "5.9", "5.10", "6.0", "nightly-main", "nightly-6.0"]
         required: true
       os_versions:
         type: string
