@@ -1,18 +1,16 @@
-name: Swift Matrix
+name: Swift Linux Matrix
 
 on:
   workflow_call:
     inputs:
-      swift_versions:
+      exclude_swift_versions:
         type: string
-        description: "Swift version list"
-        default: ["5.8", "5.9", "5.10", "6.0", "nightly-main", "nightly-6.0"]
-        required: true
+        description: "Exclude Swift version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       os_versions:
         type: string
-        description: "OS version list"
-        default: ["jammy"]
-        required: true
+        description: "OS version list (JSON)"
+        default: "[\"jammy\"]"
       swift_flags:
         type: string
         description: "Swift flangs for release version"
@@ -21,16 +19,28 @@ on:
         type: string
         description: "Swift flangs for nightly version"
         default: ""
+      pre_build_command:
+        type: string
+        description: "Command to execute before building the Swift package"
+        default: ""
 
 jobs:
   build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        swift_version: ${{ inputs.swift_versions }}
-        os_version: ${{ inputs.os_versions }}
-    container: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}
+        swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.0']
+        os_version: ${{ fromJson(inputs.os_versions) }}
+        exclude:
+          -  ${{ fromJson(inputs.exclude_swift_versions) }}
+    container:
+      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
-      - uses: actions/checkout@v2
-      - run: swift test ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Pre-build
+      run: ${{ inputs.pre_build_command }}
+    - name: Build Swift Package
+      run: swift test ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
