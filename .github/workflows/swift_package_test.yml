@@ -23,6 +23,9 @@ on:
         type: string
         description: "Command to execute before building the Swift package"
         default: ""
+      env_vars:
+        description: "List of environment variables."
+        type: string
 
 jobs:
   build:
@@ -40,6 +43,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+    - name: Set environment variables
+      if: ${{ inputs.env_vars }}
+        run: |
+          for i in "${{ inputs.env_vars }}"
+          do
+            printf "%s\n" $i >> $GITHUB_ENV
+          done
     - name: Pre-build
       run: ${{ inputs.pre_build_command }}
     - name: Build Swift Package
