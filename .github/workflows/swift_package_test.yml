@@ -13,11 +13,11 @@ on:
         default: "[\"jammy\"]"
       swift_flags:
         type: string
-        description: "Swift flangs for release version"
+        description: "Swift flags for release version"
         default: ""
       swift_nightly_flags:
         type: string
-        description: "Swift flangs for nightly version"
+        description: "Swift flags for nightly version"
         default: ""
       pre_build_command:
         type: string
@@ -28,7 +28,7 @@ on:
         description: "Build command default is swift test"
         default: "swift test"
       env_vars:
-        description: "List of environment variables."
+        description: "List of environment variables"
         type: string
 
 jobs:
