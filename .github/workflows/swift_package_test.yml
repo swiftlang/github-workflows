@@ -23,6 +23,10 @@ on:
         type: string
         description: "Command to execute before building the Swift package"
         default: ""
+      build_command:
+        type: string
+        description: "Build command default is swift test"
+        default: "swift test"
       env_vars:
         description: "List of environment variables."
         type: string
@@ -54,5 +58,5 @@ jobs:
           done
     - name: Pre-build
       run: ${{ inputs.pre_build_command }}
-    - name: Build Swift Package
-      run: swift test ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+    - name: Build
+      run: ${{ inputs.build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
