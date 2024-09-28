@@ -41,6 +41,8 @@ jobs:
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
+    - name: Swift version
+      run: swift --version
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Set environment variables
