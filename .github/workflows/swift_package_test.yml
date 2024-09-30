@@ -58,5 +58,5 @@ jobs:
           done
     - name: Pre-build
       run: ${{ inputs.pre_build_command }}
-    - name: Build
+    - name: Build / Test
       run: ${{ inputs.build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
