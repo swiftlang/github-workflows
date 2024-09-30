@@ -93,7 +93,7 @@ jobs:
     - name: Run documentation check
       run: |
         apt-get -qq update && apt-get -qq -y install curl yq
-        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/.github/workflows/scripts/check-docs.sh | bash
+        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -108,7 +108,7 @@ jobs:
     - name: Run unacceptable language check
       env:
         UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/.github/workflows/scripts/check-unacceptable-language.sh | bash
+      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-unacceptable-language.sh | bash
 
   license-header-check:
     name: License headers check
@@ -123,7 +123,7 @@ jobs:
     - name: Run license header check
       env:
         PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/.github/workflows/scripts/check-license-header.sh | bash
+      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-license-header.sh | bash
 
   broken-symlink-check:
     name: Broken symlinks check
@@ -136,7 +136,7 @@ jobs:
       with:
           persist-credentials: false
     - name: Run broken symlinks check
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/.github/workflows/scripts/check-broken-symlinks.sh | bash
+      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-broken-symlinks.sh | bash
 
   format-check:
     name: Format check
@@ -156,7 +156,7 @@ jobs:
     - name: Run format check
       run:  |
         apt-get -qq update && apt-get -qq -y install curl
-        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/.github/workflows/scripts/check-swift-format.sh | bash
+        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-swift-format.sh | bash
 
   shell-check:
     name: Shell check
