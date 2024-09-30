@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: swiftlang/swift:nightly-6.0-jammy
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
