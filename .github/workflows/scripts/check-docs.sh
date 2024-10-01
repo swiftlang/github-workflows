@@ -20,7 +20,7 @@ fatal() { error "$@"; exit 1; }
 log "Editing Package.swift..."
 cat <<EOF >> "Package.swift"
 package.dependencies.append(
-    .package(url: "https://github.com/apple/swift-docc-plugin", "1.0.0"..<"1.4.0")
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin", "1.0.0"..<"1.4.0")
 )
 EOF
 
