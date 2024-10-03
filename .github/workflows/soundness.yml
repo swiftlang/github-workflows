@@ -59,6 +59,10 @@ on:
         type: boolean
         description: "Boolean to enable the YAML lint job. Defaults to true."
         default: true
+      python_lint_check_enabled:
+        type: boolean
+        description: "Boolean to enable the Python lint check job. Defaults to true."
+        default: true
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -200,3 +204,18 @@ jobs:
         run: |
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > /tmp/yamllint.yml
           yamllint --strict --config-file /tmp/yamllint.yml ${GITHUB_WORKSPACE}
+  python-lint-check:
+    name: Python lint check
+    if: ${{ inputs.python_lint_check_enabled }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run flake8
+        run: |
+          pip3 install flake8 flake8-import-order --break-system-packages
+          cd ${GITHUB_WORKSPACE}
+          flake8
