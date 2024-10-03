@@ -41,22 +41,22 @@ jobs:
         swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.0']
         os_version: ${{ fromJson(inputs.os_versions) }}
         exclude:
-          -  ${{ fromJson(inputs.exclude_swift_versions) }}
+          - ${{ fromJson(inputs.exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
-    - name: Swift version
-      run: swift --version
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Set environment variables
-      if: ${{ inputs.env_vars }}
-      run: |
-          for i in "${{ inputs.env_vars }}"
-          do
-            printf "%s\n" $i >> $GITHUB_ENV
-          done
-    - name: Pre-build
-      run: ${{ inputs.pre_build_command }}
-    - name: Build / Test
-      run: ${{ inputs.build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+      - name: Swift version
+        run: swift --version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set environment variables
+        if: ${{ inputs.env_vars }}
+        run: |
+            for i in "${{ inputs.env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Pre-build
+        run: ${{ inputs.pre_build_command }}
+      - name: Build / Test
+        run: ${{ inputs.build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
