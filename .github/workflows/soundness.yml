@@ -26,7 +26,7 @@ on:
       unacceptable_language_check_word_list:
         type: string
         description: "List of unacceptable words. Defaults to a sensible list of words."
-        default: "blacklist whitelist slave master sane sanity insane insanity kill killed killing hang hung hanged hanging" #ignore-unacceptable-language
+        default: "blacklist whitelist slave master sane sanity insane insanity kill killed killing hang hung hanged hanging"  # ignore-unacceptable-language
       license_header_check_enabled:
         type: boolean
         description: "Boolean to enable the license header check job. Defaults to true."
@@ -56,7 +56,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-soundness
   cancel-in-progress: true
- 
+
 jobs:
   api-breakage-check:
     name: API breakage check
@@ -66,17 +66,17 @@ jobs:
       image: ${{ inputs.api_breakage_check_container_image }}
     timeout-minutes: 20
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-    - name: Mark the workspace as safe
-      # https://github.com/actions/checkout/issues/766
-      run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-    - name: Run API breakage check
-      run:  |
-        git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
-        swift package diagnose-api-breaking-changes pull-base-ref
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Mark the workspace as safe
+        # https://github.com/actions/checkout/issues/766
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Run API breakage check
+        run: |
+          git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
+          swift package diagnose-api-breaking-changes pull-base-ref
 
   docs-check:
     name: Documentation check
@@ -86,14 +86,14 @@ jobs:
       image: ${{ inputs.docs_check_container_image }}
     timeout-minutes: 20
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Run documentation check
-      run: |
-        apt-get -qq update && apt-get -qq -y install curl yq
-        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
+      - name: Run documentation check
+        run: |
+          apt-get -qq update && apt-get -qq -y install curl yq
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -101,14 +101,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Run unacceptable language check
-      env:
-        UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-unacceptable-language.sh | bash
+      - name: Run unacceptable language check
+        env:
+          UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
+        run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-unacceptable-language.sh | bash
 
   license-header-check:
     name: License headers check
@@ -116,14 +116,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Run license header check
-      env:
-        PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-license-header.sh | bash
+      - name: Run license header check
+        env:
+          PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
+        run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-license-header.sh | bash
 
   broken-symlink-check:
     name: Broken symlinks check
@@ -131,12 +131,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Run broken symlinks check
-      run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-broken-symlinks.sh | bash
+      - name: Run broken symlinks check
+        run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-broken-symlinks.sh | bash
 
   format-check:
     name: Format check
@@ -146,17 +146,17 @@ jobs:
       image: swift:6.0-jammy
     timeout-minutes: 10
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Mark the workspace as safe
-    # https://github.com/actions/checkout/issues/766
-      run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-    - name: Run format check
-      run:  |
-        apt-get -qq update && apt-get -qq -y install curl
-        curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-swift-format.sh | bash
+      - name: Mark the workspace as safe
+        # https://github.com/actions/checkout/issues/766
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Run format check
+        run: |
+          apt-get -qq update && apt-get -qq -y install curl
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-swift-format.sh | bash
 
   shell-check:
     name: Shell check
@@ -166,14 +166,14 @@ jobs:
       image: ${{ inputs.shell_check_container_image }}
     timeout-minutes: 5
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
           persist-credentials: false
-    - name: Mark the workspace as safe
-    # https://github.com/actions/checkout/issues/766
-      run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-    - name: Run shellcheck
-      run:  |
-        apt-get -qq update && apt-get -qq -y install shellcheck
-        git ls-files -z '*.sh' | xargs -0 shellcheck
+      - name: Mark the workspace as safe
+        # https://github.com/actions/checkout/issues/766
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Run shellcheck
+        run: |
+          apt-get -qq update && apt-get -qq -y install shellcheck
+          git ls-files -z '*.sh' | xargs -0 shellcheck
