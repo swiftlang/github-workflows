@@ -51,6 +51,10 @@ on:
         type: string
         description: "Container image for the shell check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.0-noble"
+      local_swift_dependencies_check_enabled:
+        type: boolean
+        description: "Boolean to enable the local swift dependencies check job. Defaults to true."
+        default: true
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -94,6 +98,21 @@ jobs:
         run: |
           apt-get -qq update && apt-get -qq -y install curl yq
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
+
+  local_swift_dependencies_check:
+    name: Local swift dependencies check
+    if: ${{ inputs.local_swift_dependencies_check_enabled }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run local swift dependencies check
+        run: |
+          apt-get -qq update && apt-get -qq -y install curl yq
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-local-swift-dependencies.sh | bash
 
   unacceptable-language-check:
     name: Unacceptable language check
