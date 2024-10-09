@@ -19,6 +19,7 @@ fatal() { error "$@"; exit 1; }
 
 REPO_ROOT="$(git -C "$PWD" rev-parse --show-toplevel)"
 
+log "Checking for local swift dependencies..."
 read -ra PATHS_TO_CHECK <<< "$( \
   git -C "${REPO_ROOT}" ls-files -z \
   "Package.swift" \
