@@ -110,8 +110,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run local swift dependencies check
-        run: curl -s https://raw.githubusercontent.com/BinaryBirds/github-workflows/refs/heads/feature/checkLocalSwiftDependencies/.github/workflows/scripts/check-local-swift-dependencies.sh | bash
-          #curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-local-swift-dependencies.sh | bash
+        run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-local-swift-dependencies.sh | bash
 
   unacceptable-language-check:
     name: Unacceptable language check
