@@ -51,6 +51,10 @@ on:
         type: string
         description: "Container image for the shell check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.0-noble"
+      yamllint_enabled:
+        type: boolean
+        description: "Boolean to enable the YAML lint job. Defaults to true."
+        default: true
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -177,3 +181,18 @@ jobs:
         run: |
           apt-get -qq update && apt-get -qq -y install shellcheck
           git ls-files -z '*.sh' | xargs -0 shellcheck
+
+  yaml-lint:
+    name: Lint YAML
+    if: ${{ inputs.yamllint_enabled }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run yamllint
+        run: |
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > /tmp/yamllint.yml
+          yamllint --strict --config-file /tmp/yamllint.yml ${GITHUB_WORKSPACE}
