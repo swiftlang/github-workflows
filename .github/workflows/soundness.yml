@@ -51,7 +51,7 @@ on:
         type: string
         description: "Container image for the shell check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.0-noble"
-      yamllint_enabled:
+      yamllint_check_enabled:
         type: boolean
         description: "Boolean to enable the YAML lint job. Defaults to true."
         default: true
@@ -184,7 +184,7 @@ jobs:
 
   yaml-lint:
     name: Lint YAML
-    if: ${{ inputs.yamllint_enabled }}
+    if: ${{ inputs.yamllint_check_enabled }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
