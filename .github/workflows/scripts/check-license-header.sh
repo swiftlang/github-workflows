@@ -55,7 +55,10 @@ while IFS= read -r file_path; do
     rb) expected_file_header=$(cat <(echo '#!/usr/bin/env ruby') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
     in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    *) fatal "Unsupported file extension for file (exclude or update this script): ${file_path}" ;;
+    *)
+      error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
+      paths_with_missing_license+=("${file_path} ")
+      ;;
   esac
   expected_file_header_linecount=$(wc -l <<<"${expected_file_header}")
 
