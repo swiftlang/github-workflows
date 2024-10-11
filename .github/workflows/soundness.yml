@@ -57,7 +57,7 @@ on:
         default: "swift:6.0-noble"
       yamllint_check_enabled:
         type: boolean
-        description: "Boolean to enable the YAML lint job. Defaults to true."
+        description: "Boolean to enable the YAML lint check job. Defaults to true."
         default: true
 
 ## We are cancelling previously triggered workflow runs
@@ -186,8 +186,8 @@ jobs:
           apt-get -qq update && apt-get -qq -y install shellcheck
           git ls-files -z '*.sh' | xargs -0 shellcheck
 
-  yaml-lint:
-    name: Lint YAML
+  yaml-lint-check:
+    name: YAML lint check
     if: ${{ inputs.yamllint_check_enabled }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
