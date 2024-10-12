@@ -216,6 +216,6 @@ jobs:
           persist-credentials: false
       - name: Run flake8
         run: |
-          pip3 install flake8 flake8-import-order --break-system-packages
+          pip3 install flake8 flake8-import-order
           cd ${GITHUB_WORKSPACE}
           flake8
