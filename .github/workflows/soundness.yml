@@ -220,6 +220,6 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".flake8" ]; then
             echo "Downloading default flake8 config file"
-            curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/.flake8.yml > .flake8
+            curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/.flake8 > .flake8
           fi
           flake8
