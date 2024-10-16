@@ -3,14 +3,18 @@ name: Swift Linux Matrix
 on:
   workflow_call:
     inputs:
-      exclude_swift_versions:
+      linux_exclude_swift_versions:
         type: string
-        description: "Exclude Swift version list (JSON)"
+        description: "Exclude Linux Swift version list (JSON)"
         default: "[{\"swift_version\": \"\"}]"
-      os_versions:
+      linux_os_versions:
         type: string
-        description: "OS version list (JSON)"
+        description: "Linux OS version list (JSON)"
         default: "[\"jammy\"]"
+      windows_exclude_swift_versions:
+        type: string
+        description: "Exclude Windows Swift version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       swift_flags:
         type: string
         description: "Swift flags for release version"
@@ -19,29 +23,37 @@ on:
         type: string
         description: "Swift flags for nightly version"
         default: ""
-      pre_build_command:
+      linux_pre_build_command:
         type: string
-        description: "Command to execute before building the Swift package"
+        description: "Linux command to execute before building the Swift package"
         default: ""
-      build_command:
+      linux_build_command:
         type: string
-        description: "Build command default is swift test"
+        description: "Linux Build command default is swift test"
         default: "swift test"
-      env_vars:
+      windows_build_command:
+        type: string
+        description: "Linux Build command default is swift test"
+        default: "swift test"
+      linux_env_vars:
         description: "List of environment variables"
         type: string
+      enable_windows_checks:
+        type: boolean
+        description: "Boolean to enable windows testing. Defaults to true."
+        default: true
 
 jobs:
-  build:
+  linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.0']
-        os_version: ${{ fromJson(inputs.os_versions) }}
+        os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
-          - ${{ fromJson(inputs.exclude_swift_versions) }}
+          - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -50,13 +62,51 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set environment variables
-        if: ${{ inputs.env_vars }}
+        if: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.env_vars }}"
+            for i in "${{ inputs.linux_env_vars }}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
-        run: ${{ inputs.pre_build_command }}
+        run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
-        run: ${{ inputs.build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+
+  windows-build:
+    name: Windows (${{ matrix.swift_version }} - windows-2022)
+    if: ${{ inputs.enable_windows_checks }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ['5.9', '6.0']
+        exclude:
+          - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
+    steps:
+      - name: Pull Docker image
+        run: docker pull swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build / Test
+        timeout-minutes: 20
+        run: docker run -v ${{ github.workspace }}:C:\source swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{  inputs.swift_flags }}"
+
+  windows-nightly-build:
+    name: Windows (${{ matrix.swift_version }} - windows-2019)
+    if: ${{ inputs.enable_windows_checks }}
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ['nightly', 'nightly-6.0']
+        exclude:
+          - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
+    steps:
+      - name: Pull Docker image
+        run: docker pull swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build / Test
+        timeout-minutes: 20
+        run: docker run -v ${{ github.workspace }}:C:\source swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{ inputs.swift_nightly_flags }}"
