@@ -19,7 +19,11 @@ fatal() { error "$@"; exit 1; }
 
 test -n "${PROJECT_NAME:-}" || fatal "PROJECT_NAME unset"
 
-expected_file_header_template="@@===----------------------------------------------------------------------===@@
+if [ -f .license_header_template ]; then
+  # allow projects to override the license header template
+  expected_file_header_template=$(cat .license_header_template)
+else
+  expected_file_header_template="@@===----------------------------------------------------------------------===@@
 @@
 @@ This source file is part of the ${PROJECT_NAME} open source project
 @@
@@ -32,6 +36,7 @@ expected_file_header_template="@@===--------------------------------------------
 @@ SPDX-License-Identifier: Apache-2.0
 @@
 @@===----------------------------------------------------------------------===@@"
+fi
 
 paths_with_missing_license=( )
 
