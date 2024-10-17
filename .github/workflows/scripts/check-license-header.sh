@@ -43,7 +43,7 @@ paths_with_missing_license=( )
 file_excludes=".license_header_template
 .licenseignore"
 if [ -f .licenseignore ]; then 
-  file_excludes=$file_excludes\n$(cat .licenseignore)
+  file_excludes=$file_excludes$(printf '\n')$(cat .licenseignore)
 fi
 file_paths=$(echo "$file_excludes" | tr '\n' '\0' | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files)
 
