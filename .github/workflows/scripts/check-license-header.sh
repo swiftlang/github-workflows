@@ -1,15 +1,15 @@
 #!/bin/bash
-# ===----------------------------------------------------------------------===//
-#
-# This source file is part of the Swift.org open source project
-#
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
-# Licensed under Apache License v2.0 with Runtime Library Exception
-#
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
-#
-# ===----------------------------------------------------------------------===//
+## ===----------------------------------------------------------------------===##
+##
+## This source file is part of the Swift.org open source project
+##
+## Copyright (c) 2024 Apple Inc. and the Swift project authors
+## Licensed under Apache License v2.0 with Runtime Library Exception
+##
+## See https://swift.org/LICENSE.txt for license information
+## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+##
+## ===----------------------------------------------------------------------===##
 
 set -euo pipefail
 
@@ -40,12 +40,12 @@ fi
 
 paths_with_missing_license=( )
 
-file_excludes=".license_header_template
-.licenseignore"
-if [ -f .licenseignore ]; then 
-  file_excludes=$file_excludes$(printf '\n')$(cat .licenseignore)
+if [[ -f .licenseignore ]]; then
+  file_paths=$(tr '\n' '\0' < .licenseignore | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files ":(exclude).licenseignore" ":(exclude).license_header_template" )
+else
+  file_paths=$(git ls-files ":(exclude).license_header_template" )
 fi
-file_paths=$(echo "$file_excludes" | tr '\n' '\0' | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files)
+
 
 while IFS= read -r file_path; do
   file_basename=$(basename -- "${file_path}")
