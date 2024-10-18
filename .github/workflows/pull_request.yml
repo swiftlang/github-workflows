@@ -10,6 +10,5 @@ jobs:
     uses: ./.github/workflows/soundness.yml
     with:
       api_breakage_check_enabled: false
-      license_header_check_enabled: false
       license_header_check_project_name: "Swift.org"
       format_check_enabled: false
