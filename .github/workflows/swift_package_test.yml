@@ -80,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '5.10', '6.0']
+        swift_version: ['5.9', '5.10.0', '6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
