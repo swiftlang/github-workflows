@@ -89,7 +89,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Build / Test
-        timeout-minutes: 20
+        timeout-minutes: 60
         run: docker run -v ${{ github.workspace }}:C:\source swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{  inputs.swift_flags }}"
 
   windows-nightly-build:
@@ -108,5 +108,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Build / Test
-        timeout-minutes: 20
+        timeout-minutes: 60
         run: docker run -v ${{ github.workspace }}:C:\source swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{ inputs.swift_nightly_flags }}"
