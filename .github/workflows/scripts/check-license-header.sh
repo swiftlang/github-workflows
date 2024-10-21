@@ -57,6 +57,7 @@ while IFS= read -r file_path; do
     h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     c) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
+    ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     gradle) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     groovy) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
