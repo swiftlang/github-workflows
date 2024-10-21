@@ -27,6 +27,10 @@ on:
         type: string
         description: "Linux command to execute before building the Swift package"
         default: ""
+      musl_pre_build_command:
+        type: string
+        description: "Linux command to execute before building the Swift package"
+        default: ""
       linux_build_command:
         type: string
         description: "Linux Build command default is swift test"
@@ -35,12 +39,20 @@ on:
         type: string
         description: "Linux Build command default is swift test"
         default: "swift test"
+      musl_build_command:
+        type: string
+        description: "MUSL Build command default is swift test"
+        default: "swift test"
       linux_env_vars:
         description: "List of environment variables"
         type: string
       enable_windows_checks:
         type: boolean
         description: "Boolean to enable windows testing. Defaults to true."
+        default: true
+      enable_musl_checks:
+        type: boolean
+        description: "Boolean to enable musl testing. Defaults to true."
         default: true
 
 jobs:
@@ -110,3 +122,27 @@ jobs:
       - name: Build / Test
         timeout-minutes: 60
         run: docker run -v ${{ github.workspace }}:C:\source swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{ inputs.swift_nightly_flags }}"
+
+  musl-build:
+    name: MUSL
+    if: ${{ inputs.enable_musl_checks }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    container: swift:6.0-noble
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Install SDK
+        run: swift sdk install https://download.swift.org/swift-6.0.1-release/static-sdk/swift-6.0.1-RELEASE/swift-6.0.1-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz --checksum d4f46ba40e11e697387468e18987ee622908bc350310d8af54eb5e17c2ff5481
+      - name: Set environment variables
+        if: ${{ inputs.linux_env_vars }}
+        run: |
+            for i in "${{ inputs.linux_env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Pre-build
+        run: ${{ inputs.musl_pre_build_command }}
+      - name: Build / Test
+        run: ${{ inputs.musl_build_command }} ${{ inputs.swift_flags }}
