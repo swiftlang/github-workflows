@@ -202,6 +202,7 @@ jobs:
           persist-credentials: false
       - name: Run yamllint
         run: |
+          which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > /tmp/yamllint.yml
           yamllint --strict --config-file /tmp/yamllint.yml ${GITHUB_WORKSPACE}
   python-lint-check:
