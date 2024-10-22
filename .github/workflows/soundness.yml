@@ -188,7 +188,7 @@ jobs:
       - name: Run shellcheck
         run: |
           apt-get -qq update && apt-get -qq -y install shellcheck
-          git ls-files -z '*.sh' | xargs -0 shellcheck
+          git ls-files -z '*.sh' | xargs -0 --no-run-if-empty shellcheck
 
   yaml-lint-check:
     name: YAML lint check
