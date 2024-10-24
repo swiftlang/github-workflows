@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
+        swift_version: ['5.9', '5.10', '6.0', 'nightly', 'nightly-6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
@@ -103,18 +103,16 @@ jobs:
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
+          echo 'Set-PSDebug -Trace 1' >> $env:TEMP\test-script\run.ps1
+          echo '$ErrorActionPreference = "Stop"' >> $env:TEMP\test-script\run.ps1
+          echo 'swift --version' >> $env:TEMP\test-script\run.ps1
+          echo 'swift test --version' >> $env:TEMP\test-script\run.ps1
+          echo 'cd C:\source\' >> $env:TEMP\test-script\run.ps1
           echo @'
-          Set-PSDebug -Trace 1
-          $ErrorActionPreference = "Stop"
           ${{ inputs.windows_pre_build_command }}
-          '@ >> $env:TEMP\test-script\pre-build.ps1
-
-          echo 'swift --version || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
-          echo 'swift test --version || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
-          echo 'cd C:\source\ || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
-          echo 'powershell.exe -NoLogo -File C:\test-script\pre-build.ps1 || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
-          echo '${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }} || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
+          '@ >> $env:TEMP\test-script\run.ps1
+          echo '${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}' >> $env:TEMP\test-script\run.ps1
       - name: Build / Test
         timeout-minutes: 60
         run: |
-          docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} C:\test-script\run.cmd
+          docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} powershell.exe -NoLogo -File C:\test-script\run.ps1
