@@ -211,8 +211,12 @@ jobs:
       - name: Run yamllint
         run: |
           which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
-          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > /tmp/yamllint.yml
-          yamllint --strict --config-file /tmp/yamllint.yml ${GITHUB_WORKSPACE}
+          cd ${GITHUB_WORKSPACE}
+          if [ ! -f ".yamllint.yml" ]; then
+            echo "Downloading default yamllint config file"
+            curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > .yamllint.yml
+          fi
+          yamllint --strict --config-file .yamllint.yml .
   python-lint-check:
     name: Python lint check
     if: ${{ inputs.python_lint_check_enabled }}
