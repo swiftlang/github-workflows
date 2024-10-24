@@ -29,18 +29,22 @@ on:
         default: ""
       linux_build_command:
         type: string
-        description: "Linux Build command default is swift test"
+        description: "Linux command to build and test the package"
         default: "swift test"
+      windows_pre_build_command:
+        type: string
+        description: "Windows Command Prompt command to execute before building the Swift package"
+        default: ""
       windows_build_command:
         type: string
-        description: "Linux Build command default is swift test"
+        description: "Windows Command Prompt command to build and test the package"
         default: "swift test"
       linux_env_vars:
         description: "List of environment variables"
         type: string
       enable_windows_checks:
         type: boolean
-        description: "Boolean to enable windows testing. Defaults to true."
+        description: "Boolean to enable windows testing. Defaults to true"
         default: true
 
 jobs:
@@ -76,37 +80,41 @@ jobs:
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
     if: ${{ inputs.enable_windows_checks }}
-    runs-on: windows-2022
+    runs-on: ${{ contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }}
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0']
+        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
-      - name: Pull Docker image
-        run: docker pull swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Build / Test
-        timeout-minutes: 60
-        run: docker run -v ${{ github.workspace }}:C:\source swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{  inputs.swift_flags }}"
+      - name: Pull Docker image
+        id: pull_docker_image
+        run: |
+          if ("${{ matrix.swift_version }}".Contains("nightly")) {
+            $Image = "swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809"
+          } else {
+            $Image = "swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022"
+          }
+          docker pull $Image
+          echo "image=$Image" >> "$env:GITHUB_OUTPUT"
+      - name: Create test script
+        run: |
+          mkdir $env:TEMP\test-script
+          echo @'
+          Set-PSDebug -Trace 1
+          $ErrorActionPreference = "Stop"
+          ${{ inputs.windows_pre_build_command }}
+          '@ >> $env:TEMP\test-script\pre-build.ps1
 
-  windows-nightly-build:
-    name: Windows (${{ matrix.swift_version }} - windows-2019)
-    if: ${{ inputs.enable_windows_checks }}
-    runs-on: windows-2019
-    strategy:
-      fail-fast: false
-      matrix:
-        swift_version: ['nightly', 'nightly-6.0']
-        exclude:
-          - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
-    steps:
-      - name: Pull Docker image
-        run: docker pull swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809
-      - name: Checkout repository
-        uses: actions/checkout@v4
+          echo 'swift --version || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
+          echo 'swift test --version || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
+          echo 'cd C:\source\ || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
+          echo 'powershell.exe -NoLogo -File C:\test-script\pre-build.ps1 || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
+          echo '${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }} || (exit /b 1)' >> $env:TEMP\test-script\run.cmd
       - name: Build / Test
         timeout-minutes: 60
-        run: docker run -v ${{ github.workspace }}:C:\source swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809 cmd /s /c  "swift --version & swift test --version & cd C:\source\ & ${{ inputs.windows_build_command }} ${{ inputs.swift_nightly_flags }}"
+        run: |
+          docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} C:\test-script\run.cmd
