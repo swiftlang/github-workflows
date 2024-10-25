@@ -161,7 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ inputs.format_check_container_image }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
