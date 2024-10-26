@@ -37,7 +37,10 @@ on:
         default: ""
       windows_build_command:
         type: string
-        description: "Windows Command Prompt command to build and test the package"
+        description: |
+          Windows Command Prompt command to build and test the package.
+          Note that Powershell does not automatically exit if a subcommand fails. The Invoke-Program utility is available to propagate non-zero exit codes.
+          It is strongly encouraged to run all command using `Invoke-Program` unless you want to continue on error eg. `Invoke-Program git apply patch.diff` instead of `git apply patch.diff`.
         default: "swift test"
       linux_env_vars:
         description: "List of environment variables"
@@ -84,7 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '5.10', '6.0', 'nightly', 'nightly-6.0']
+        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
@@ -103,15 +106,23 @@ jobs:
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
-          echo 'Set-PSDebug -Trace 1' >> $env:TEMP\test-script\run.ps1
-          echo '$ErrorActionPreference = "Stop"' >> $env:TEMP\test-script\run.ps1
-          echo 'swift --version' >> $env:TEMP\test-script\run.ps1
-          echo 'swift test --version' >> $env:TEMP\test-script\run.ps1
-          echo 'cd C:\source\' >> $env:TEMP\test-script\run.ps1
           echo @'
+          Set-PSDebug -Trace 1
+
+          # Run the command following `Invoke-Program`.
+          # If that command returns a non-zero exit code, return the same exit code from this script.
+          function Invoke-Program($Executable) {
+            & $Executable @args
+            if ($LastExitCode -ne 0) {
+              exit $LastExitCode
+            }
+          }
+          Invoke-Program swift --version
+          Invoke-Program swift test --version
+          Invoke-Program cd C:\source\
           ${{ inputs.windows_pre_build_command }}
+          Invoke-Program ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           '@ >> $env:TEMP\test-script\run.ps1
-          echo '${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}' >> $env:TEMP\test-script\run.ps1
       - name: Build / Test
         timeout-minutes: 60
         run: |
