@@ -41,11 +41,14 @@ fi
 paths_with_missing_license=( )
 
 if [[ -f .licenseignore ]]; then
-  file_paths=$(tr '\n' '\0' < .licenseignore | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files ":(exclude).licenseignore" ":(exclude).license_header_template" )
+  static_exclude_list='":(exclude).licenseignore" ":(exclude).license_header_template" '
+  dynamic_exclude_list=$(tr '\n' '\0' < .licenseignore | xargs -0 -I% printf '":(exclude)%" ')
+  exclude_list=$static_exclude_list$dynamic_exclude_list
 else
-  file_paths=$(git ls-files ":(exclude).license_header_template" )
+  exclude_list=":(exclude).license_header_template"
 fi
 
+file_paths=$(echo "$exclude_list" | xargs git ls-files)
 
 while IFS= read -r file_path; do
   file_basename=$(basename -- "${file_path}")
