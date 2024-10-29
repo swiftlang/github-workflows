@@ -56,23 +56,23 @@ while IFS= read -r file_path; do
 
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
-    swift) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     c) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    js) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    jsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    ts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    tsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     gradle) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     groovy) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     java) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    js) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    jsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     py) expected_file_header=$(cat <(echo '#!/usr/bin/env python3') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
     rb) expected_file_header=$(cat <(echo '#!/usr/bin/env ruby') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
+    sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
+    swift) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    ts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    tsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
