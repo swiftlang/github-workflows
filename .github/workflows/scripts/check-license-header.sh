@@ -64,6 +64,7 @@ while IFS= read -r file_path; do
     in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     java) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     js) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    json) continue ;; # JSON doesn't support comments
     jsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
@@ -71,6 +72,7 @@ while IFS= read -r file_path; do
     rb) expected_file_header=$(cat <(echo '#!/usr/bin/env ruby') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
     sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
     swift) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    swift-format) continue ;; # .swift-format is JSON and doesn't support comments
     ts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     tsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     *)
