@@ -1,5 +1,5 @@
 #!/bin/bash
-## ===----------------------------------------------------------------------===##
+##===----------------------------------------------------------------------===##
 ##
 ## This source file is part of the Swift.org open source project
 ##
@@ -9,7 +9,7 @@
 ## See https://swift.org/LICENSE.txt for license information
 ## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 ##
-## ===----------------------------------------------------------------------===##
+##===----------------------------------------------------------------------===##
 
 set -euo pipefail
 
