@@ -73,6 +73,36 @@ pre_build_command: "apt-get update -y -q && apt-get install -y -q example"
 
 macOS and Windows platform support will be available soon.
 
+### Welcome a first-time contributor
+
+This is example of a recommended workflow for creating a comment with the
+specified Markdown text when a first-time contributor opens an issue or pull
+request:
+
+```yaml
+name: Comment on first contribution
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+jobs:
+  comment:
+    uses: swiftlang/github-workflows/.github/workflows/comment_on_first_contribution.yml@main
+    with:
+      pull_request_message: <Markdown message>
+      issue_message: <Markdown message>
+```
+
+The `pull_request_message` or `issue_message` inputs are optional.
+If omitted, comments will not be created on pull requests or issues,
+respectively.
+If you only want to greet first-time contributors on either pull requests or
+issues, adjust the events that cause the workflow to run under the `on` keyword
+besides omitting the corresponding input.
+
 ## Running workflows locally
 
 You can run the Github Actions workflows locally using
