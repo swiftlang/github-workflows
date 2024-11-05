@@ -69,6 +69,8 @@ jobs:
       - name: Checkout repository
         if: env.ACT != 'true'
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
         run: |
@@ -95,6 +97,8 @@ jobs:
       - name: Checkout repository
         if: env.ACT != 'true'
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Pull Docker image
         id: pull_docker_image
         run: |
