@@ -126,19 +126,24 @@ jobs:
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
         run: |
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile install-vsb.ps1
-          . .\install-vsb.ps1
-          del .\install-vsb.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile $env:TEMP\install-vsb.ps1
+          . $env:TEMP\install-vsb.ps1
+          del $env:TEMP\install-vsb.ps1
       - name: Install Swift
         if: ${{ !inputs.enable_windows_docker }}
         run: |
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile install-swift.ps1
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile install-swift-${{ matrix.swift_version }}.ps1
-          . .\install-swift-${{ matrix.swift_version }}.ps1
-          del .\install-swift*.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile $env:TEMP\install-swift.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          . $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          del $env:TEMP\install-swift*.ps1
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
+          if ("${{ inputs.enable_windows_docker }}" -eq "true") {
+            $Source = C:\source
+          } else {
+            $Source = $env:GITHUB_WORKSPACE
+          }
           echo @'
           Set-PSDebug -Trace 1
 
@@ -152,12 +157,12 @@ jobs:
           }
           Invoke-Program swift --version
           Invoke-Program swift test --version
-          Invoke-Program cd C:\source\
+          Invoke-Program cd $Source
           ${{ inputs.windows_pre_build_command }}
           Invoke-Program ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           '@ >> $env:TEMP\test-script\run.ps1
       # Docker build
-      - name: Build / Test
+      - name: Docker Build / Test
         timeout-minutes: 60
         if: ${{ inputs.enable_windows_docker }}
         run: |
@@ -166,4 +171,7 @@ jobs:
       - name: Build / Test
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
-        run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1
+        run: |
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+          RefreshEnv
+          powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
