@@ -83,7 +83,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
@@ -105,7 +104,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run documentation check
         run: |
           apt-get -qq update && apt-get -qq -y install curl yq
@@ -122,7 +120,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
@@ -139,7 +136,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run license header check
         env:
           PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
@@ -156,7 +152,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run broken symlinks check
         run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-broken-symlinks.sh | bash
 
@@ -173,7 +168,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
@@ -195,7 +189,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
@@ -215,7 +208,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run yamllint
         run: |
           which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
@@ -236,7 +228,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
-          ref: ${{ github.ref }}  # Include changes to the target branch when action is re-run https://github.com/actions/checkout/issues/1036
       - name: Run flake8
         run: |
           pip3 install flake8 flake8-import-order
