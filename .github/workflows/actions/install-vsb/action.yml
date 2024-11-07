@@ -1,0 +1,8 @@
+name: Install Visual Studio Tools
+description: Installs Visual Studio Tools
+runs:
+  using: composite
+  steps:
+    - name: Run Script
+      shell: powershell
+      run: .\install-vsb.ps1

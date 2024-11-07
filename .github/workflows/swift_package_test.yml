@@ -125,10 +125,17 @@ jobs:
           echo "image=$Image" >> "$env:GITHUB_OUTPUT"
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
-        run: . .github\workflows\scripts\windows\install-vsb.ps1
+        run: |
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile install-vsb.ps1
+          . .\install-vsb.ps1
+          del .\install-vsb.ps1
       - name: Install Swift
         if: ${{ !inputs.enable_windows_docker }}
-        run: . .github\workflows\scripts\windows\swift\install-swift-${{ matrix.swift_version }}.ps1
+        run: |
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile install-swift.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile install-swift-${{ matrix.swift_version }}.ps1
+          . .\install-swift-${{ matrix.swift_version }}.ps1
+          del .\install-swift*.ps1
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
