@@ -159,11 +159,11 @@ jobs:
       # Docker build
       - name: Build / Test
         timeout-minutes: 60
-        if: ${{ !inputs.enable_windows_docker }}
+        if: ${{ inputs.enable_windows_docker }}
         run: |
           docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} powershell.exe -NoLogo -File C:\test-script\run.ps1
       # Docker-less build
       - name: Build / Test
         timeout-minutes: 60
-        if: ${{ inputs.enable_windows_docker }}
+        if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1
