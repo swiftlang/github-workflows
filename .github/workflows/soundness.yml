@@ -79,6 +79,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -100,6 +101,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -116,6 +118,7 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -132,6 +135,7 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -148,6 +152,7 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -164,6 +169,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -185,6 +191,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -204,6 +211,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -224,6 +232,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
         with:
           persist-credentials: false

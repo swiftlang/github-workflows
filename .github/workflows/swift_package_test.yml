@@ -67,6 +67,7 @@ jobs:
       - name: Swift version
         run: swift --version
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
@@ -92,6 +93,7 @@ jobs:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
       - name: Checkout repository
+        if: env.ACT != 'true'
         uses: actions/checkout@v4
       - name: Pull Docker image
         id: pull_docker_image
