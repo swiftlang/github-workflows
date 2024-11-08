@@ -3,6 +3,10 @@ name: Swift Linux Matrix
 on:
   workflow_call:
     inputs:
+      linux_swift_versions:
+        type: string
+        description: "Include Linux Swift version list (JSON)"
+        default: "[\"5.8\", \"5.9\", \"5.10\", \"6.0\", \"nightly-main\", \"nightly-6.0\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
@@ -11,6 +15,10 @@ on:
         type: string
         description: "Linux OS version list (JSON)"
         default: "[\"jammy\"]"
+      windows_swift_versions:
+        type: string
+        description: "Include Windows Swift version list (JSON)"
+        default: "[\"5.9\", \"6.0\", \"nightly\", \"nightly-6.0\"]"
       windows_exclude_swift_versions:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
@@ -57,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.0']
+        swift_version: ${{ fromJson(inputs.linux_swift_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
@@ -87,7 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
+        swift_version: ${{ fromJson(inputs.windows_swift_versions) }}
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
