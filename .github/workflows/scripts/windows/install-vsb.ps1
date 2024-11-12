@@ -1,5 +1,5 @@
-$VSB='https://aka.ms/vs/17/release/vs_buildtools.exe'
-$VSB_SHA256='99C7677154366062A43082921F40F3CE00EF2614DBF94DB23B244DD13DC9443D'
+$VSB='https://download.visualstudio.microsoft.com/download/pr/5536698c-711c-4834-876f-2817d31a2ef2/c792bdb0fd46155de19955269cac85d52c4c63c23db2cf43d96b9390146f9390/vs_BuildTools.exe'
+$VSB_SHA256='C792BDB0FD46155DE19955269CAC85D52C4C63C23DB2CF43D96B9390146F9390'
 Set-Variable ErrorActionPreference Stop
 Set-Variable ProgressPreference SilentlyContinue
 Write-Host -NoNewLine ('Downloading {0} ... ' -f ${VSB})
