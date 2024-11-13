@@ -17,6 +17,11 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
+if [ ! -f .spi.yml ]; then
+  log "No '.spi.yml' found, no documentation targets to check."
+  exit 0
+fi
+
 log "Editing Package.swift..."
 cat <<EOF >> "Package.swift"
 package.dependencies.append(
