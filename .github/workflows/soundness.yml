@@ -7,6 +7,10 @@ on:
         type: boolean
         description: "Boolean to enable the API breakage check job. Defaults to true."
         default: true
+      api_breakage_check_allowlist_path:
+        type: string
+        description: "Path to a file that will be passed as --breakage-allowlist-path to swift package diagnose-api-breaking-changes"
+        default: ""
       api_breakage_check_container_image:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
@@ -89,7 +93,11 @@ jobs:
       - name: Run API breakage check
         run: |
           git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
-          swift package diagnose-api-breaking-changes pull-base-ref
+          if [[ -z '${{ inputs.api_breakage_check_allowlist_path }}' ]]; then
+            swift package diagnose-api-breaking-changes pull-base-ref
+          else
+            swift package diagnose-api-breaking-changes pull-base-ref --breakage-allowlist-path '${{ inputs.api_breakage_check_allowlist_path }}'
+          fi
 
   docs-check:
     name: Documentation check
@@ -217,6 +225,7 @@ jobs:
             curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > .yamllint.yml
           fi
           yamllint --strict --config-file .yamllint.yml .
+
   python-lint-check:
     name: Python lint check
     if: ${{ inputs.python_lint_check_enabled }}
