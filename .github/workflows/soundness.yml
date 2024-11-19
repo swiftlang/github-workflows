@@ -63,6 +63,10 @@ on:
         type: boolean
         description: "Boolean to enable the Python lint check job. Defaults to true."
         default: true
+      linux_pre_run_command:
+        type: string
+        description: "Linux command to execute before building the Swift package"
+        default: ""
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -86,6 +90,9 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run API breakage check
         run: |
           git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
@@ -104,6 +111,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run documentation check
         run: |
           apt-get -qq update && apt-get -qq -y install curl yq
@@ -120,6 +130,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
@@ -136,6 +149,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run license header check
         env:
           PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
@@ -152,6 +168,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run broken symlinks check
         run: curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-broken-symlinks.sh | bash
 
@@ -171,6 +190,9 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run format check
         run: |
           apt-get -qq update && apt-get -qq -y install curl
@@ -192,6 +214,9 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run shellcheck
         run: |
           apt-get -qq update && apt-get -qq -y install shellcheck
@@ -208,6 +233,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run yamllint
         run: |
           which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
@@ -217,6 +245,7 @@ jobs:
             curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > .yamllint.yml
           fi
           yamllint --strict --config-file .yamllint.yml .
+
   python-lint-check:
     name: Python lint check
     if: ${{ inputs.python_lint_check_enabled }}
@@ -228,6 +257,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-run setup
+        if: ${{ inputs.linux_pre_run_command }}
+        run: ${{ inputs.linux_pre_run_command }}
       - name: Run flake8
         run: |
           pip3 install flake8 flake8-import-order
