@@ -67,6 +67,10 @@ on:
         type: boolean
         description: "Boolean to enable the Python lint check job. Defaults to true."
         default: true
+      linux_pre_build_command:
+        type: string
+        description: "Linux command to execute before building the Swift package"
+        default: ""
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -90,6 +94,9 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-build
+        if: ${{ inputs.linux_pre_build_command }}
+        run: ${{ inputs.linux_pre_build_command }}
       - name: Run API breakage check
         run: |
           git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
@@ -112,6 +119,9 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-build
+        if: ${{ inputs.linux_pre_build_command }}
+        run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
         run: |
           which curl yq || (apt -q update && apt -yq install curl yq)
