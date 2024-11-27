@@ -65,10 +65,11 @@ exclude_swift_versions: "[{\"swift_version\": \"5.8\"}]"
 ```
 
 Additionally, if your package requires additional installed packages, you can
-use the `pre_build_command`:
+use the `pre_build_command`. For example, to install a package called
+`example`:
 
 ```yaml
-pre_build_command: "apt-get update -y -q && apt-get install -y -q example"
+pre_build_command: "which example || (apt update -q && apt install -yq example"
 ```
 
 macOS and Windows platform support will be available soon.

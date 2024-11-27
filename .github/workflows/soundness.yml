@@ -114,7 +114,7 @@ jobs:
           submodules: true
       - name: Run documentation check
         run: |
-          apt-get -qq update && apt-get -qq -y install curl yq
+          which curl yq || (apt -q update && apt -yq install curl yq)
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
 
   unacceptable-language-check:
@@ -181,7 +181,7 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run format check
         run: |
-          apt-get -qq update && apt-get -qq -y install curl
+          which curl || (apt -q update && apt -yq install curl)
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-swift-format.sh | bash
 
   shell-check:
@@ -202,7 +202,7 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run shellcheck
         run: |
-          apt-get -qq update && apt-get -qq -y install shellcheck
+          which shellcheck || (apt -q update && apt -yq install shellcheck)
           git ls-files -z '*.sh' | xargs -0 --no-run-if-empty shellcheck
 
   yaml-lint-check:
@@ -218,7 +218,7 @@ jobs:
           submodules: true
       - name: Run yamllint
         run: |
-          which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
+          which yamllint || (apt -q update && apt install -yq yamllint)
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".yamllint.yml" ]; then
             echo "Downloading default yamllint config file"
