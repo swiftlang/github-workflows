@@ -45,14 +45,26 @@ on:
       linux_env_vars:
         description: "List of environment variables"
         type: string
+      windows_env_vars:
+        description: "List of environment variables"
+        type: string
+      enable_linux_checks:
+        type: boolean
+        description: "Boolean to enable linux testing. Defaults to true"
+        default: true
       enable_windows_checks:
         type: boolean
         description: "Boolean to enable windows testing. Defaults to true"
+        default: true
+      enable_windows_docker:
+        type: boolean
+        description: "Boolean to enable running build in windows docker container. Defaults to true"
         default: true
 
 jobs:
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    if: ${{ inputs.enable_linux_checks }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -87,14 +99,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
+        swift_version: ['5.9', '5.10', '6.0', 'nightly', 'nightly-6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Set environment variables
+        if: ${{ inputs.windows_env_vars }}
+        run: |
+          $lines = "${{ inputs.windows_env_vars }}" -split "`r`n"
+          foreach ($line in $lines) {
+              echo $line | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          }
       - name: Pull Docker image
         id: pull_docker_image
+        if: ${{ inputs.enable_windows_docker }}
         run: |
           if ("${{ matrix.swift_version }}".Contains("nightly")) {
             $Image = "swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809"
@@ -103,9 +123,27 @@ jobs:
           }
           docker pull $Image
           echo "image=$Image" >> "$env:GITHUB_OUTPUT"
+      - name: Install Visual Studio Build Tools
+        if: ${{ !inputs.enable_windows_docker }}
+        run: |
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile $env:TEMP\install-vsb.ps1
+          . $env:TEMP\install-vsb.ps1
+          del $env:TEMP\install-vsb.ps1
+      - name: Install Swift
+        if: ${{ !inputs.enable_windows_docker }}
+        run: |
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile $env:TEMP\install-swift.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          . $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          del $env:TEMP\install-swift*.ps1
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
+          if ("${{ inputs.enable_windows_docker }}" -eq "true") {
+            $Source = C:\source
+          } else {
+            $Source = $env:GITHUB_WORKSPACE
+          }
           echo @'
           Set-PSDebug -Trace 1
 
@@ -119,11 +157,21 @@ jobs:
           }
           Invoke-Program swift --version
           Invoke-Program swift test --version
-          Invoke-Program cd C:\source\
+          Invoke-Program cd $Source
           ${{ inputs.windows_pre_build_command }}
           Invoke-Program ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           '@ >> $env:TEMP\test-script\run.ps1
-      - name: Build / Test
+      # Docker build
+      - name: Docker Build / Test
         timeout-minutes: 60
+        if: ${{ inputs.enable_windows_docker }}
         run: |
           docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} powershell.exe -NoLogo -File C:\test-script\run.ps1
+      # Docker-less build
+      - name: Build / Test
+        timeout-minutes: 60
+        if: ${{ !inputs.enable_windows_docker }}
+        run: |
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+          RefreshEnv
+          powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
