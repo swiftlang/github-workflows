@@ -126,14 +126,14 @@ jobs:
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
         run: |
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile $env:TEMP\install-vsb.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/install-vsb.ps1 -OutFile $env:TEMP\install-vsb.ps1
           . $env:TEMP\install-vsb.ps1
           del $env:TEMP\install-vsb.ps1
       - name: Install Swift
         if: ${{ !inputs.enable_windows_docker }}
         run: |
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile $env:TEMP\install-swift.ps1
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/dockerless-windows/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile $env:TEMP\install-swift.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
           . $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
           del $env:TEMP\install-swift*.ps1
       - name: Create test script
