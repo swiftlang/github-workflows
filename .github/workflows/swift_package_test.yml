@@ -99,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '5.10', '6.0', 'nightly', 'nightly-6.0']
+        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.0']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
@@ -139,13 +139,13 @@ jobs:
       - name: Create test script
         run: |
           mkdir $env:TEMP\test-script
+          echo @'
+          Set-PSDebug -Trace 1
           if ("${{ inputs.enable_windows_docker }}" -eq "true") {
             $Source = "C:\source"
           } else {
             $Source = $env:GITHUB_WORKSPACE
           }
-          echo @'
-          Set-PSDebug -Trace 1
 
           # Run the command following `Invoke-Program`.
           # If that command returns a non-zero exit code, return the same exit code from this script.
