@@ -140,7 +140,7 @@ jobs:
         run: |
           mkdir $env:TEMP\test-script
           if ("${{ inputs.enable_windows_docker }}" -eq "true") {
-            $Source = C:\source
+            $Source = "C:\source"
           } else {
             $Source = $env:GITHUB_WORKSPACE
           }
