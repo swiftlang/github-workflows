@@ -53,6 +53,9 @@ file_paths=$(echo "$exclude_list" | xargs git ls-files)
 while IFS= read -r file_path; do
   file_basename=$(basename -- "${file_path}")
   file_extension="${file_basename##*.}"
+  if [[ -L "${file_path}" ]]; then
+    continue  # Ignore symbolic links
+  fi
 
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
