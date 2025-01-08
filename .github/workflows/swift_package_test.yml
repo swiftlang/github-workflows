@@ -93,9 +93,9 @@ jobs:
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   windows-build:
-    name: Windows (${{ matrix.swift_version }} - ${{ contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }})
+    name: Windows (${{ matrix.swift_version }} - ${{ inputs.enable_windows_docker && contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }})
     if: ${{ inputs.enable_windows_checks }}
-    runs-on: ${{ contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }}
+    runs-on: ${{ inputs.enable_windows_docker && contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }}
     strategy:
       fail-fast: false
       matrix:
