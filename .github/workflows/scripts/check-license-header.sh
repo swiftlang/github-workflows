@@ -17,12 +17,11 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
-test -n "${PROJECT_NAME:-}" || fatal "PROJECT_NAME unset"
-
 if [ -f .license_header_template ]; then
   # allow projects to override the license header template
   expected_file_header_template=$(cat .license_header_template)
 else
+  test -n "${PROJECT_NAME:-}" || fatal "PROJECT_NAME unset"
   expected_file_header_template="@@===----------------------------------------------------------------------===@@
 @@
 @@ This source file is part of the ${PROJECT_NAME} open source project
