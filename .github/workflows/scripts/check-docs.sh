@@ -26,17 +26,20 @@ if ! command -v yq &> /dev/null; then
   fatal "yq could not be found. Please install yq to proceed."
 fi
 
-if [ ! -f Package.swift ]; then
+package_files=$(find . -maxdepth 1 -name 'Package*.swift')
+if [ -z "$package_files" ]; then
   fatal "Package.swift not found. Please ensure you are running this script from the root of a Swift package."
 fi
 
-log "Editing Package.swift..."
-cat <<EOF >> "Package.swift"
+for package_file in $package_files; do
+  log "Editing $package_file..."
+  cat <<EOF >> "$package_file"
 
 package.dependencies.append(
     .package(url: "https://github.com/swiftlang/swift-docc-plugin", "1.0.0"..<"1.4.0")
 )
 EOF
+done
 
 log "Checking documentation targets..."
 for target in $(yq -r '.builder.configs[].documentation_targets[]' .spi.yml); do
