@@ -22,6 +22,14 @@ if [ ! -f .spi.yml ]; then
   exit 0
 fi
 
+if ! command -v yq &> /dev/null; then
+  fatal "yq could not be found. Please install yq to proceed."
+fi
+
+if [ ! -f Package.swift ]; then
+  fatal "Package.swift not found. Please ensure you are running this script from the root of a Swift package."
+fi
+
 log "Editing Package.swift..."
 cat <<EOF >> "Package.swift"
 
