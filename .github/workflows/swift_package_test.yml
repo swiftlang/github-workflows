@@ -133,7 +133,7 @@ jobs:
         if: ${{ !inputs.enable_windows_docker }}
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift.ps1 -OutFile $env:TEMP\install-swift.ps1
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/award999/github-workflows/refs/heads/win-nightly-6.1/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1 -OutFile $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
           . $env:TEMP\install-swift-${{ matrix.swift_version }}.ps1
           del $env:TEMP\install-swift*.ps1
       - name: Create test script
