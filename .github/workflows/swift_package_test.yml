@@ -60,6 +60,10 @@ on:
         type: boolean
         description: "Boolean to enable running build in windows docker container. Defaults to true"
         default: true
+      needs_token:
+        type: boolean
+        description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
+        default: false
 
 jobs:
   linux-build:
@@ -80,6 +84,10 @@ jobs:
         run: swift --version
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
         run: |
@@ -105,6 +113,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       - name: Set environment variables
         if: ${{ inputs.windows_env_vars }}
         run: |
