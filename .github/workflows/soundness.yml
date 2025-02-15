@@ -37,8 +37,8 @@ on:
         default: true
       license_header_check_project_name:
         type: string
-        description: "Name of the project called out in the license header."
-        required: true
+        description: "Name of the project called out in the license header. Required unless `license_header_check_enabled` is false or a `.license_header_template` file is present."
+        default: ""
       broken_symlink_check_enabled:
         type: boolean
         description: "Boolean to enable the broken symlink check job. Defaults to true."
