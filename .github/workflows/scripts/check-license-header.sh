@@ -58,8 +58,12 @@ while IFS= read -r file_path; do
 
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
+    bazel) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
+    bzl) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
+    bazelrc) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     c) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
+    editorconfig) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
     gradle) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     groovy) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
     h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
@@ -81,6 +85,7 @@ while IFS= read -r file_path; do
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
+      continue
       ;;
   esac
   expected_file_header_linecount=$(wc -l <<<"${expected_file_header}")
@@ -88,7 +93,7 @@ while IFS= read -r file_path; do
   file_header=$(head -n "${expected_file_header_linecount}" "${file_path}")
   normalized_file_header=$(
     echo "${file_header}" \
-    | sed -e 's/20[12][0123456789]-20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
+    | sed -E -e 's/20[12][0123456789] ?- ?20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
   )
 
   if ! diff -u \
