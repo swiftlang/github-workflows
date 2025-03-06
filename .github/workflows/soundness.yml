@@ -23,6 +23,10 @@ on:
         type: string
         description: "Container image for the docs check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.0-noble"
+      docs_check_additional_arguments:
+        type: string
+        description: "Additional arguments that should be passed to docc"
+        default: ""
       unacceptable_language_check_enabled:
         type: boolean
         description: "Boolean to enable the acceptable language check job. Defaults to true."
@@ -123,6 +127,8 @@ jobs:
         if: ${{ inputs.linux_pre_build_command }}
         run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
+        env:
+          ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
         run: |
           which curl yq || (apt -q update && apt -yq install curl yq)
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
