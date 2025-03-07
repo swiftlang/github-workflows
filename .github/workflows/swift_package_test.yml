@@ -43,10 +43,10 @@ on:
           It is strongly encouraged to run all command using `Invoke-Program` unless you want to continue on error eg. `Invoke-Program git apply patch.diff` instead of `git apply patch.diff`.
         default: "swift test"
       linux_env_vars:
-        description: "List of environment variables"
+        description: "Newline separated list of environment variables"
         type: string
       windows_env_vars:
-        description: "List of environment variables"
+        description: "Newline separated list of environment variables"
         type: string
       enable_linux_checks:
         type: boolean
