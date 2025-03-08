@@ -63,29 +63,42 @@ while IFS= read -r file_path; do
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
     bazel) comment_marker='##' ;;
-    bzl) comment_marker='##' ;;
     bazelrc) comment_marker='##' ;;
+    bzl) comment_marker='##' ;;
     c) comment_marker='//' ;;
     cmake) comment_marker='##' ;;
+    code-workspace) continue ;;  # VS Code workspaces are JSON and shouldn't contain comments
+    CODEOWNERS) continue ;;  # Doesn't need a license header
+    Dockerfile) comment_marker='##' ;;
     editorconfig) comment_marker='##' ;;
+    flake8) continue ;; # Configuration file doesn't need a license header
+    gitignore) continue ;; # Configuration files don't need license headers
     gradle) comment_marker='//' ;;
     groovy) comment_marker='//' ;;
+    gyb) comment_marker='//' ;;
     h) comment_marker='//' ;;
     in) comment_marker='##' ;;
     java) comment_marker='//' ;;
     js) comment_marker='//' ;;
-    json) continue ;; # JSON doesn't support comments
+    json) continue ;; # JSON doesn't support line comments
     jsx) comment_marker='//' ;;
     kts) comment_marker='//' ;;
+    md) continue ;; # Text files don't need license headers
+    mobileconfig) continue ;; # Doesn't support comments
+    modulemap) continue ;; # Configuration file doesn't need a license header
+    plist) continue ;; # Plists don't support line comments
     proto) comment_marker='//' ;;
     ps1) comment_marker='##' ;;
     py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
     rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
     sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
-    swift) comment_marker='//' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
+    swift) comment_marker='//' ;;
     ts) comment_marker='//' ;;
     tsx) comment_marker='//' ;;
+    txt) continue ;; # Text files don't need license headers
+    yml) continue ;; # YAML Configuration files don't need license headers
+    yaml) continue ;; # YAML Configuration files don't need license headers
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
