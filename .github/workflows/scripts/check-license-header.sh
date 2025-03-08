@@ -56,39 +56,44 @@ while IFS= read -r file_path; do
     continue  # Ignore symbolic links
   fi
 
+  # The characters that are used to start a line comment and that replace '@@' in the license header template
+  comment_marker=''
+  # A line that we expect before the license header. This should end with a newline if it is not empty
+  header_prefix=''
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
-    bazel) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    bzl) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    bazelrc) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    c) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    editorconfig) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    gradle) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    groovy) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    java) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    js) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    bazel) comment_marker='##' ;;
+    bzl) comment_marker='##' ;;
+    bazelrc) comment_marker='##' ;;
+    c) comment_marker='//' ;;
+    cmake) comment_marker='##' ;;
+    editorconfig) comment_marker='##' ;;
+    gradle) comment_marker='//' ;;
+    groovy) comment_marker='//' ;;
+    h) comment_marker='//' ;;
+    in) comment_marker='##' ;;
+    java) comment_marker='//' ;;
+    js) comment_marker='//' ;;
     json) continue ;; # JSON doesn't support comments
-    jsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    proto) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    py) expected_file_header=$(cat <(echo '#!/usr/bin/env python3') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    rb) expected_file_header=$(cat <(echo '#!/usr/bin/env ruby') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    swift) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    jsx) comment_marker='//' ;;
+    kts) comment_marker='//' ;;
+    proto) comment_marker='//' ;;
+    ps1) comment_marker='##' ;;
+    py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
+    rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
+    sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
+    swift) comment_marker='//' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
-    ts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    tsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    ts) comment_marker='//' ;;
+    tsx) comment_marker='//' ;;
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
       continue
       ;;
   esac
-  expected_file_header_linecount=$(wc -l <<<"${expected_file_header}")
+  expected_file_header=$(echo "${header_prefix}${expected_file_header_template}" | sed -e "s|@@|$comment_marker|g")
+  expected_file_header_linecount=$(echo "${expected_file_header}" | wc -l)
 
   file_header=$(head -n "${expected_file_header_linecount}" "${file_path}")
   normalized_file_header=$(
