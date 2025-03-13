@@ -72,6 +72,7 @@ while IFS= read -r file_path; do
     Dockerfile) comment_marker='##' ;;
     editorconfig) comment_marker='##' ;;
     flake8) continue ;; # Configuration file doesn't need a license header
+    gitattributes) continue ;; # Configuration files don't need license headers
     gitignore) continue ;; # Configuration files don't need license headers
     gradle) comment_marker='//' ;;
     groovy) comment_marker='//' ;;
