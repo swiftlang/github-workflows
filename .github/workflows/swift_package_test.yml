@@ -60,6 +60,14 @@ on:
         type: boolean
         description: "Boolean to enable running build in windows docker container. Defaults to true"
         default: true
+      enable_android_checks:
+        type: boolean
+        description: "Boolean to enable android testing. Defaults to false"
+        default: false
+      android_exclude_swift_versions:
+        type: string
+        description: "Exclude Android Swift version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       needs_token:
         type: boolean
         description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
@@ -187,3 +195,26 @@ jobs:
           Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
           RefreshEnv
           powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+
+  android-build:
+    name: Android (${{ matrix.swift_version }}
+    if: ${{ inputs.enable_android_checks }}
+    runs-on: 'ubuntu-24.04'
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ['nightly-6.1']
+        exclude:
+          - ${{ fromJson(inputs.android_exclude_swift_versions) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Build / Test
+        uses: skiptools/swift-android-action@v2
+        with:
+          swift-version: ${{ matrix.swift_version }}
+
