@@ -79,7 +79,7 @@ on:
       android_channel:
         type: string
         description: "Android channel to download the SDK components from - stable, beta, dev, canary"
-        default: "channel"
+        default: "canary"
       android_profile:
         type: string
         description: "Android emulator hardware profile used for creating the AVD"
@@ -247,10 +247,10 @@ jobs:
           swift-version: ${{ matrix.swift_version }}
           swift-build-flags: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           copy-files: ${{ inputs.android_copy_files }}
+          test-env: ${{ inputs.android_test_env }}
           android-cores: ${{ inputs.android_cores }}
           android-api-level: ${{ inputs.android_api_level }}
           android-channel: ${{ inputs.android_channel }}
           android-profile: ${{ inputs.android_profile }}
           android-target: ${{ inputs.android_target }}
-          android-test-env: ${{ inputs.android_test_env }}
 
