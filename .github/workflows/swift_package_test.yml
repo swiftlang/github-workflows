@@ -64,6 +64,34 @@ on:
         type: boolean
         description: "Boolean to enable android testing. Defaults to false"
         default: false
+      android_copy_files:
+        type: string
+        description: "Additional files to copy to the Android emulator for testing"
+        default: ""
+      android_cores:
+        type: number
+        description: "Number of cores to use for the Android emulator"
+        default: 2
+      android_api_level:
+        type: number
+        description: "The API level of the Android emulator"
+        default: 30
+      android_channel:
+        type: string
+        description: "Android channel to download the SDK components from - stable, beta, dev, canary"
+        default: "channel"
+      android_profile:
+        type: string
+        description: "Android emulator hardware profile used for creating the AVD"
+        default: "pixel"
+      android_target:
+        type: string
+        description: "Target of the Android system image"
+        default: "aosp_atd"
+      android_test_env:
+        type: string
+        description: "Android emulator test environment variables key=value"
+        default: ""
       android_exclude_swift_versions:
         type: string
         description: "Exclude Android Swift version list (JSON)"
@@ -197,7 +225,7 @@ jobs:
           powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
 
   android-build:
-    name: Android (${{ matrix.swift_version }}
+    name: Android (${{ matrix.swift_version }})
     if: ${{ inputs.enable_android_checks }}
     runs-on: 'ubuntu-24.04'
     strategy:
@@ -217,4 +245,12 @@ jobs:
         uses: skiptools/swift-android-action@v2
         with:
           swift-version: ${{ matrix.swift_version }}
+          swift-build-flags: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+          copy-files: ${{ inputs.android_copy_files }}
+          android-cores: ${{ inputs.android_cores }}
+          android-api-level: ${{ inputs.android_api_level }}
+          android-channel: ${{ inputs.android_channel }}
+          android-profile: ${{ inputs.android_profile }}
+          android-target: ${{ inputs.android_target }}
+          android-test-env: ${{ inputs.android_test_env }}
 
