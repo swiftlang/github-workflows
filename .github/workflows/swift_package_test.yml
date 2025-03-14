@@ -73,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.1']
+        swift_version: ['5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.1']
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
