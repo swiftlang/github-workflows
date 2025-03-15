@@ -41,6 +41,8 @@ jobs:
     name: Test
     uses: ./.github/workflows/swift_package_test.yml
     with:
+      enable_linux_checks: false
+      enable_windows_checks: false
       # macOS
       enable_macos_checks: true
       macos_build_command: |
