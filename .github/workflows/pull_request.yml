@@ -22,6 +22,13 @@ jobs:
         swift package init --type library
         swift build
       enable_windows_docker: true
+      # macOS
+      enable_macos_checks: true
+      macos_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+        swift build
 
   tests_without_docker:
     name: Test without Docker
