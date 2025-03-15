@@ -48,8 +48,8 @@ jobs:
       macos_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type library
-        swift build
+        xcrun swift package init --type library
+        xcrun swift build
 
   soundness:
     name: Soundness

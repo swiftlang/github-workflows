@@ -46,7 +46,7 @@ on:
       macos_build_command:
         type: string
         description: "macOS command to build and test the package"
-        default: "swift test"
+        default: "xcrun swift test"
       linux_build_command:
         type: string
         description: "Linux command to build and test the package"
@@ -121,7 +121,7 @@ jobs:
             done
             echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
-        run: swift --version
+        run: xcrun swift --version
       - name: Pre-build
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
