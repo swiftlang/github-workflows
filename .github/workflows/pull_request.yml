@@ -22,13 +22,6 @@ jobs:
         swift package init --type library
         swift build
       enable_windows_docker: true
-      # macOS
-      enable_macos_checks: true
-      macos_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
-        swift build
 
   tests_without_docker:
     name: Test without Docker
@@ -43,6 +36,18 @@ jobs:
         swift package init --type library
         swift build
       enable_windows_docker: false
+
+  tests_macos:
+    name: Test
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      # macOS
+      enable_macos_checks: true
+      macos_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+        swift build
 
   soundness:
     name: Soundness
