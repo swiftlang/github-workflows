@@ -37,6 +37,20 @@ jobs:
         swift build
       enable_windows_docker: false
 
+  tests_macos:
+    name: Test
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      enable_linux_checks: false
+      enable_windows_checks: false
+      # macOS
+      enable_macos_checks: true
+      macos_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        xcrun swift package init --type library
+        xcrun swift build
+
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml
