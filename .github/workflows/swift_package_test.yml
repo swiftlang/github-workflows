@@ -73,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.1']
+        swift_version: ['5.9', '5.10', '6.0', '6.1', 'nightly-main', 'nightly-6.1']
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
@@ -107,7 +107,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.1']
+        swift_version: ['5.9', '6.0', '6.1', 'nightly', 'nightly-6.1']
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
