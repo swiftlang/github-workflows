@@ -64,6 +64,10 @@ on:
         type: boolean
         description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
         default: false
+      enable_cross_pr_testing:
+        type: boolean
+        description: "Whether PRs can be tested in combination with other PRs by mentioning them as `Linked PR: <link to PR>` in the PR description"
+        default: false
 
 jobs:
   linux-build:
@@ -88,6 +92,12 @@ jobs:
         if: ${{ inputs.needs_token }}
         run: |
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Check out related PRs
+        if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}
+        run: |
+          apt-get update && apt-get install -y curl
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/cross-pr-checkout.swift > /tmp/cross-pr-checkout.swift
+          swift /tmp/cross-pr-checkout.swift "${{ github.repository }}" "${{ github.event.number }}"
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
         run: |
@@ -170,6 +180,18 @@ jobs:
           Invoke-Program swift --version
           Invoke-Program swift test --version
           Invoke-Program cd $Source
+          '@ >> $env:TEMP\test-script\run.ps1
+
+          if ("${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}" -eq "true") {
+            echo @'
+          Invoke-WebRequest https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/cross-pr-checkout.swift -OutFile $env:TEMP\cross-pr-checkout.swift
+          # Running in script mode fails on Windows (https://github.com/swiftlang/swift/issues/77263), compile and run the script.
+          Invoke-Program swiftc -sdk $env:SDKROOT $env:TEMP\cross-pr-checkout.swift -o $env:TEMP\cross-pr-checkout.exe
+          Invoke-Program $env:TEMP\cross-pr-checkout.exe "${{ github.repository }}" "${{ github.event.number }}"
+          '@ >> $env:TEMP\test-script\run.ps1
+          }
+
+          echo @'
           ${{ inputs.windows_pre_build_command }}
           Invoke-Program ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           '@ >> $env:TEMP\test-script\run.ps1
