@@ -65,6 +65,11 @@ on:
         description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
         default: false
 
+## We are cancelling previously triggered workflow runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.job }}-${{ github.ref }}-package-test
+  cancel-in-progress: true
+
 jobs:
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
