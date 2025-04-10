@@ -1,0 +1,124 @@
+name: Performance test
+
+on:
+  workflow_call:
+    inputs:
+      container:
+        type: string
+        description: "The container that the performance tests should run in"
+        default: "swift:latest"
+      pre_measure_command:
+        type: string
+        description: "The command that should be executed before running the performance measurements, eg. to build the project."
+        required: true
+      measure_command:
+        type: string
+        description: |
+          The command that should be executed to run the performance measurements.
+
+          The output of this command can produce multiple performance measurements. Each measurement should be on a
+          separate line with the name of the measurement on the left side of a colon and the measurement on the right
+          side of the colon.
+
+          For example, this could be
+          ```
+          Instructions executed for test case A: 123456789
+          Instructions executed for test case B: 2345678
+          Code Size: 34567
+          ```
+        required: true
+      sensitivity:
+        type: number
+        description: |
+          The percentage after which a change should be considered meaningful.
+          Eg. specify 0.5 to add a comment to the PR if any measurement changed by more than 0.5% (either improved or regressed).
+        default: 0.5
+      comment_header:
+        type: string
+        description: |
+          If the performance has changed, this text will be prepended to the comment that contains the performance measurements.
+          This can be either for performance improvements or regressions.
+        default: |
+          This PR has changed performance characteristics. Please review that the measurements reported below are expected. If these are improvements, thanks for improving the performance.
+
+jobs:
+  measure_performance:
+    name: Measure performance
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.container }}
+    timeout-minutes: 60
+    outputs:
+      has_significant_changes: ${{ steps.analyze_performance.outputs.has_significant_changes }}
+      comment_body: ${{ steps.analyze_performance.outputs.comment_body }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: true
+          fetch-depth: 0
+      - name: Mark the workspace as safe
+        # https://github.com/actions/checkout/issues/766
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Measure performance with changes
+        id: pr_performance
+        run: |
+          ${{ inputs.pre_measure_command }}
+          {
+            echo 'output<<EOF'
+            ${{ inputs.measure_command }}
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - name: Measure baseline performance
+        id: baseline_performance
+        run: |
+          git checkout "${{ github.base_ref }}"
+          ${{ inputs.pre_measure_command }}
+          {
+            echo 'output<<EOF'
+            ${{ inputs.measure_command }}
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - name: Download performance analysis script
+        run: |
+          apt -q update
+          apt -yq install curl
+          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/compare-performance-measurements.swift > /tmp/compare-performance-measurements.swift
+      - name: Analyze performance
+        id: analyze_performance
+        shell: bash
+        run: |
+          if ! OUTPUT=$(swift /tmp/compare-performance-measurements.swift "${{ steps.baseline_performance.outputs.output }}" "${{ steps.pr_performance.outputs.output }}" "${{ inputs.sensitivity }}"); then
+            echo "has_significant_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_significant_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo 'comment_body<<EOF'
+            echo "$OUTPUT"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+  post_performance_report:
+    name: Post comment if performance changed
+    runs-on: ubuntu-latest
+    needs: [measure_performance]
+    if: ${{ needs.measure_performance.outputs.has_significant_changes == 'true' }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Post comment to GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMENT=$(
+          cat <<END_OF_COMMENT
+          ${{ inputs.comment_header }}
+
+          ${{ needs.measure_performance.outputs.comment_body }}
+          END_OF_COMMENT
+          )
+
+
+          gh pr comment ${{ github.event.number }} --body "$COMMENT"
