@@ -6,7 +6,7 @@ on:
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
-        default: "[\"5.8\", \"5.9\", \"5.10\", \"6.0\", \"nightly-main\", \"nightly-6.0\"]"
+        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"nightly-main\", \"nightly-6.1\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
