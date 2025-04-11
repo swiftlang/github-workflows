@@ -40,8 +40,8 @@ jobs:
 
 ### Testing
 
-To enable pull request testing for all supported Swift versions (5.8, 5.9, 5.10,
-6.0, and nightly) on Linux and Windows, add the following code example in
+To enable pull request testing for all supported Swift versions (5.9, 5.10,
+6.0, 6.1, nightly, and nightly-6.1) on Linux and Windows, add the following code example in
 `.github/workflows/pull_request.yml`:
 
 ```yaml
@@ -61,7 +61,7 @@ If your package only supports newer compiler versions, you can exclude older
 versions by using the `*_exclude_swift_versions` workflow input:
 
 ```yaml
-linux_exclude_swift_versions: "[{\"swift_version\": \"5.8\"}, {\"swift_version\": \"5.9\"}]"
+linux_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
 windows_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
 ```
 

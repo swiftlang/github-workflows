@@ -3,6 +3,10 @@ name: Swift Matrix
 on:
   workflow_call:
     inputs:
+      macos_xcode_versions:
+        type: string
+        description: "Exclude Xcode version list (JSON)"
+        default: "[\"15.4\", \"16.0\", \"16.1\", \"16.2\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
@@ -15,6 +19,10 @@ on:
         type: string
         description: "macOS arch list (JSON)"
         default: "[\"ARM64\"]"
+      linux_swift_versions:
+        type: string
+        description: "Include Linux Swift version list (JSON)"
+        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"nightly-main\", \"nightly-6.1\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
@@ -23,6 +31,10 @@ on:
         type: string
         description: "Linux OS version list (JSON)"
         default: "[\"jammy\"]"
+      windows_swift_versions:
+        type: string
+        description: "Include Windows Swift version list (JSON)"
+        default: "[\"5.9\", \"6.0\", \"6.1\", \"nightly\", \"nightly-6.1\"]"
       windows_exclude_swift_versions:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
@@ -100,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ['15.4', '16.0', '16.1', '16.2']
+        xcode_version: ${{ fromJson(inputs.macos_xcode_versions) }}
         os_version: ${{ fromJson(inputs.macos_versions) }}
         arch: ${{ fromJson(inputs.macos_archs) }}
         exclude:
@@ -135,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.8', '5.9', '5.10', '6.0', 'nightly-main', 'nightly-6.1']
+        swift_version: ${{ fromJson(inputs.linux_swift_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
@@ -169,7 +181,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['5.9', '6.0', 'nightly', 'nightly-6.1']
+        swift_version: ${{ fromJson(inputs.windows_swift_versions) }}
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
