@@ -17,12 +17,11 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
-test -n "${PROJECT_NAME:-}" || fatal "PROJECT_NAME unset"
-
 if [ -f .license_header_template ]; then
   # allow projects to override the license header template
   expected_file_header_template=$(cat .license_header_template)
 else
+  test -n "${PROJECT_NAME:-}" || fatal "PROJECT_NAME unset"
   expected_file_header_template="@@===----------------------------------------------------------------------===@@
 @@
 @@ This source file is part of the ${PROJECT_NAME} open source project
@@ -53,40 +52,67 @@ file_paths=$(echo "$exclude_list" | xargs git ls-files)
 while IFS= read -r file_path; do
   file_basename=$(basename -- "${file_path}")
   file_extension="${file_basename##*.}"
+  if [[ -L "${file_path}" ]]; then
+    continue  # Ignore symbolic links
+  fi
 
+  # The characters that are used to start a line comment and that replace '@@' in the license header template
+  comment_marker=''
+  # A line that we expect before the license header. This should end with a newline if it is not empty
+  header_prefix=''
   # shellcheck disable=SC2001 # We prefer to use sed here instead of bash search/replace
   case "${file_extension}" in
-    c) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    cmake) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    gradle) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    groovy) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    h) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    in) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    java) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    js) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    json) continue ;; # JSON doesn't support comments
-    jsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    kts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    proto) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    ps1) expected_file_header=$(sed -e 's|@@|##|g' <<<"${expected_file_header_template}") ;;
-    py) expected_file_header=$(cat <(echo '#!/usr/bin/env python3') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    rb) expected_file_header=$(cat <(echo '#!/usr/bin/env ruby') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    sh) expected_file_header=$(cat <(echo '#!/bin/bash') <(sed -e 's|@@|##|g' <<<"${expected_file_header_template}")) ;;
-    swift) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    bazel) comment_marker='##' ;;
+    bazelrc) comment_marker='##' ;;
+    bzl) comment_marker='##' ;;
+    c) comment_marker='//' ;;
+    cmake) comment_marker='##' ;;
+    code-workspace) continue ;;  # VS Code workspaces are JSON and shouldn't contain comments
+    CODEOWNERS) continue ;;  # Doesn't need a license header
+    Dockerfile) comment_marker='##' ;;
+    editorconfig) comment_marker='##' ;;
+    flake8) continue ;; # Configuration file doesn't need a license header
+    gitattributes) continue ;; # Configuration files don't need license headers
+    gitignore) continue ;; # Configuration files don't need license headers
+    gradle) comment_marker='//' ;;
+    groovy) comment_marker='//' ;;
+    gyb) comment_marker='//' ;;
+    h) comment_marker='//' ;;
+    in) comment_marker='##' ;;
+    java) comment_marker='//' ;;
+    js) comment_marker='//' ;;
+    json) continue ;; # JSON doesn't support line comments
+    jsx) comment_marker='//' ;;
+    kts) comment_marker='//' ;;
+    md) continue ;; # Text files don't need license headers
+    mobileconfig) continue ;; # Doesn't support comments
+    modulemap) continue ;; # Configuration file doesn't need a license header
+    plist) continue ;; # Plists don't support line comments
+    proto) comment_marker='//' ;;
+    ps1) comment_marker='##' ;;
+    py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
+    rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
+    sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
-    ts) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
-    tsx) expected_file_header=$(sed -e 's|@@|//|g' <<<"${expected_file_header_template}") ;;
+    swift) comment_marker='//' ;;
+    ts) comment_marker='//' ;;
+    tsx) comment_marker='//' ;;
+    txt) continue ;; # Text files don't need license headers
+    yml) continue ;; # YAML Configuration files don't need license headers
+    yaml) continue ;; # YAML Configuration files don't need license headers
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
+      continue
       ;;
   esac
-  expected_file_header_linecount=$(wc -l <<<"${expected_file_header}")
+  expected_file_header=$(echo "${header_prefix}${expected_file_header_template}" | sed -e "s|@@|$comment_marker|g")
+  expected_file_header_linecount=$(echo "${expected_file_header}" | wc -l)
 
   file_header=$(head -n "${expected_file_header_linecount}" "${file_path}")
   normalized_file_header=$(
     echo "${file_header}" \
-    | sed -e 's/20[12][0123456789]-20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
+    | sed -E -e 's/20[12][0123456789] ?- ?20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
   )
 
   if ! diff -u \

@@ -1,0 +1,85 @@
+name: Create automerge PR
+
+# Merges `head_branch` into `base_branch` and opens a PR to incorporate that merge commit into `base_branch`.
+#
+# The typical use case for this is in the first period after Swift has cut release branches.
+# Some repositories want to include most changes from `main` also in the release branch. When this job is set up, it can automatically create PRs to merge `main` into the release branch.
+# Maintainers of the package can then inspect the changes to ensure that they are not too risky for the release branch.
+# We will also run the normal PR testing on these changes, ensuring that these modifications don't break the build.
+#
+# Example usage in a repository:
+#
+# name: Create PR to merge main into release branch
+#
+# # In the first period after branching the release branch, we typically want to include all changes from `main` also in the release branch. This workflow automatically creates a PR every Monday to merge main into the release branch.
+# # Later in the release cycle we should stop this practice to avoid landing risky changes by disabling this workflow. To do so, disable the workflow as described in https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow
+#
+# on:
+#   schedule:
+#     - cron: '0 9 * * MON'
+#   workflow_dispatch:
+#
+# jobs:
+#   create_merge_pr:
+#     name: Create PR to merge main into release branch
+#     uses: swiftlang/github-workflows/.github/workflows/create_autmerge_pr.yml@main
+#     if: (github.event_name == 'schedule' && github.repository == 'swiftlang/swift-format') || (github.event_name != 'schedule')  # Ensure that we don't run this on a schedule in a fork
+#     with:
+#       base_branch: release/6.2
+
+on:
+  workflow_call:
+    inputs:
+      base_branch:
+        type: string
+        description: The branch into which head_branch should be merged
+        required: true
+      head_branch:
+        type: string
+        description: The branch that should be merged into base_branch
+        default: main
+      pr_message:
+        type: string
+        description: The message that should be included in the PR created by this job
+        default: This PR was automatically opened by a GitHub action. Review the changes included in this PR and determine if they should be included in the release branch. If yes, merge the PR. Otherwise revert changes that should not be included on this branch.
+
+jobs:
+  create_merge_pr:
+    name: Create PR to merge ${{ inputs.head_branch }} into ${{ inputs.base_branch }} branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create merge commit
+        id: create_merge_commit
+        run: |
+          # Without this, we can't perform git operations in GitHub actions.
+          git config --global --add safe.directory "$(realpath .)"
+          git config --local user.name 'swift-ci'
+          git config --local user.email 'swift-ci@users.noreply.github.com'
+
+          git checkout ${{ inputs.base_branch }}
+          git merge ${{ inputs.head_branch }}
+
+          if [[ "$(git rev-parse HEAD)" = "$(git rev-parse ${{ inputs.head_branch }})" ]]; then
+            echo "has_merged_commits=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_merged_commits=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Push branch and create PR
+        id: push_branch
+        if: ${{ steps.create_merge_commit.outputs.has_merged_commits == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_BRANCH="automerge/merge-main-$(date +%Y-%m-%d_%H-%M)"
+          git checkout -b "$PR_BRANCH"
+          git push --set-upstream origin "$PR_BRANCH"
+
+          gh pr create \
+            --base "${{ inputs.base_branch }}" \
+            --head "$PR_BRANCH" \
+            --title 'Merge `${{ inputs.head_branch }}` into `${{ inputs.base_branch }}`' \
+            --body '${{ inputs.pr_message }}'

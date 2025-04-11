@@ -40,8 +40,8 @@ jobs:
 
 ### Testing
 
-To enable pull request testing for all supported Swift versions (5.8, 5.9, 5.10,
-6.0, and nightly) on Linux, add the following code example in
+To enable pull request testing for all supported Swift versions (5.9, 5.10,
+6.0, 6.1, nightly, and nightly-6.1) on Linux and Windows, add the following code example in
 `.github/workflows/pull_request.yml`:
 
 ```yaml
@@ -58,20 +58,22 @@ jobs:
 ```
 
 If your package only supports newer compiler versions, you can exclude older
-versions by using the `exclude_swift_versions` workflow input:
+versions by using the `*_exclude_swift_versions` workflow input:
 
 ```yaml
-exclude_swift_versions: "[{\"swift_version\": \"5.8\"}]"
+linux_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
+windows_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
 ```
 
 Additionally, if your package requires additional installed packages, you can
-use the `pre_build_command`:
+use the `pre_build_command`. For example, to install a package called
+`example`:
 
 ```yaml
-pre_build_command: "apt-get update -y -q && apt-get install -y -q example"
+pre_build_command: "which example || (apt update -q && apt install -yq example"
 ```
 
-macOS and Windows platform support will be available soon.
+macOS platform support will be available soon.
 
 ## Running workflows locally
 

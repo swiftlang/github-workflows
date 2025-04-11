@@ -7,6 +7,14 @@ on:
         type: boolean
         description: "Boolean to enable the API breakage check job. Defaults to true."
         default: true
+      api_breakage_check_allowlist_path:
+        type: string
+        description: "Path to a file that will be passed as --breakage-allowlist-path to swift package diagnose-api-breaking-changes"
+        default: ""
+      api_breakage_check_baseline:
+        type: string
+        description: "The tag against which API breakages that should be used as the baseline for the API breakage check. By default the PR base is used."
+        default: ""
       api_breakage_check_container_image:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
@@ -19,6 +27,10 @@ on:
         type: string
         description: "Container image for the docs check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.0-noble"
+      docs_check_additional_arguments:
+        type: string
+        description: "Additional arguments that should be passed to docc"
+        default: ""
       unacceptable_language_check_enabled:
         type: boolean
         description: "Boolean to enable the acceptable language check job. Defaults to true."
@@ -33,8 +45,8 @@ on:
         default: true
       license_header_check_project_name:
         type: string
-        description: "Name of the project called out in the license header."
-        required: true
+        description: "Name of the project called out in the license header. Required unless `license_header_check_enabled` is false or a `.license_header_template` file is present."
+        default: ""
       broken_symlink_check_enabled:
         type: boolean
         description: "Boolean to enable the broken symlink check job. Defaults to true."
@@ -63,6 +75,10 @@ on:
         type: boolean
         description: "Boolean to enable the Python lint check job. Defaults to true."
         default: true
+      linux_pre_build_command:
+        type: string
+        description: "Linux command to execute before building the Swift package"
+        default: ""
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -83,13 +99,29 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+          fetch-tags: true
+          fetch-depth: 0  # Fetching tags requires fetch-depth: 0 (https://github.com/actions/checkout/issues/1471)
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-build
+        if: ${{ inputs.linux_pre_build_command }}
+        run: ${{ inputs.linux_pre_build_command }}
       - name: Run API breakage check
+        shell: bash
         run: |
-          git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
-          swift package diagnose-api-breaking-changes pull-base-ref
+          if [[ -z '${{ inputs.api_breakage_check_baseline }}' ]]; then
+            git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
+            BASELINE_REF='pull-base-ref'
+          else
+            BASELINE_REF='${{ inputs.api_breakage_check_baseline }}'
+          fi
+          echo "Using baseline: $BASELINE_REF"
+          if [[ -z '${{ inputs.api_breakage_check_allowlist_path }}' ]]; then
+            swift package diagnose-api-breaking-changes "$BASELINE_REF"
+          else
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path '${{ inputs.api_breakage_check_allowlist_path }}'
+          fi
 
   docs-check:
     name: Documentation check
@@ -104,9 +136,14 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      - name: Pre-build
+        if: ${{ inputs.linux_pre_build_command }}
+        run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
+        env:
+          ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
         run: |
-          apt-get -qq update && apt-get -qq -y install curl yq
+          which curl yq || (apt -q update && apt -yq install curl yq)
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-docs.sh | bash
 
   unacceptable-language-check:
@@ -173,7 +210,7 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run format check
         run: |
-          apt-get -qq update && apt-get -qq -y install curl
+          which curl || (apt -q update && apt -yq install curl)
           curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/check-swift-format.sh | bash
 
   shell-check:
@@ -194,7 +231,7 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run shellcheck
         run: |
-          apt-get -qq update && apt-get -qq -y install shellcheck
+          which shellcheck || (apt -q update && apt -yq install shellcheck)
           git ls-files -z '*.sh' | xargs -0 --no-run-if-empty shellcheck
 
   yaml-lint-check:
@@ -210,13 +247,14 @@ jobs:
           submodules: true
       - name: Run yamllint
         run: |
-          which yamllint >/dev/null || ( apt-get update && apt-get install -y yamllint )
+          which yamllint || (apt -q update && apt install -yq yamllint)
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".yamllint.yml" ]; then
             echo "Downloading default yamllint config file"
             curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/configs/yamllint.yml > .yamllint.yml
           fi
           yamllint --strict --config-file .yamllint.yml .
+
   python-lint-check:
     name: Python lint check
     if: ${{ inputs.python_lint_check_enabled }}

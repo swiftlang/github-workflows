@@ -5,6 +5,38 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  tests_with_docker:
+    name: Test with Docker
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      # Linux
+      linux_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+        swift build
+      # Windows
+      windows_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+        swift build
+      enable_windows_docker: true
+
+  tests_without_docker:
+    name: Test without Docker
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      # Skip Linux which doesn't currently support docker-less workflow
+      enable_linux_checks: false
+      # Windows
+      windows_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+        swift build
+      enable_windows_docker: false
+
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml

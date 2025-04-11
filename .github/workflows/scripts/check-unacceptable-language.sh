@@ -21,9 +21,9 @@ test -n "${UNACCEPTABLE_WORD_LIST:-}" || fatal "UNACCEPTABLE_WORD_LIST unset"
 
 unacceptable_language_lines=
 if [[ -f .unacceptablelanguageignore ]]; then
-    log "Found for unacceptable file..."
+    log "Found unacceptable language ignore file..."
     log "Checking for unacceptable language..."
-    unacceptable_language_lines=$(tr '\n' '\0' < .unacceptablelanguageignore | xargs -0 -I% printf '":(exclude)%" '| xargs git grep -i -I -w -H -n --column -E "${UNACCEPTABLE_WORD_LIST// /|}" | grep -v "ignore-unacceptable-language") || true | /usr/bin/paste -s -d " " -
+    unacceptable_language_lines=$(tr '\n' '\0' < .unacceptablelanguageignore | xargs -0 -I% printf '":(exclude)%" '| xargs git grep -i -I -w -H -n --column -E "${UNACCEPTABLE_WORD_LIST// /|}" -- ':!*.unacceptablelanguageignore' | grep -v "ignore-unacceptable-language") || true | /usr/bin/paste -s -d " " -
 else
     log "Checking for unacceptable language..."
     unacceptable_language_lines=$(git grep -i -I -w -H -n --column -E "${UNACCEPTABLE_WORD_LIST// /|}" | grep -v "ignore-unacceptable-language") || true | /usr/bin/paste -s -d " " -
