@@ -6,7 +6,7 @@ on:
       macos_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
-        default: "[\"15.4\", \"16.0\", \"16.1\", \"16.2\"]"
+        default: "[\"16.0\", \"16.1\", \"16.2\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
