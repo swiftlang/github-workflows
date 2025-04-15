@@ -53,7 +53,7 @@ log "Checking documentation targets..."
 for target in $(yq -r '.builder.configs[].documentation_targets[]' .spi.yml); do
   log "Checking target $target..."
   # shellcheck disable=SC2086 # We explicitly want to explode "$ADDITIONAL_DOCC_ARGUMENTS" into multiple arguments.
-  swift package plugin generate-documentation --target "$target" --warnings-as-errors --analyze --level detailed $ADDITIONAL_DOCC_ARGUMENTS
+  swift package plugin generate-documentation --target "$target" --warnings-as-errors --analyze $ADDITIONAL_DOCC_ARGUMENTS
 done
 
 log "✅ Found no documentation issues."
