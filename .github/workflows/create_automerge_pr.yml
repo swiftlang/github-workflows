@@ -22,8 +22,11 @@ name: Create automerge PR
 # jobs:
 #   create_merge_pr:
 #     name: Create PR to merge main into release branch
-#     uses: swiftlang/github-workflows/.github/workflows/create_autmerge_pr.yml@main
+#     uses: swiftlang/github-workflows/.github/workflows/create_automerge_pr.yml@main
 #     if: (github.event_name == 'schedule' && github.repository == 'swiftlang/swift-format') || (github.event_name != 'schedule')  # Ensure that we don't run this on a schedule in a fork
+#     permissions:
+#       contents: write
+#       pull-requests: write
 #     with:
 #       base_branch: release/6.2
 
@@ -47,6 +50,9 @@ jobs:
   create_merge_pr:
     name: Create PR to merge ${{ inputs.head_branch }} into ${{ inputs.base_branch }} branch
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
