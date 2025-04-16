@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Create merge commit
+      - name: Check if there are commits to merge
         id: create_merge_commit
         run: |
           # Without this, we can't perform git operations in GitHub actions.
@@ -60,21 +60,23 @@ jobs:
           git config --local user.name 'swift-ci'
           git config --local user.email 'swift-ci@users.noreply.github.com'
 
-          git checkout ${{ inputs.base_branch }}
-          git merge ${{ inputs.head_branch }}
-
-          if [[ "$(git rev-parse HEAD)" = "$(git rev-parse ${{ inputs.head_branch }})" ]]; then
-            echo "has_merged_commits=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_merged_commits=false" >> "$GITHUB_OUTPUT"
+          if [[ "$(git rev-list --left-only --count origin/${{ inputs.head_branch }}...origin/${{ inputs.base_branch }})" == 0 ]]; then
+            echo "Nothing to merge"
+            echo "has_commits_to_merge=false" >> "$GITHUB_OUTPUT"
+            exit
           fi
+
+          echo "has_commits_to_merge=true" >> "$GITHUB_OUTPUT"
       - name: Push branch and create PR
         id: push_branch
-        if: ${{ steps.create_merge_commit.outputs.has_merged_commits == 'true' }}
+        if: ${{ steps.create_merge_commit.outputs.has_commits_to_merge == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Create a branch for the PR instead of opening a PR that merges head_branch directly so that we have a fixed
+          # target in the PR and don't modify the PR as new commits are put on the head branch.
           PR_BRANCH="automerge/merge-main-$(date +%Y-%m-%d_%H-%M)"
+          git checkout ${{ inputs.head_branch }}
           git checkout -b "$PR_BRANCH"
           git push --set-upstream origin "$PR_BRANCH"
 
