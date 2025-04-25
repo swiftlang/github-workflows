@@ -9,6 +9,7 @@ name: Create automerge PR
 #
 # Example usage in a repository:
 #
+# ```
 # name: Create PR to merge main into release branch
 #
 # # In the first period after branching the release branch, we typically want to include all changes from `main` also in the release branch. This workflow automatically creates a PR every Monday to merge main into the release branch.
@@ -29,7 +30,15 @@ name: Create automerge PR
 #       pull-requests: write
 #     with:
 #       base_branch: release/6.2
-
+# ```
+#
+# PRs created by GitHub Actions don't kick off further actions (https://github.com/peter-evans/create-pull-request/blob/d57e551ebc1a16dee0b8c9ea6d24dba7627a6e35/docs/concepts-guidelines.md#triggering-further-workflow-runs).
+# As a workaround, we mark automerge PRs that are created by GitHub actions as draft and trigger the GitHub actions by marking the PR as ready for review. But we don't want to re-trigger testing this when a normal user's PR is marked as ready for review.
+# For this the pull request workflow in the repository needs to add the `ready_for_review` type to its `pull_request` trigger and add the following condition as an `if` condition to all jobs:
+#
+# ```
+# if: (github.event.action != 'ready_for_review') || (github.event.action == 'ready_for_review' && github.event.pull_request.user.login == 'github-actions[bot]')
+# ```
 on:
   workflow_call:
     inputs:
@@ -90,4 +99,5 @@ jobs:
             --base "${{ inputs.base_branch }}" \
             --head "$PR_BRANCH" \
             --title 'Merge `${{ inputs.head_branch }}` into `${{ inputs.base_branch }}`' \
-            --body '${{ inputs.pr_message }}'
+            --body '${{ inputs.pr_message }}' \
+            --draft
