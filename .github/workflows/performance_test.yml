@@ -1,0 +1,92 @@
+name: Performance test
+
+on:
+  workflow_call:
+    inputs:
+      container:
+        type: string
+        description: "The container that the performance tests should run in"
+        default: "swift:latest"
+      package_path:
+        type: string
+        description: The directory in the repository that contains a package, which depends on ordo-one/package-benchmark and can run performance measurements.
+        default: Benchmarks
+      comment_header:
+        type: string
+        description: |
+          If the performance has changed, this text will be prepended to the comment that contains the performance measurements.
+          This can be either for performance improvements or regressions.
+        default: |
+          This PR has changed performance characteristics. Please review that the measurements reported below are expected. If these are improvements, thanks for improving the performance.
+
+jobs:
+  measure_performance:
+    name: Measure performance
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.container }}
+    timeout-minutes: 60
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Install libjemalloc-dev
+        run: apt-get update && apt-get install -y libjemalloc-dev
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mark the workspace as safe
+        # https://github.com/actions/checkout/issues/766
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Measure PR performance
+        run: |
+          swift package --package-path ${{ inputs.package_path }} --allow-writing-to-directory ${{ inputs.package_path }}/.benchmarkBaselines/ benchmark baseline update "${{ github.head_ref }}"
+      - name: Measure base branch performance
+        run: |
+          git checkout ${{ github.base_ref }}
+          swift package --package-path ${{ inputs.package_path }} --allow-writing-to-directory ${{ inputs.package_path }}/.benchmarkBaselines/ benchmark baseline update "${{ github.base_ref }}"
+      - name: Compare performance measurements
+        id: compare_performance
+        run: |
+          if ! swift package --package-path ${{ inputs.package_path }} benchmark baseline check "${{ github.base_ref }}" "${{ github.head_ref }}" --format markdown > /tmp/comparison.md 2>/tmp/comparison-stderr.txt; then
+            echo "has_significant_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_significant_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install gh
+        if: ${{ steps.compare_performance.outputs.has_significant_changes == 'true' }}
+        # Installation instructions from https://github.com/cli/cli/blob/trunk/docs/install_linux.md#debian-ubuntu-linux-raspberry-pi-os-apt
+        run: |
+          (type -p wget >/dev/null || (apt update && apt-get install wget -y))
+          mkdir -p -m 755 /etc/apt/keyrings
+          out=$(mktemp)
+          wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+          cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+          chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          apt update
+          apt install gh -y
+      - name: Post comment
+        if: ${{ steps.compare_performance.outputs.has_significant_changes == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if grep benchmarkThresholdRegression /tmp/comparison-stderr.txt > /dev/null; then
+            PERFORMANCE_CHANGE_MESSAGE="This PR has regressed performance characteristics. Please review whether the changes reported below are expected or if you can do something to improve them."
+          elif grep benchmarkThresholdImprovement /tmp/comparison-stderr.txt > /dev/null; then
+            PERFORMANCE_CHANGE_MESSAGE="This PR has improved performance characteristics. Thank you 🚀"
+          else
+            PERFORMANCE_CHANGE_MESSAGE="This PR has changed performance characteristics. Please review that the measurements reported below are expected or if you can do something to improve them."
+          fi
+
+          cat > /tmp/performance_change_header.md <<EOF
+          $PERFORMANCE_CHANGE_MESSAGE
+
+          <details><summary><b>Performance report</b></summary>
+
+          EOF
+
+          echo "</details>" > /tmp/performance_change_footer.md
+
+          COMMENT="$(cat /tmp/performance_change_header.md /tmp/comparison.md /tmp/performance_change_footer.md)"
+          gh pr comment ${{ github.event.number }} --body "$COMMENT"
