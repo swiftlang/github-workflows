@@ -1,8 +1,24 @@
-name: Swift Linux Matrix
+name: Swift Matrix
 
 on:
   workflow_call:
     inputs:
+      macos_xcode_versions:
+        type: string
+        description: "Xcode version list (JSON)"
+        default: "[\"16.0\", \"16.1\", \"16.2\", \"16.3\"]"
+      macos_exclude_xcode_versions:
+        type: string
+        description: "Exclude Xcode version list (JSON)"
+        default: "[{\"xcode_version\": \"\"}]"
+      macos_versions:
+        type: string
+        description: "macOS version list (JSON)"
+        default: "[\"sequoia\"]"
+      macos_archs:
+        type: string
+        description: "macOS arch list (JSON)"
+        default: "[\"ARM64\"]"
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
@@ -35,6 +51,14 @@ on:
         type: string
         description: "Linux command to execute before building the Swift package"
         default: ""
+      macos_pre_build_command:
+        type: string
+        description: "macOS command to execute before building the Swift package"
+        default: ""
+      macos_build_command:
+        type: string
+        description: "macOS command to build and test the package"
+        default: "xcrun swift test"
       linux_build_command:
         type: string
         description: "Linux command to build and test the package"
@@ -50,6 +74,9 @@ on:
           Note that Powershell does not automatically exit if a subcommand fails. The Invoke-Program utility is available to propagate non-zero exit codes.
           It is strongly encouraged to run all command using `Invoke-Program` unless you want to continue on error eg. `Invoke-Program git apply patch.diff` instead of `git apply patch.diff`.
         default: "swift test"
+      macos_env_vars:
+        description: "Newline separated list of environment variables"
+        type: string
       linux_env_vars:
         description: "Newline separated list of environment variables"
         type: string
@@ -60,6 +87,10 @@ on:
         type: boolean
         description: "Boolean to enable linux testing. Defaults to true"
         default: true
+      enable_macos_checks:
+        type: boolean
+        description: "Boolean to enable macOS testing. Defaults to false"
+        default: false
       enable_windows_checks:
         type: boolean
         description: "Boolean to enable windows testing. Defaults to true"
@@ -74,6 +105,41 @@ on:
         default: false
 
 jobs:
+  macos-build:
+    name: macOS (Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    if: ${{ inputs.enable_macos_checks }}
+    runs-on: [self-hosted, macos, "${{ matrix.os_version }}", "${{ matrix.arch }}"]
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode_version: ${{ fromJson(inputs.macos_xcode_versions) }}
+        os_version: ${{ fromJson(inputs.macos_versions) }}
+        arch: ${{ fromJson(inputs.macos_archs) }}
+        exclude:
+          - ${{ fromJson(inputs.macos_exclude_xcode_versions) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        if: ${{ inputs.macos_env_vars }}
+        run: |
+            for i in "${{ inputs.macos_env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Select Xcode
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+      - name: Swift version
+        run: xcrun swift --version
+      - name: Pre-build
+        run: ${{ inputs.macos_pre_build_command }}
+      - name: Build / Test
+        run: ${{ inputs.macos_build_command }}
+
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_linux_checks }}
