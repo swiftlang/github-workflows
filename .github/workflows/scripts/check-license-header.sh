@@ -66,6 +66,7 @@ while IFS= read -r file_path; do
     bazelrc) comment_marker='##' ;;
     bzl) comment_marker='##' ;;
     c) comment_marker='//' ;;
+    cpp) comment_marker='//' ;;
     cmake) comment_marker='##' ;;
     code-workspace) continue ;;  # VS Code workspaces are JSON and shouldn't contain comments
     CODEOWNERS) continue ;;  # Doesn't need a license header
