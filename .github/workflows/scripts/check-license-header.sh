@@ -94,6 +94,7 @@ while IFS= read -r file_path; do
     py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
     rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
     sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
+    strings) comment_marker='//' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
     swift) comment_marker='//' ;;
     ts) comment_marker='//' ;;
@@ -101,6 +102,8 @@ while IFS= read -r file_path; do
     txt) continue ;; # Text files don't need license headers
     yml) continue ;; # YAML Configuration files don't need license headers
     yaml) continue ;; # YAML Configuration files don't need license headers
+    xcbuildrules) comment_marker='//' ;;
+    xcspec) comment_marker='//' ;;
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")
