@@ -139,6 +139,7 @@ jobs:
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
         run: ${{ inputs.macos_build_command }}
+        timeout-minutes: 60
 
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
