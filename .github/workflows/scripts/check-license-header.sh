@@ -46,7 +46,7 @@ dynamic_exclude_list=( )
 
 if [[ -f .licenseignore ]]; then
   static_exclude_list+=( '":(exclude).licenseignore"' )
-  IFS=$'\n' read -r -a dynamic_exclude_list <<< "$(sed -E 's/^(.*)$/":(exclude)\1"/' <.licenseignore)"
+  readarray -t dynamic_exclude_list <<< "$(sed -E 's/^(.*)$/":(exclude)\1"/' <.licenseignore)"
 fi
 
 exclude_list=( "${static_exclude_list[@]}" "${dynamic_exclude_list[@]}" )
