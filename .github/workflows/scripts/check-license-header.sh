@@ -47,8 +47,6 @@ else
   exclude_list=":(exclude).license_header_template"
 fi
 
-exclude_list="${exclude_list}:(exclude).swift-version" # Swift version files will never have license headers in them
-
 file_paths=$(echo "$exclude_list" | xargs git ls-files)
 
 while IFS= read -r file_path; do
