@@ -138,7 +138,7 @@ jobs:
       - name: Pre-build
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
-        run: ${{ inputs.macos_build_command }}
+        run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: 60
 
   linux-build:
