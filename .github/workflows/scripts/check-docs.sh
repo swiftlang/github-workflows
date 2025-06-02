@@ -43,7 +43,7 @@ else
       cat <<EOF >> "$package_file"
 
 package.dependencies.append(
-    .package(url: "https://github.com/swiftlang/swift-docc-plugin", "1.0.0"..<"1.4.0")
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0")
 )
 EOF
     done
