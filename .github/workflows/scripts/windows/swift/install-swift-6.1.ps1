@@ -11,7 +11,7 @@
 ##===----------------------------------------------------------------------===##
 . $PSScriptRoot\install-swift.ps1
 
-$SWIFT='https://download.swift.org/swift-6.1-release/windows10/swift-6.1-RELEASE/swift-6.1-RELEASE-windows10.exe'
-$SWIFT_SHA256='8C8AEF8B4A449EBEEFD74482AC767E269F8CBE7E520871C1D103C7079C5F4C6A'
+$SWIFT='https://download.swift.org/swift-6.1.2-release/windows10/swift-6.1.2-RELEASE/swift-6.1.2-RELEASE-windows10.exe'
+$SWIFT_SHA256='92a0323ed7dd333c3b05e6e0e428f3a91c77d159f6ccfc8626a996f2ace09a0b'
 
 Install-Swift -Url $SWIFT -Sha256 $SWIFT_SHA256
