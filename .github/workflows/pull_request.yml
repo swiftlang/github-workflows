@@ -9,12 +9,16 @@ jobs:
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
     with:
+      enable_release_tests: true
       # Linux
       linux_build_command: |
         mkdir MyPackage
         cd MyPackage
         swift package init --type library
         swift build
+      linux_release_build_command: |
+        cd MyPackage
+        swift build -c release
       # Windows
       windows_build_command: |
         mkdir MyPackage
@@ -41,6 +45,7 @@ jobs:
     name: Test
     uses: ./.github/workflows/swift_package_test.yml
     with:
+      enable_release_tests: true
       enable_linux_checks: false
       enable_windows_checks: false
       # macOS
@@ -50,6 +55,9 @@ jobs:
         cd MyPackage
         xcrun swift package init --type library
         xcrun swift build
+      macos_release_build_command: |
+        cd MyPackage
+        xcrun swift build -c release
 
   soundness:
     name: Soundness
