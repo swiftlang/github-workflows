@@ -176,9 +176,9 @@ jobs:
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   windows-build:
-    name: Windows (${{ matrix.swift_version }} - ${{ inputs.enable_windows_docker && contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }})
+    name: Windows (${{ matrix.swift_version }} - 'windows-2022')
     if: ${{ inputs.enable_windows_checks }}
-    runs-on: ${{ inputs.enable_windows_docker && contains(matrix.swift_version, 'nightly') && 'windows-2019' || 'windows-2022' }}
+    runs-on: 'windows-2022'
     strategy:
       fail-fast: false
       matrix:
@@ -204,7 +204,7 @@ jobs:
         if: ${{ inputs.enable_windows_docker }}
         run: |
           if ("${{ matrix.swift_version }}".Contains("nightly")) {
-            $Image = "swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-1809"
+            $Image = "swiftlang/swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022"
           } else {
             $Image = "swift:${{ matrix.swift_version }}-windowsservercore-ltsc2022"
           }
