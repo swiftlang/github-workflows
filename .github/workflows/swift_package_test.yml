@@ -176,9 +176,9 @@ jobs:
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   windows-build:
-    name: Windows (${{ matrix.swift_version }} - 'windows-2022')
+    name: Windows (${{ matrix.swift_version }} - windows-2022)
     if: ${{ inputs.enable_windows_checks }}
-    runs-on: 'windows-2022'
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
