@@ -59,10 +59,18 @@ on:
         type: string
         description: "macOS command to build and test the package"
         default: "xcrun swift test"
+      macos_release_build_command:
+        type: string
+        description: "macOS command to build and test the package"
+        default: "xcrun swift test -c release"
       linux_build_command:
         type: string
         description: "Linux command to build and test the package"
         default: "swift test"
+      linux_release_build_command:
+        type: string
+        description: "Linux command to build and test the package"
+        default: "swift test -c release"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
@@ -99,6 +107,10 @@ on:
         type: boolean
         description: "Boolean to enable running build in windows docker container. Defaults to true"
         default: true
+      enable_release_tests:
+        type: boolean
+        description: "Boolean to enable building and running tests in release mode in addition to the default debug mode. Defaults to false"
+        default: false
       needs_token:
         type: boolean
         description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
@@ -137,9 +149,12 @@ jobs:
         run: xcrun swift --version
       - name: Pre-build
         run: ${{ inputs.macos_pre_build_command }}
-      - name: Build / Test
+      - name: Build / Test [debug]
         run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: 60
+      - name: Build / Test [release]
+        if: ${{ inputs.enable_release_tests }}
+        run: ${{ inputs.macos_release_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
@@ -174,6 +189,9 @@ jobs:
         run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+      - name: Build / Test [release]
+        if: ${{ inputs.enable_release_tests }}
+        run: ${{ inputs.linux_release_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
