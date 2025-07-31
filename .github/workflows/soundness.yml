@@ -100,7 +100,7 @@ jobs:
           # This is set to true since swift package diagnose-api-breaking-changes is
           # cloning the repo again and without it being set to true this job won't work for
           # private repos.
-          persist-credentials: true 
+          persist-credentials: true
           submodules: true
           fetch-tags: true
           fetch-depth: 0  # Fetching tags requires fetch-depth: 0 (https://github.com/actions/checkout/issues/1471)
