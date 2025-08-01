@@ -33,9 +33,6 @@ jobs:
         swift package init --type library
         swift build
       enable_windows_docker: true
-      # TODO: jflat - Remove after PR testing
-      linux_static_sdk_versions: "[\"6.0\", \"6.1\", \"nightly-main\", \"nightly-6.2\"]"
-      wasm_sdk_versions: "[\"nightly-main\", \"nightly-6.2\"]"
 
   tests_without_docker:
     name: Test without Docker
