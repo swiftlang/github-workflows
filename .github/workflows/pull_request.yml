@@ -15,6 +15,17 @@ jobs:
         cd MyPackage
         swift package init --type library
         swift build
+      linux_static_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_linux_static_sdk_build: true
+      # Wasm
+      wasm_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_wasm_sdk_build: true
       # Windows
       windows_build_command: |
         mkdir MyPackage

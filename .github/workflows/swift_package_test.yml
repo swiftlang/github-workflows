@@ -31,6 +31,14 @@ on:
         type: string
         description: "Linux OS version list (JSON)"
         default: "[\"jammy\"]"
+      linux_static_sdk_versions:
+        type: string
+        description: "Linux Swift static SDK version list (JSON)"
+        default: "[\"nightly-6.2\"]"
+      wasm_sdk_versions:
+        type: string
+        description: "Swift Wasm SDK version list (JSON)"
+        default: "[\"nightly-6.2\"]"
       windows_swift_versions:
         type: string
         description: "Include Windows Swift version list (JSON)"
@@ -50,6 +58,14 @@ on:
       linux_pre_build_command:
         type: string
         description: "Linux command to execute before building the Swift package"
+        default: ""
+      linux_static_sdk_pre_build_command:
+        type: string
+        description: "Linux command to execute before building the Swift package with the static SDK"
+        default: ""
+      wasm_sdk_pre_build_command:
+        type: string
+        description: "Linux command to execute before building the Swift package with the Wasm SDK"
         default: ""
       macos_pre_build_command:
         type: string
@@ -87,6 +103,14 @@ on:
         type: boolean
         description: "Boolean to enable linux testing. Defaults to true"
         default: true
+      enable_linux_static_sdk_build:
+        type: boolean
+        description: "Boolean to enable building with the Linux static SDK. Defaults to false"
+        default: false
+      enable_wasm_sdk_build:
+        type: boolean
+        description: "Boolean to enable building with the Wasm SDK. Defaults to false"
+        default: false
       enable_macos_checks:
         type: boolean
         description: "Boolean to enable macOS testing. Defaults to false"
@@ -174,6 +198,82 @@ jobs:
         run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+
+  linux-static-sdk-build:
+    name: Linux Static SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    if: ${{ inputs.enable_linux_static_sdk_build }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
+        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+    container:
+      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
+    steps:
+      - name: Swift version
+        run: swift --version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        if: ${{ inputs.linux_env_vars }}
+        run: |
+            for i in "${{ inputs.linux_env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Pre-build
+        run: ${{ inputs.linux_pre_build_command }}
+      - name: Install static SDK and build
+        env:
+          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        run: |
+          ${{ inputs.linux_static_sdk_pre_build_command }}
+          which curl || (apt -q update && apt -yq install curl)
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --static --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+
+  wasm-sdk-build:
+    name: Wasm SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    if: ${{ inputs.enable_wasm_sdk_build }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
+        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+    container:
+      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
+    steps:
+      - name: Swift version
+        run: swift --version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        if: ${{ inputs.linux_env_vars }}
+        run: |
+            for i in "${{ inputs.linux_env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Pre-build
+        run: ${{ inputs.linux_pre_build_command }}
+      - name: Install Wasm SDK and build
+        env:
+          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        run: |
+          ${{ inputs.wasm_sdk_pre_build_command }}
+          which curl || (apt -q update && apt -yq install curl)
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
