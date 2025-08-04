@@ -39,6 +39,10 @@ on:
         type: string
         description: "Wasm Swift SDK version list (JSON)"
         default: "[\"nightly-main\", \"nightly-6.2\"]"
+      wasm_exclude_swift_versions:
+        type: string
+        description: "Exclude Wasm Swift SDK version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       windows_swift_versions:
         type: string
         description: "Include Windows Swift version list (JSON)"
@@ -64,10 +68,6 @@ on:
         description: "Linux command to execute before building the Swift package with the static Linux Swift SDK"
         default: ""
       wasm_sdk_pre_build_command:
-        type: string
-        description: "Linux command to execute before building the Swift package with the Embedded Swift SDK for Wasm"
-        default: ""
-      embedded_wasm_sdk_pre_build_command:
         type: string
         description: "Linux command to execute before building the Swift package with the Embedded Swift SDK for Wasm"
         default: ""
@@ -254,6 +254,8 @@ jobs:
       matrix:
         swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        exclude:
+          - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -292,6 +294,8 @@ jobs:
       matrix:
         swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        exclude:
+          - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
