@@ -38,7 +38,7 @@ on:
       wasm_sdk_versions:
         type: string
         description: "Wasm Swift SDK version list (JSON)"
-        default: "[\"nightly\", \"nightly-6.2\"]"
+        default: "[\"nightly-main\", \"nightly-6.2\"]"
       windows_swift_versions:
         type: string
         description: "Include Windows Swift version list (JSON)"
