@@ -203,7 +203,7 @@ if [[ "$SWIFT_VERSION_INPUT" == nightly-* ]]; then
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         static_linux_sdk_info=$(find_latest_sdk_snapshot "$version" "static")
 
-        STATIC_LINUX_SDK_TAG=$(echo "$static_linu_sdk_info" | cut -d'|' -f1)
+        STATIC_LINUX_SDK_TAG=$(echo "$static_linux_sdk_info" | cut -d'|' -f1)
         STATIC_LINUX_SDK_CHECKSUM=$(echo "$static_linux_sdk_info" | cut -d'|' -f2)
     fi
 
