@@ -125,9 +125,9 @@ find_latest_swift_version() {
         log "Found Static Linux Swift SDK checksum: ${static_linux_sdk_checksum:0:12}..."
     fi
 
-    local wasm_checksum=""
+    local wasm_sdk_checksum=""
     if [[ "$INSTALL_WASM" == true ]]; then
-        wasm_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
+        wasm_sdk_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
             .[]
             | select(.name == $version)
             | .platforms[]
@@ -135,14 +135,14 @@ find_latest_swift_version() {
             | .checksum
         ')
 
-        if [[ -z "$wasm_checksum" ]]; then
+        if [[ -z "$wasm_sdk_checksum" ]]; then
             fatal "No Swift SDK for Wasm checksum found for Swift $latest_version"
         fi
 
-        log "Found Swift SDK for Wasm checksum: ${wasm_checksum:0:12}..."
+        log "Found Swift SDK for Wasm checksum: ${wasm_sdk_checksum:0:12}..."
     fi
 
-    echo "${latest_version}|${static_checksum}|${wasm_checksum}"
+    echo "${latest_version}|${static_linux_sdk_checksum}|${wasm_sdk_checksum}"
 }
 
 # Finds the latest Static Linux or Wasm Swift SDK development snapshot
