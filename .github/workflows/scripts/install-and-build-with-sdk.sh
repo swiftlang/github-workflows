@@ -257,7 +257,7 @@ get_installed_swift_tag() {
     local swift_tag
     swift_tag=$(swift --version 2>/dev/null | grep -o "(swift-.*-RELEASE)" | tr -d "()" | head -n1)
     if [[ -n "$swift_tag" ]]; then
-        log "✅ Found Swift release tag via `swift --version`: $swift_tag"
+        log "✅ Found Swift release tag via 'swift --version': $swift_tag"
         echo "$swift_tag"
         return 0
     fi
