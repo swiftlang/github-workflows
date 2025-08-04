@@ -318,7 +318,7 @@ jobs:
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
           which curl || (apt -q update && apt -yq install curl)
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          curl -s --retry 3 https://raw.githubusercontent.com/MaxDesiatov/github-workflows/refs/heads/patch-1/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   windows-build:
