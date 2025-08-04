@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
             INSTALL_WASM=true
             shift
             ;;
-        --embedded_wasm)
+        --embedded-wasm)
             INSTALL_WASM=true
             BUILD_EMBEDDED_WASM=true
             shift
