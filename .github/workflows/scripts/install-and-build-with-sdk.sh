@@ -415,7 +415,7 @@ if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Current toolchain matches Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
         SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK="swift"
     else
-        log "Installing Swift toolchain to match static SDK snapshot: $STATIC_LINUX_SDK_TAG"
+        log "Installing Swift toolchain to match Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK=$(download_and_extract_toolchain "$STATIC_LINUX_SDK_TAG")
     fi
@@ -423,10 +423,10 @@ fi
 
 if [[ "$INSTALL_WASM" == true ]]; then
     if [[ "$INSTALLED_SWIFT_TAG" == "$WASM_SDK_TAG" ]]; then
-        log "Current toolchain matches Wasm SDK snapshot: $WASM_SDK_TAG"
+        log "Current toolchain matches Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         SWIFT_EXECUTABLE_FOR_WASM_SDK="swift"
     else
-        log "Installing Swift toolchain to match Wasm SDK snapshot: $WASM_SDK_TAG"
+        log "Installing Swift toolchain to match Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_WASM_SDK=$(download_and_extract_toolchain "$WASM_SDK_TAG")
     fi
