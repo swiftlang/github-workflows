@@ -283,6 +283,7 @@ jobs:
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}  wasm-sdk-build:
 
+  embedded-wasm-sdk-build:
     name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_embedded_wasm_sdk_build }}
     runs-on: ubuntu-latest
