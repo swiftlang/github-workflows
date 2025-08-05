@@ -5,6 +5,17 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  tests_with_docker_embedded_swift:
+    name: Test Embedded Swift SDKs
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      # Wasm
+      wasm_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type executable
+      enable_embedded_wasm_sdk_build: true
+
   tests_with_docker:
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
