@@ -9,10 +9,10 @@ jobs:
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml
     with:
+      # Wasm
       enable_linux_checks: false
       enable_macos_checks: false
       enable_windows_checks: false
-      # Wasm
       wasm_sdk_pre_build_command: |
         mkdir MyPackage
         cd MyPackage
