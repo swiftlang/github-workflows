@@ -18,19 +18,25 @@ error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
 # Parse command line options
-INSTALL_STATIC=false
+INSTALL_STATIC_LINUX=false
 INSTALL_WASM=false
+BUILD_EMBEDDED_WASM=false
 SWIFT_VERSION_INPUT=""
 SWIFT_BUILD_FLAGS=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --static)
-            INSTALL_STATIC=true
+            INSTALL_STATIC_LINUX=true
             shift
             ;;
         --wasm)
             INSTALL_WASM=true
+            shift
+            ;;
+        --embedded-wasm)
+            INSTALL_WASM=true
+            BUILD_EMBEDDED_WASM=true
             shift
             ;;
         --flags=*)
@@ -56,13 +62,13 @@ if [[ -z "$SWIFT_VERSION_INPUT" ]]; then
     fatal "Usage: $0 [--static] [--wasm] [--flags=\"<build-flags>\"] <swift-version>"
 fi
 
-if [[ "$INSTALL_STATIC" == false && "$INSTALL_WASM" == false ]]; then
+if [[ "$INSTALL_STATIC_LINUX" == false && "$INSTALL_WASM" == false ]]; then
     fatal "At least one of --static or --wasm must be specified"
 fi
 
 log "Requested Swift version: $SWIFT_VERSION_INPUT"
-log "Install static SDK: $INSTALL_STATIC"
-log "Install Wasm SDK: $INSTALL_WASM"
+log "Install Static Linux Swift SDK: $INSTALL_STATIC_LINUX"
+log "Install Wasm Swift SDK: $INSTALL_WASM"
 if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
     log "Additional build flags: $SWIFT_BUILD_FLAGS"
 fi
@@ -74,7 +80,7 @@ command -v jq >/dev/null || (apt update -q && apt install -yq jq)
 SWIFT_API_INSTALL_ROOT="https://www.swift.org/api/v1/install"
 
 # Transforms a minor Swift release version into its latest patch version
-# and gets the checksum for the patch version's static and/or Wasm SDK.
+# and gets the checksum for the patch version's Static Linux and/or Wasm Swift SDK.
 #
 # $1 (string): A minor Swift version, e.g. "6.1"
 # Output: A string of the form "<patch-version>|<static-checksum>|<wasm-checksum>
@@ -102,9 +108,9 @@ find_latest_swift_version() {
 
     log "Found latest patch version: $latest_version"
 
-    local static_checksum=""
-    if [[ "$INSTALL_STATIC" == true ]]; then
-        static_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
+    local static_linux_sdk_checksum=""
+    if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
+        static_linux_sdk_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
             .[]
             | select(.name == $version)
             | .platforms[]
@@ -112,16 +118,16 @@ find_latest_swift_version() {
             | .checksum
         ')
 
-        if [[ -z "$static_checksum" ]]; then
-            fatal "No static SDK checksum found for Swift $latest_version"
+        if [[ -z "$static_linux_sdk_checksum" ]]; then
+            fatal "No Static Linux Swift SDK checksum found for Swift $latest_version"
         fi
 
-        log "Found static SDK checksum: ${STATIC_SDK_CHECKSUM:0:12}..."
+        log "Found Static Linux Swift SDK checksum: ${static_linux_sdk_checksum:0:12}..."
     fi
 
-    local wasm_checksum=""
+    local wasm_sdk_checksum=""
     if [[ "$INSTALL_WASM" == true ]]; then
-        wasm_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
+        wasm_sdk_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
             .[]
             | select(.name == $version)
             | .platforms[]
@@ -129,17 +135,17 @@ find_latest_swift_version() {
             | .checksum
         ')
 
-        if [[ -z "$wasm_checksum" ]]; then
-            fatal "No Wasm SDK checksum found for Swift $latest_version"
+        if [[ -z "$wasm_sdk_checksum" ]]; then
+            fatal "No Swift SDK for Wasm checksum found for Swift $latest_version"
         fi
 
-        log "Found Wasm SDK checksum: ${wasm_checksum:0:12}..."
+        log "Found Swift SDK for Wasm checksum: ${wasm_sdk_checksum:0:12}..."
     fi
 
-    echo "${latest_version}|${static_checksum}|${wasm_checksum}"
+    echo "${latest_version}|${static_linux_sdk_checksum}|${wasm_sdk_checksum}"
 }
 
-# Finds the latest static or Wasm SDK development snapshot
+# Finds the latest Static Linux or Wasm Swift SDK development snapshot
 # for the inputted Swift version and its checksum.
 #
 # $1 (string): Nightly Swift version, e.g. "6.2" or "main"
@@ -180,8 +186,8 @@ find_latest_sdk_snapshot() {
 }
 
 SWIFT_VERSION_BRANCH=""
-STATIC_SDK_TAG=""
-STATIC_SDK_CHECKSUM=""
+STATIC_LINUX_SDK_TAG=""
+STATIC_LINUX_SDK_CHECKSUM=""
 WASM_SDK_TAG=""
 WASM_SDK_CHECKSUM=""
 
@@ -194,11 +200,11 @@ if [[ "$SWIFT_VERSION_INPUT" == nightly-* ]]; then
         SWIFT_VERSION_BRANCH="swift-${version}-branch"
     fi
 
-    if [[ "$INSTALL_STATIC" == true ]]; then
-        static_sdk_info=$(find_latest_sdk_snapshot "$version" "static")
+    if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
+        static_linux_sdk_info=$(find_latest_sdk_snapshot "$version" "static")
 
-        STATIC_SDK_TAG=$(echo "$static_sdk_info" | cut -d'|' -f1)
-        STATIC_SDK_CHECKSUM=$(echo "$static_sdk_info" | cut -d'|' -f2)
+        STATIC_LINUX_SDK_TAG=$(echo "$static_linux_sdk_info" | cut -d'|' -f1)
+        STATIC_LINUX_SDK_CHECKSUM=$(echo "$static_linux_sdk_info" | cut -d'|' -f2)
     fi
 
     if [[ "$INSTALL_WASM" == true ]]; then
@@ -213,20 +219,20 @@ else
     latest_version=$(echo "$latest_version_info" | cut -d'|' -f1)
     SWIFT_VERSION_BRANCH="swift-${latest_version}-release"
 
-    STATIC_SDK_TAG="swift-${latest_version}-RELEASE"
-    STATIC_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f2)
+    STATIC_LINUX_SDK_TAG="swift-${latest_version}-RELEASE"
+    STATIC_LINUX_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f2)
 
     WASM_SDK_TAG="swift-${latest_version}-RELEASE"
     WASM_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f3)
 fi
 
-# Validate that required SDK tags are set
-if [[ "$INSTALL_STATIC" == true && -z "$STATIC_SDK_TAG" ]]; then
-    fatal "STATIC_SDK_TAG is not set but static SDK installation was requested"
+# Validate that required Swift SDK tags are set
+if [[ "$INSTALL_STATIC_LINUX" == true && -z "$STATIC_LINUX_SDK_TAG" ]]; then
+    fatal "STATIC_LINUX_SDK_TAG is not set but Static Linux Swift SDK installation was requested"
 fi
 
 if [[ "$INSTALL_WASM" == true && -z "$WASM_SDK_TAG" ]]; then
-    fatal "WASM_SDK_TAG is not set but Wasm SDK installation was requested"
+    fatal "WASM_SDK_TAG is not set but Wasm Swift SDK installation was requested"
 fi
 
 get_installed_swift_tag() {
@@ -251,7 +257,7 @@ get_installed_swift_tag() {
     local swift_tag
     swift_tag=$(swift --version 2>/dev/null | grep -o "(swift-.*-RELEASE)" | tr -d "()" | head -n1)
     if [[ -n "$swift_tag" ]]; then
-        log "✅ Found Swift release tag via swift --version: $swift_tag"
+        log "✅ Found Swift release tag via 'swift --version': $swift_tag"
         echo "$swift_tag"
         return 0
     fi
@@ -401,63 +407,63 @@ download_and_extract_toolchain() {
 }
 
 INSTALLED_SWIFT_TAG=$(get_installed_swift_tag)
-SWIFT_EXECUTABLE_FOR_STATIC_SDK=""
+SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK=""
 SWIFT_EXECUTABLE_FOR_WASM_SDK=""
 
-if [[ "$INSTALL_STATIC" == true ]]; then
-    if [[ "$INSTALLED_SWIFT_TAG" == "$STATIC_SDK_TAG" ]]; then
-        log "Current toolchain matches static SDK snapshot: $STATIC_SDK_TAG"
-        SWIFT_EXECUTABLE_FOR_STATIC_SDK="swift"
+if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
+    if [[ "$INSTALLED_SWIFT_TAG" == "$STATIC_LINUX_SDK_TAG" ]]; then
+        log "Current toolchain matches Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
+        SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK="swift"
     else
-        log "Installing Swift toolchain to match static SDK snapshot: $STATIC_SDK_TAG"
+        log "Installing Swift toolchain to match Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
         initialize_os_info
-        SWIFT_EXECUTABLE_FOR_STATIC_SDK=$(download_and_extract_toolchain "$STATIC_SDK_TAG")
+        SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK=$(download_and_extract_toolchain "$STATIC_LINUX_SDK_TAG")
     fi
 fi
 
 if [[ "$INSTALL_WASM" == true ]]; then
     if [[ "$INSTALLED_SWIFT_TAG" == "$WASM_SDK_TAG" ]]; then
-        log "Current toolchain matches Wasm SDK snapshot: $WASM_SDK_TAG"
+        log "Current toolchain matches Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         SWIFT_EXECUTABLE_FOR_WASM_SDK="swift"
     else
-        log "Installing Swift toolchain to match Wasm SDK snapshot: $WASM_SDK_TAG"
+        log "Installing Swift toolchain to match Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_WASM_SDK=$(download_and_extract_toolchain "$WASM_SDK_TAG")
     fi
 fi
 
-STATIC_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/static-sdk"
+STATIC_LINUX_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/static-sdk"
 WASM_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/wasm-sdk"
 
-install_static_sdk() {
-    # Check if the static SDK is already installed
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_SDK" sdk list 2>/dev/null | grep -q "^${STATIC_SDK_TAG}_static-linux-0.0.1"; then
-        log "✅ Static SDK ${STATIC_SDK_TAG} is already installed, skipping installation"
+install_static_linux_sdk() {
+    # Check if the Static Linux Swift SDK is already installed
+    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk list 2>/dev/null | grep -q "^${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"; then
+        log "✅ Static Linux Swift SDK ${STATIC_LINUX_SDK_TAG} is already installed, skipping installation"
         return 0
     fi
 
-    log "Installing Swift Static SDK: $STATIC_SDK_TAG"
+    log "Installing Static Linux Swift SDK: $STATIC_LINUX_SDK_TAG"
 
-    local static_sdk_filename="${STATIC_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
-    local sdk_url="${STATIC_SDK_DOWNLOAD_ROOT}/${STATIC_SDK_TAG}/${static_sdk_filename}"
+    local static_linux_sdk_filename="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
+    local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${static_linux_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_STATIC_SDK} sdk install ${sdk_url} --checksum ${STATIC_SDK_CHECKSUM}"
+    log "Running: ${SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK} sdk install ${sdk_url} --checksum ${STATIC_LINUX_SDK_CHECKSUM}"
 
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_SDK" sdk install "$sdk_url" --checksum "$STATIC_SDK_CHECKSUM"; then
-        log "✅ Static SDK installed successfully"
+    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk install "$sdk_url" --checksum "$STATIC_LINUX_SDK_CHECKSUM"; then
+        log "✅ Static Linux Swift SDK installed successfully"
     else
-        fatal "Failed to install static SDK"
+        fatal "Failed to install Static Linux Swift SDK"
     fi
 }
 
 install_wasm_sdk() {
-    # Check if the Wasm SDK is already installed
+    # Check if Swift SDK for Wasm is already installed
     if "$SWIFT_EXECUTABLE_FOR_WASM_SDK" sdk list 2>/dev/null | grep -q "^${WASM_SDK_TAG}_wasm"; then
-        log "✅ Wasm SDK ${WASM_SDK_TAG} is already installed, skipping installation"
+        log "✅ Swift SDK for Wasm ${WASM_SDK_TAG} is already installed, skipping installation"
         return 0
     fi
 
-    log "Installing Swift Wasm SDK: $WASM_SDK_TAG"
+    log "Installing Swift SDK for Wasm: $WASM_SDK_TAG"
 
     local wasm_sdk_filename="${WASM_SDK_TAG}_wasm.artifactbundle.tar.gz"
     local sdk_url="${WASM_SDK_DOWNLOAD_ROOT}/${WASM_SDK_TAG}/${wasm_sdk_filename}"
@@ -465,30 +471,30 @@ install_wasm_sdk() {
     log "Running: ${SWIFT_EXECUTABLE_FOR_WASM_SDK} sdk install ${sdk_url} --checksum ${WASM_SDK_CHECKSUM}"
 
     if "$SWIFT_EXECUTABLE_FOR_WASM_SDK" sdk install "$sdk_url" --checksum "$WASM_SDK_CHECKSUM"; then
-        log "✅ Wasm SDK installed successfully"
+        log "✅ Swift SDK for Wasm installed successfully"
     else
-        fatal "Failed to install Wasm SDK"
+        fatal "Failed to install Swift SDK for Wasm"
     fi
 }
 
 install_sdks() {
-    if [[ "$INSTALL_STATIC" == true ]]; then
-        log "Starting install of Swift ${SWIFT_VERSION_INPUT} static SDK"
-        install_static_sdk
+    if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
+        log "Starting install of Swift ${SWIFT_VERSION_INPUT} Static Linux Swift SDK"
+        install_static_linux_sdk
     fi
 
     if [[ "$INSTALL_WASM" == true ]]; then
-        log "Starting install of Swift ${SWIFT_VERSION_INPUT} Wasm SDK"
+        log "Starting install of Swift ${SWIFT_VERSION_INPUT} Wasm Swift SDK"
         install_wasm_sdk
     fi
 }
 
 build() {
-    if [[ "$INSTALL_STATIC" == true ]]; then
-        log "Running Swift build with static SDK"
+    if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
+        log "Running Swift build with Static Linux Swift SDK"
 
-        local sdk_name="${STATIC_SDK_TAG}_static-linux-0.0.1"
-        local build_command="$SWIFT_EXECUTABLE_FOR_STATIC_SDK build --swift-sdk $sdk_name"
+        local sdk_name="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"
+        local build_command="$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK build --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
@@ -496,16 +502,21 @@ build() {
         log "Running: $build_command"
 
         if eval "$build_command"; then
-            log "✅ Swift build with static SDK completed successfully"
+            log "✅ Swift build with Static Linux Swift SDK completed successfully"
         else
-            fatal "Swift build with static SDK failed"
+            fatal "Swift build with Static Linux Swift SDK failed"
         fi
     fi
 
     if [[ "$INSTALL_WASM" == true ]]; then
-        log "Running Swift build with Wasm SDK"
+        log "Running Swift build with Swift SDK for Wasm"
 
-        local sdk_name="${WASM_SDK_TAG}_wasm"
+        if [[ "$BUILD_EMBEDDED_WASM" == true ]]; then
+            local sdk_name="${WASM_SDK_TAG}_wasm-embedded"
+        else
+            local sdk_name="${WASM_SDK_TAG}_wasm"
+        fi
+
         local build_command="$SWIFT_EXECUTABLE_FOR_WASM_SDK build --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
@@ -514,9 +525,9 @@ build() {
         log "Running: $build_command"
 
         if eval "$build_command"; then
-            log "✅ Swift build with Wasm SDK completed successfully"
+            log "✅ Swift build with Swift SDK for Wasm completed successfully"
         else
-            fatal "Swift build with Wasm SDK failed"
+            fatal "Swift build with Swift SDK for Wasm failed"
         fi
     fi
 }
