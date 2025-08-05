@@ -13,7 +13,7 @@ jobs:
       wasm_sdk_pre_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type executable
+        swift package init --type library
       enable_embedded_wasm_sdk_build: true
 
   tests_with_docker:
