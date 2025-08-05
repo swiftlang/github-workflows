@@ -65,7 +65,7 @@ on:
         default: ""
       linux_static_sdk_pre_build_command:
         type: string
-        description: "Linux command to execute before building the Swift package with the static Linux Swift SDK"
+        description: "Linux command to execute before building the Swift package with the Static Linux Swift SDK"
         default: ""
       wasm_sdk_pre_build_command:
         type: string
