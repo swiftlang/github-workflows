@@ -79,6 +79,14 @@ on:
         type: string
         description: "Linux command to build and test the package"
         default: "swift test"
+      linux_static_sdk_build_command:
+        type: string
+        description: "Command to use when building the package with the Static Linux Swift SDK"
+        default: "swift build"
+      wasm_sdk_build_command:
+        type: string
+        description: "Command to use when building the package with the Swift SDK for Wasm"
+        default: "swift build"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
@@ -235,7 +243,7 @@ jobs:
           ${{ inputs.linux_static_sdk_pre_build_command }}
           which curl || (apt -q update && apt -yq install curl)
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --static --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+          bash -s -- --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
   wasm-sdk-build:
     name: Wasm SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
@@ -273,7 +281,7 @@ jobs:
           ${{ inputs.wasm_sdk_pre_build_command }}
           which curl || (apt -q update && apt -yq install curl)
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+          bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
