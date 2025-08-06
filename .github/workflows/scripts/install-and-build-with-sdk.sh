@@ -23,6 +23,7 @@ INSTALL_WASM=false
 BUILD_EMBEDDED_WASM=false
 SWIFT_VERSION_INPUT=""
 SWIFT_BUILD_FLAGS=""
+SWIFT_BUILD_COMMAND="swift build"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -43,6 +44,10 @@ while [[ $# -gt 0 ]]; do
             SWIFT_BUILD_FLAGS="${1#*=}"
             shift
             ;;
+        --build-command=*)
+            SWIFT_BUILD_COMMAND="${1#*=}"
+            shift
+            ;;
         -*)
             fatal "Unknown option: $1"
             ;;
@@ -59,7 +64,7 @@ done
 
 # Validate arguments
 if [[ -z "$SWIFT_VERSION_INPUT" ]]; then
-    fatal "Usage: $0 [--static] [--wasm] [--flags=\"<build-flags>\"] <swift-version>"
+    fatal "Usage: $0 [--static] [--wasm] [--flags=\"<build-flags>\"] [--build-command=\"<build-command>\"] <swift-version>"
 fi
 
 if [[ "$INSTALL_STATIC_LINUX" == false && "$INSTALL_WASM" == false ]]; then
@@ -525,11 +530,15 @@ install_sdks() {
 }
 
 build() {
+    # Enable alias expansion to use a 'swift' alias for the executable path
+    shopt -s expand_aliases
+
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Running Swift build with Static Linux Swift SDK"
 
         local sdk_name="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"
-        local build_command="$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK build --swift-sdk $sdk_name"
+        alias swift='$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK'
+        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
@@ -552,7 +561,8 @@ build() {
             local sdk_name="${WASM_SDK_TAG}_wasm"
         fi
 
-        local build_command="$SWIFT_EXECUTABLE_FOR_WASM_SDK build --swift-sdk $sdk_name"
+        alias swift='$SWIFT_EXECUTABLE_FOR_WASM_SDK'
+        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
