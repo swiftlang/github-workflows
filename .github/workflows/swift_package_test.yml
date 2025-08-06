@@ -242,7 +242,7 @@ jobs:
         run: |
           ${{ inputs.linux_static_sdk_pre_build_command }}
           which curl || (apt -q update && apt -yq install curl)
-          curl -s --retry 3 https://raw.githubusercontent.com/jrflat/github-workflows/refs/heads/custom-command-for-sdk-builds/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
   wasm-sdk-build:
@@ -280,7 +280,7 @@ jobs:
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
           which curl || (apt -q update && apt -yq install curl)
-          curl -s --retry 3 https://raw.githubusercontent.com/jrflat/github-workflows/refs/heads/custom-command-for-sdk-builds/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
   windows-build:
