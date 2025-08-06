@@ -10,6 +10,7 @@ jobs:
     uses: ./.github/workflows/swift_package_test.yml
     with:
       # Linux
+      linux_os_versions: '["jammy", "rhel-ubi9"]'
       linux_build_command: |
         mkdir MyPackage
         cd MyPackage

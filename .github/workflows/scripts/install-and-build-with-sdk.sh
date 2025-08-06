@@ -73,9 +73,24 @@ if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
     log "Additional build flags: $SWIFT_BUILD_FLAGS"
 fi
 
+# Detect package manager
+if command -v apt >/dev/null 2>&1; then
+    INSTALL_PACKAGE_COMMAND="apt update -q && apt install -yq"
+elif command -v dnf >/dev/null 2>&1; then
+    INSTALL_PACKAGE_COMMAND="dnf install -y"
+elif command -v yum >/dev/null 2>&1; then
+    INSTALL_PACKAGE_COMMAND="yum install -y"
+else
+    fatal "No supported package manager found"
+fi
+
+install_package() {
+    eval "$INSTALL_PACKAGE_COMMAND $1"
+}
+
 # Install dependencies
-command -v curl >/dev/null || (apt update -q && apt install -yq curl)
-command -v jq >/dev/null || (apt update -q && apt install -yq jq)
+command -v curl >/dev/null || install_package curl
+command -v jq >/dev/null || install_package jq
 
 SWIFT_API_INSTALL_ROOT="https://www.swift.org/api/v1/install"
 
@@ -295,8 +310,18 @@ initialize_os_info() {
     fi
 
     log "✅ Detected OS from /etc/os-release: ${os_id}${version_id}"
-    OS_NAME="${os_id}${version_id}"
-    OS_NAME_NO_DOT="${os_id}$(echo "$version_id" | tr -d '.')"
+    if [[ "$os_id" == "rhel" && "$version_id" == 9* ]]; then
+        OS_NAME="ubi9"
+        OS_NAME_NO_DOT="ubi9"
+    elif [[ "$os_id" == "amzn" && "$version_id" == "2" ]]; then
+        OS_NAME="amazonlinux2"
+        OS_NAME_NO_DOT="amazonlinux2"
+    else
+        # Ubuntu, Debian, Fedora
+        OS_NAME="${os_id}${version_id}"
+        OS_NAME_NO_DOT="${os_id}$(echo "$version_id" | tr -d '.')"
+    fi
+    log "Using OS name: $OS_NAME"
 
     local arch
     arch=$(uname -m)
@@ -341,6 +366,8 @@ download_and_verify() {
     rm -rf "$GNUPGHOME" "$temp_sig"
 }
 
+readonly EXIT_TOOLCHAIN_NOT_FOUND=44
+
 # Downloads and extracts the Swift toolchain for the given snapshot tag
 #
 # $1 (string): A snapshot tag, e.g. "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a"
@@ -368,7 +395,7 @@ download_and_extract_toolchain() {
         log "Toolchain not found: ${toolchain_filename}"
         log "Exiting workflow..."
         # Don't fail the workflow if we can't find the right toolchain
-        exit 0
+        exit $EXIT_TOOLCHAIN_NOT_FOUND
     fi
 
     # Create toolchain directory
@@ -418,6 +445,10 @@ if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Installing Swift toolchain to match Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK=$(download_and_extract_toolchain "$STATIC_LINUX_SDK_TAG")
+        if [[ $? -eq $EXIT_TOOLCHAIN_NOT_FOUND ]]; then
+            # Don't fail the workflow if we can't find the right toolchain
+            exit 0
+        fi
     fi
 fi
 
@@ -429,6 +460,10 @@ if [[ "$INSTALL_WASM" == true ]]; then
         log "Installing Swift toolchain to match Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_WASM_SDK=$(download_and_extract_toolchain "$WASM_SDK_TAG")
+        if [[ $? -eq $EXIT_TOOLCHAIN_NOT_FOUND ]]; then
+            # Don't fail the workflow if we can't find the right toolchain
+            exit 0
+        fi
     fi
 fi
 
