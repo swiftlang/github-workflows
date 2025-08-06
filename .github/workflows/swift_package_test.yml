@@ -46,6 +46,7 @@ on:
       windows_swift_versions:
         type: string
         description: "Include Windows Swift version list (JSON)"
+        # "5.10" is omitted for Windows because the container image is broken.
         default: "[\"5.9\", \"6.0\", \"6.1\", \"nightly\", \"nightly-6.2\"]"
       windows_exclude_swift_versions:
         type: string
