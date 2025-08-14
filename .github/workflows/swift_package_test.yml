@@ -198,8 +198,20 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Determine checkout action version
+        id: checkout-version
+        run: |
+          USE_V4=true
+          if [[ "${{ matrix.os_version }}" == "amazonlinux2" ]]; then
+            USE_V4=false
+          fi
+          echo "use_v4=$USE_V4" >> $GITHUB_OUTPUT
       - name: Checkout repository
+        if: steps.checkout-version.outputs.use_v4 == 'true'
         uses: actions/checkout@v4
+      - name: Checkout repository (v3)
+        if: steps.checkout-version.outputs.use_v4 == 'false'
+        uses: actions/checkout@v3
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -230,8 +242,20 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Determine checkout action version
+        id: checkout-version
+        run: |
+          USE_V4=true
+          if [[ "${{ matrix.os_version }}" == "amazonlinux2" ]]; then
+            USE_V4=false
+          fi
+          echo "use_v4=$USE_V4" >> $GITHUB_OUTPUT
       - name: Checkout repository
+        if: steps.checkout-version.outputs.use_v4 == 'true'
         uses: actions/checkout@v4
+      - name: Checkout repository (v3)
+        if: steps.checkout-version.outputs.use_v4 == 'false'
+        uses: actions/checkout@v3
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -270,8 +294,20 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Determine checkout action version
+        id: checkout-version
+        run: |
+          USE_V4=true
+          if [[ "${{ matrix.os_version }}" == "amazonlinux2" ]]; then
+            USE_V4=false
+          fi
+          echo "use_v4=$USE_V4" >> $GITHUB_OUTPUT
       - name: Checkout repository
+        if: steps.checkout-version.outputs.use_v4 == 'true'
         uses: actions/checkout@v4
+      - name: Checkout repository (v3)
+        if: steps.checkout-version.outputs.use_v4 == 'false'
+        uses: actions/checkout@v3
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -310,8 +346,20 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Determine checkout action version
+        id: checkout-version
+        run: |
+          USE_V4=true
+          if [[ "${{ matrix.os_version }}" == "amazonlinux2" ]]; then
+            USE_V4=false
+          fi
+          echo "use_v4=$USE_V4" >> $GITHUB_OUTPUT
       - name: Checkout repository
+        if: steps.checkout-version.outputs.use_v4 == 'true'
         uses: actions/checkout@v4
+      - name: Checkout repository (v3)
+        if: steps.checkout-version.outputs.use_v4 == 'false'
+        uses: actions/checkout@v3
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
