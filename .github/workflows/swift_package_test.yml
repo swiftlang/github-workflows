@@ -200,6 +200,10 @@ jobs:
         run: swift --version
       - name: Checkout repository
         uses: actions/checkout@v4
+        if: ${{ matrix.os_version != 'amazonlinux2' }}
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -232,6 +236,10 @@ jobs:
         run: swift --version
       - name: Checkout repository
         uses: actions/checkout@v4
+        if: ${{ matrix.os_version != 'amazonlinux2' }}
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -250,7 +258,18 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.linux_static_sdk_pre_build_command }}
-          which curl || (apt -q update && apt -yq install curl)
+          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
+            apt-get -q update && apt-get -yq install curl
+          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
+            dnf -y update
+            dnf -y install curl-minimal
+          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
+            yum -y update
+            yum -y install curl
+          else
+            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
+            exit 1
+          fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
@@ -272,6 +291,10 @@ jobs:
         run: swift --version
       - name: Checkout repository
         uses: actions/checkout@v4
+        if: ${{ matrix.os_version != 'amazonlinux2' }}
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -290,7 +313,18 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
-          which curl || (apt -q update && apt -yq install curl)
+          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
+            apt-get -q update && apt-get -yq install curl
+          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
+            dnf -y update
+            dnf -y install curl-minimal
+          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
+            yum -y update
+            yum -y install curl
+          else
+            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
+            exit 1
+          fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
@@ -330,7 +364,18 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
-          which curl || (apt -q update && apt -yq install curl)
+          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
+            apt-get -q update && apt-get -yq install curl
+          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
+            dnf -y update
+            dnf -y install curl-minimal
+          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
+            yum -y update
+            yum -y install curl
+          else
+            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
+            exit 1
+          fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
