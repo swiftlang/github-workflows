@@ -46,7 +46,7 @@ jobs:
         mkdir MyPackage
         cd MyPackage
         swift package init --type library
-        swift build
+        swift build -vv
       enable_windows_docker: true
 
   tests_without_docker:
