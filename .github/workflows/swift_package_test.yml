@@ -97,8 +97,11 @@ on:
         default: ""
       windows_build_command:
         type: string
-        description: "Windows Command Prompt command to build and test the package"
-        default: "swift test"
+        description: |
+          Windows Command Prompt command to build and test the package.
+          Note that Powershell does not automatically exit if a subcommand fails. The Invoke-Program utility is available to propagate non-zero exit codes.
+          It is strongly encouraged to run all command using `Invoke-Program` unless you want to continue on error eg. `Invoke-Program git apply patch.diff` instead of `git apply patch.diff`.
+        default: "Invoke-Program swift test"
       macos_env_vars:
         description: "Newline separated list of environment variables"
         type: string
@@ -383,8 +386,6 @@ jobs:
           mkdir $env:TEMP\test-script
           echo @'
           Set-PSDebug -Trace 1
-          $ErrorActionPreference = 'Stop'
-
           if ("${{ inputs.enable_windows_docker }}" -eq "true") {
             $Source = "C:\source"
           } else {
@@ -399,12 +400,11 @@ jobs:
               exit $LastExitCode
             }
           }
-
-          swift --version
-          swift test --version
-          cd $Source
+          Invoke-Program swift --version
+          Invoke-Program swift test --version
+          Invoke-Program cd $Source
           ${{ inputs.windows_pre_build_command }}
-          ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+          Invoke-Program ${{ inputs.windows_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
           '@ >> $env:TEMP\test-script\run.ps1
       # Docker build
       - name: Docker Build / Test
