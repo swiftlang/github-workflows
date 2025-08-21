@@ -60,7 +60,7 @@ jobs:
         mkdir MyPackage
         cd MyPackage
         Invoke-Program swift package init --type library
-        Invoke-Program swift build
+        Invoke-Program swift build -vv
       enable_windows_docker: false
 
   tests_macos:
