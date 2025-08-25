@@ -45,8 +45,8 @@ jobs:
       windows_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type library
-        swift build
+        Invoke-Program swift package init --type library
+        Invoke-Program swift build
       enable_windows_docker: true
 
   tests_without_docker:
@@ -59,8 +59,8 @@ jobs:
       windows_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type library
-        swift build
+        Invoke-Program swift package init --type library
+        Invoke-Program swift build
       enable_windows_docker: false
 
   tests_macos:
