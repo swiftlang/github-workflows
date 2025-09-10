@@ -5,22 +5,48 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  tests_with_docker_embedded_swift:
+    name: Test Embedded Swift SDKs
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      # Wasm
+      enable_linux_checks: false
+      enable_macos_checks: false
+      enable_windows_checks: false
+      wasm_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_embedded_wasm_sdk_build: true
+
   tests_with_docker:
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
     with:
       # Linux
+      linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
       linux_build_command: |
         mkdir MyPackage
         cd MyPackage
         swift package init --type library
         swift build
+      linux_static_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_linux_static_sdk_build: true
+      # Wasm
+      wasm_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_wasm_sdk_build: true
       # Windows
       windows_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type library
-        swift build
+        Invoke-Program swift package init --type library
+        Invoke-Program swift build
       enable_windows_docker: true
 
   tests_without_docker:
@@ -33,9 +59,23 @@ jobs:
       windows_build_command: |
         mkdir MyPackage
         cd MyPackage
-        swift package init --type library
-        swift build
+        Invoke-Program swift package init --type library
+        Invoke-Program swift build
       enable_windows_docker: false
+
+  tests_macos:
+    name: Test
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      enable_linux_checks: false
+      enable_windows_checks: false
+      # macOS
+      enable_macos_checks: true
+      macos_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        xcrun swift package init --type library
+        xcrun swift build
 
   soundness:
     name: Soundness
@@ -43,4 +83,3 @@ jobs:
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"
-      format_check_enabled: false

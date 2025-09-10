@@ -40,8 +40,8 @@ jobs:
 
 ### Testing
 
-To enable pull request testing for all supported Swift versions (5.8, 5.9, 5.10,
-6.0, and nightly) on Linux and Windows, add the following code example in
+To enable pull request testing for all supported Swift versions (5.9, 5.10,
+6.0, 6.1, nightly, and nightly-6.1) on Linux and Windows, add the following code example in
 `.github/workflows/pull_request.yml`:
 
 ```yaml
@@ -61,7 +61,7 @@ If your package only supports newer compiler versions, you can exclude older
 versions by using the `*_exclude_swift_versions` workflow input:
 
 ```yaml
-linux_exclude_swift_versions: "[{\"swift_version\": \"5.8\"}, {\"swift_version\": \"5.9\"}]"
+linux_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
 windows_exclude_swift_versions: "[{\"swift_version\": \"5.9\"}]"
 ```
 
@@ -74,6 +74,25 @@ pre_build_command: "which example || (apt update -q && apt install -yq example"
 ```
 
 macOS platform support will be available soon.
+
+#### Cross-PR testing
+
+To support testing of PRs together with PRs for one of the package’s dependencies, set add the following to your PR job.
+
+```yaml
+with:
+  enable_cross_pr_testing: true
+```
+
+To reference a linked PR, add `Linked PR: <link to PR>` to the PR description, eg.
+
+```
+Linked PR: https://github.com/swiftlang/swift-syntax/pull/2859
+// or alternatively
+Linked PR: swiftlang/swift-syntax#2859
+```
+
+Enabling cross-PR testing will add about 10s to PR testing time.
 
 ## Running workflows locally
 

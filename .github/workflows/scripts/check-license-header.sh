@@ -66,12 +66,14 @@ while IFS= read -r file_path; do
     bazelrc) comment_marker='##' ;;
     bzl) comment_marker='##' ;;
     c) comment_marker='//' ;;
+    cpp) comment_marker='//' ;;
     cmake) comment_marker='##' ;;
     code-workspace) continue ;;  # VS Code workspaces are JSON and shouldn't contain comments
     CODEOWNERS) continue ;;  # Doesn't need a license header
     Dockerfile) comment_marker='##' ;;
     editorconfig) comment_marker='##' ;;
     flake8) continue ;; # Configuration file doesn't need a license header
+    gitattributes) continue ;; # Configuration files don't need license headers
     gitignore) continue ;; # Configuration files don't need license headers
     gradle) comment_marker='//' ;;
     groovy) comment_marker='//' ;;
@@ -92,6 +94,7 @@ while IFS= read -r file_path; do
     py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
     rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
     sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
+    strings) comment_marker='//' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
     swift) comment_marker='//' ;;
     ts) comment_marker='//' ;;
@@ -99,6 +102,8 @@ while IFS= read -r file_path; do
     txt) continue ;; # Text files don't need license headers
     yml) continue ;; # YAML Configuration files don't need license headers
     yaml) continue ;; # YAML Configuration files don't need license headers
+    xcbuildrules) comment_marker='//' ;;
+    xcspec) comment_marker='//' ;;
     *)
       error "Unsupported file extension ${file_extension} for file (exclude or update this script): ${file_path}"
       paths_with_missing_license+=("${file_path} ")

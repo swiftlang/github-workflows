@@ -1,0 +1,104 @@
+name: Create automerge PR
+
+# Merges `head_branch` into `base_branch` and opens a PR to incorporate that merge commit into `base_branch`.
+#
+# The typical use case for this is in the first period after Swift has cut release branches.
+# Some repositories want to include most changes from `main` also in the release branch. When this job is set up, it can automatically create PRs to merge `main` into the release branch.
+# Maintainers of the package can then inspect the changes to ensure that they are not too risky for the release branch.
+# We will also run the normal PR testing on these changes, ensuring that these modifications don't break the build.
+#
+# Example usage in a repository:
+#
+# ```
+# name: Create PR to merge main into release branch
+#
+# # In the first period after branching the release branch, we typically want to include all changes from `main` also in the release branch. This workflow automatically creates a PR every Monday to merge main into the release branch.
+# # Later in the release cycle we should stop this practice to avoid landing risky changes by disabling this workflow. To do so, disable the workflow as described in https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow
+#
+# on:
+#   schedule:
+#     - cron: '0 9 * * MON'
+#   workflow_dispatch:
+#
+# jobs:
+#   create_merge_pr:
+#     name: Create PR to merge main into release branch
+#     uses: swiftlang/github-workflows/.github/workflows/create_automerge_pr.yml@main
+#     if: (github.event_name == 'schedule' && github.repository == 'swiftlang/swift-format') || (github.event_name != 'schedule')  # Ensure that we don't run this on a schedule in a fork
+#     permissions:
+#       contents: write
+#       pull-requests: write
+#     with:
+#       base_branch: release/6.2
+# ```
+#
+# PRs created by GitHub Actions don't kick off further actions (https://github.com/peter-evans/create-pull-request/blob/d57e551ebc1a16dee0b8c9ea6d24dba7627a6e35/docs/concepts-guidelines.md#triggering-further-workflow-runs).
+# As a workaround, we mark automerge PRs that are created by GitHub actions as draft and trigger the GitHub actions by marking the PR as ready for review. `ready_for_review` must be added to the PR types for this purpose, eg.
+# ```
+# on:
+#  pull_request:
+#    types: [..., ready_for_review]
+# ```
+# Unfortunately this will also re-trigger testing evenon a normal user's PR (which may have already been tested), but skipping them causes the checks to reset so this is the best we can do for now.
+on:
+  workflow_call:
+    inputs:
+      base_branch:
+        type: string
+        description: The branch into which head_branch should be merged
+        required: true
+      head_branch:
+        type: string
+        description: The branch that should be merged into base_branch
+        default: main
+      pr_message:
+        type: string
+        description: The message that should be included in the PR created by this job
+        default: This PR was automatically opened by a GitHub action. Review the changes included in this PR and determine if they should be included in the release branch. If yes, merge the PR. Otherwise revert changes that should not be included on this branch.
+
+jobs:
+  create_merge_pr:
+    name: Create PR to merge ${{ inputs.head_branch }} into ${{ inputs.base_branch }} branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if there are commits to merge
+        id: create_merge_commit
+        run: |
+          # Without this, we can't perform git operations in GitHub actions.
+          git config --global --add safe.directory "$(realpath .)"
+          git config --local user.name 'swift-ci'
+          git config --local user.email 'swift-ci@users.noreply.github.com'
+
+          if [[ "$(git rev-list --left-only --count origin/${{ inputs.head_branch }}...origin/${{ inputs.base_branch }})" == 0 ]]; then
+            echo "Nothing to merge"
+            echo "has_commits_to_merge=false" >> "$GITHUB_OUTPUT"
+            exit
+          fi
+
+          echo "has_commits_to_merge=true" >> "$GITHUB_OUTPUT"
+      - name: Push branch and create PR
+        id: push_branch
+        if: ${{ steps.create_merge_commit.outputs.has_commits_to_merge == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Create a branch for the PR instead of opening a PR that merges head_branch directly so that we have a fixed
+          # target in the PR and don't modify the PR as new commits are put on the head branch.
+          PR_BRANCH="automerge/merge-main-$(date +%Y-%m-%d_%H-%M)"
+          git checkout ${{ inputs.head_branch }}
+          git checkout -b "$PR_BRANCH"
+          git push --set-upstream origin "$PR_BRANCH"
+
+          gh pr create \
+            --base "${{ inputs.base_branch }}" \
+            --head "$PR_BRANCH" \
+            --title 'Merge `${{ inputs.head_branch }}` into `${{ inputs.base_branch }}`' \
+            --body '${{ inputs.pr_message }}' \
+            --draft
