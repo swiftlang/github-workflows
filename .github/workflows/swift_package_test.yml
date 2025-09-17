@@ -22,7 +22,7 @@ on:
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
-        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"nightly-main\", \"nightly-6.2\"]"
+        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"6.2\", \"nightly-main\", \"nightly-6.2\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
@@ -34,11 +34,11 @@ on:
       linux_static_sdk_versions:
         type: string
         description: "Static Linux Swift SDK version list (JSON)"
-        default: "[\"nightly-6.2\"]"
+        default: "[\"nightly-6.2\", \"6.2\"]"
       wasm_sdk_versions:
         type: string
         description: "Wasm Swift SDK version list (JSON)"
-        default: "[\"nightly-main\", \"nightly-6.2\"]"
+        default: "[\"nightly-main\", \"nightly-6.2\", \"6.2\"]"
       wasm_exclude_swift_versions:
         type: string
         description: "Exclude Wasm Swift SDK version list (JSON)"
@@ -47,7 +47,7 @@ on:
         type: string
         description: "Include Windows Swift version list (JSON)"
         # "5.10" is omitted for Windows because the container image is broken.
-        default: "[\"5.9\", \"6.0\", \"6.1\", \"nightly\", \"nightly-6.2\"]"
+        default: "[\"5.9\", \"6.0\", \"6.1\", \"6.2\", \"nightly\", \"nightly-6.2\"]"
       windows_exclude_swift_versions:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
