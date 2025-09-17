@@ -34,7 +34,11 @@ on:
       linux_static_sdk_versions:
         type: string
         description: "Static Linux Swift SDK version list (JSON)"
-        default: "[\"nightly-6.2\", \"6.2\"]"
+        default: "[\"nightly-main\", \"nightly-6.2\", \"6.2\"]"
+      linux_static_sdk_exclude_swift_versions:
+        type: string
+        description: "Exclude Static Linux Swift SDK version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       wasm_sdk_versions:
         type: string
         description: "Wasm Swift SDK version list (JSON)"
@@ -243,6 +247,8 @@ jobs:
       matrix:
         swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        exclude:
+          - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
