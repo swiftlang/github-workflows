@@ -180,6 +180,8 @@ jobs:
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
         run: xcrun swift --version
+      - name: Clang version
+        run: xcrun clang --version
       - name: Pre-build
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
@@ -202,6 +204,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -244,6 +248,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -299,6 +305,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -354,6 +362,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Provide token
@@ -458,6 +468,7 @@ jobs:
           }
           Invoke-Program swift --version
           Invoke-Program swift test --version
+          Invoke-Program clang --version
           Invoke-Program cd $Source
           '@ >> $env:TEMP\test-script\run.ps1
 
