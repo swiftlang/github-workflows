@@ -18,7 +18,7 @@ on:
       api_breakage_check_container_image:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.1-noble"
+        default: "swift:6.2-noble"
       docs_check_enabled:
         type: boolean
         description: "Boolean to enable the docs check job. Defaults to true."
@@ -26,7 +26,7 @@ on:
       docs_check_container_image:
         type: string
         description: "Container image for the docs check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.1-noble"
+        default: "swift:6.2-noble"
       docs_check_additional_arguments:
         type: string
         description: "Additional arguments that should be passed to docc"
@@ -58,7 +58,7 @@ on:
       format_check_container_image:
         type: string
         description: "Container image for the format check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.1-noble"
+        default: "swift:6.2-noble"
       shell_check_enabled:
         type: boolean
         description: "Boolean to enable the shell check job. Defaults to true."
@@ -66,7 +66,7 @@ on:
       shell_check_container_image:
         type: string
         description: "Container image for the shell check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.1-noble"
+        default: "swift:6.2-noble"
       yamllint_check_enabled:
         type: boolean
         description: "Boolean to enable the YAML lint check job. Defaults to true."
