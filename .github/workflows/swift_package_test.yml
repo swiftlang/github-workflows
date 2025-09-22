@@ -180,8 +180,8 @@ jobs:
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
-      - name: List installed applications.
-        run: ls /Applications
+      - name: List latest Xcode version.
+        run: plutil -extract CFBundleShortVersionString raw /Applications/Xcode-latest.app/Contents/Info.plist
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
