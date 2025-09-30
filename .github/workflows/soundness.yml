@@ -80,6 +80,9 @@ on:
         description: "Linux command to execute before building the Swift package"
         default: ""
 
+permissions:
+  contents: read
+
 ## We are cancelling previously triggered workflow runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-soundness
