@@ -77,8 +77,8 @@ jobs:
         xcrun swift package init --type library
         xcrun swift build
 
-  tests_ios:
-    name: Test iOS
+  build_tests_ios:
+    name: Build iOS Tests
     uses: ./.github/workflows/swift_package_test.yml
     with:
       enable_linux_checks: false
