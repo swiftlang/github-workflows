@@ -77,6 +77,19 @@ jobs:
         xcrun swift package init --type library
         xcrun swift build
 
+  tests_ios:
+    name: Test iOS
+    uses: ./.github/workflows/swift_package_test.yml
+    with:
+      enable_linux_checks: false
+      enable_windows_checks: false
+      # iOS
+      enable_ios_checks: true
+      ios_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        xcrun swift package init --type library
+
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml
