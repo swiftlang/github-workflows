@@ -86,8 +86,7 @@ jobs:
       # iOS
       enable_ios_checks: true
       ios_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
+        pwd
         xcrun swift package init --type library
 
   soundness:
