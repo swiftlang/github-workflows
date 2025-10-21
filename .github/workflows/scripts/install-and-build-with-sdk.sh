@@ -551,6 +551,8 @@ install_android_sdk() {
     local android_sdk_suffix="-0.1"
 
     local android_sdk_bundle_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}.artifactbundle"
+    # FIXME: next SDK will remove the "_" from the name 
+    local android_sdk_bundle_dir=$(echo ${android_sdk_bundle_name}| sed 's;_android;-android;g')
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
@@ -566,7 +568,7 @@ install_android_sdk() {
     ls ${HOME}/.config/
     ls ${HOME}/.config/swiftpm/
     ls ${HOME}/.config/swiftpm/swift-sdks/
-    ${HOME}/.config/swiftpm/swift-sdks/${android_sdk_bundle_name}/swift-android/scripts/setup-android-sdk.sh
+    ${HOME}/.config/swiftpm/swift-sdks/${android_sdk_bundle_dir}/swift-android/scripts/setup-android-sdk.sh
 }
 
 install_static_linux_sdk() {
