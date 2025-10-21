@@ -53,7 +53,7 @@ on:
       android_sdk_versions:
         type: string
         description: "Android Swift SDK version list (JSON)"
-        default: "[\"nightly-main\", \"nightly-6.2\", \"6.2\"]"
+        default: "[\"nightly-main\"]"
       android_exclude_swift_versions:
         type: string
         description: "Exclude Android Swift SDK version list (JSON)"
