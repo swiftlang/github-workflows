@@ -569,7 +569,7 @@ install_android_sdk() {
     fi
 
     # now setup the link to the local ANDROID_NDK_HOME
-    ${HOME}/.config/swiftpm/swift-sdks/${android_sdk_bundle_dir}/swift-android/scripts/setup-android-sdk.sh
+    "${HOME}"/.config/swiftpm/swift-sdks/${android_sdk_bundle_dir}/swift-android/scripts/setup-android-sdk.sh
 }
 
 install_static_linux_sdk() {

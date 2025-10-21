@@ -486,8 +486,10 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-tripe="${{ inputs.android_sdk_triple }}" ${{ matrix.swift_version }}
+          # FIXME: restore to main when this PR is ready to be merged
+          #curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ inputs.android_sdk_triple }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
