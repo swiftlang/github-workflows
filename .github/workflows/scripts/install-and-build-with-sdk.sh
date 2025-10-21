@@ -203,6 +203,12 @@ find_latest_sdk_snapshot() {
     log "Finding latest ${sdk_name}-sdk for Swift nightly-${version}"
     log "Fetching development snapshots from swift.org API..."
 
+    if [[ "${sdk_name}" == "android" ]]; then
+        # FIXME: hardwired Android nightly until there is an API endpoint
+        echo "swift-DEVELOPMENT-SNAPSHOT-2025-10-16-a|451844c232cf1fa02c52431084ed3dc27a42d103635c6fa71bae8d66adba2500"
+        return
+    fi
+
     local sdk_json
     sdk_json=$(curl -fsSL "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
 
