@@ -32,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_ANDROID=true
             shift
             ;;
+        --android-ndk-version=*)
+            ANDROID_NDK_VERSION="${1#*=}"
+            shift
+            ;;
         --android-sdk-triple=*)
             ANDROID_SDK_TRIPLE="${1#*=}"
             shift
@@ -575,9 +579,13 @@ install_android_sdk() {
     # guess some common places where the swift-sdks file lives
     cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm || cd /root/.swiftpm
 
+    # Download and install the Android NDK.
+    # Note that we could use the system package manager, but it is
+    # named different things for different distributions
+    # (e.g., "google-android-ndk-r26-installer" on Debian)
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
-        # download and install the Android NDK
-        local android_ndk_version=r27d
+        # permit the "--android-ndk" flag to override the default
+        local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
         curl --retry 3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
         unzip -q android-ndk-"${android_ndk_version}"-*.zip
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"

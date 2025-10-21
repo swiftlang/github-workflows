@@ -119,6 +119,10 @@ on:
         type: string
         description: "The triple to use when building with the Swift SDK for Android"
         default: "x86_64-unknown-linux-android28"
+      android_ndk_version:
+        type: string
+        description: "The NDK version to use when building with the Swift SDK for Android"
+        default: "r27d"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
@@ -489,7 +493,7 @@ jobs:
           # FIXME: restore to main when this PR is ready to be merged
           #curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ inputs.android_sdk_triple }}" ${{ matrix.swift_version }}
+          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ inputs.android_sdk_triple }}" --android-ndk-version="${{ inputs.android_ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
