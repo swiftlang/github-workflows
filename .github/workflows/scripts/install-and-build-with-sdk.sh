@@ -212,7 +212,8 @@ find_latest_sdk_snapshot() {
     log "Fetching development snapshots from swift.org API..."
 
     if [[ "${sdk_name}" == "android" ]]; then
-        # FIXME: hardwired Android nightly until there is an API endpoint
+        # FIXME: hardwired Android nightly until there is an API endpoint like
+        # https://www.swift.org/api/v1/install/dev/main/android-sdk.json
         echo "swift-DEVELOPMENT-SNAPSHOT-2025-10-16-a|451844c232cf1fa02c52431084ed3dc27a42d103635c6fa71bae8d66adba2500"
         return
     fi
@@ -586,10 +587,11 @@ install_android_sdk() {
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # permit the "--android-ndk" flag to override the default
         local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-        curl --retry 3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
-        unzip -q android-ndk-"${android_ndk_version}"-*.zip
+        curl -fsSLO --retry 3 -o "android-ndk-${android_ndk_version}.zip" https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        unzip -q "android-ndk-${android_ndk_version}.zip"
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
     fi
+
     ./swift-sdks/"${android_sdk_bundle_dir}"/swift-android/scripts/setup-android-sdk.sh
     cd -
 }
