@@ -578,7 +578,7 @@ install_android_sdk() {
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # download and install the Android NDK
         local android_ndk_version=r27d
-        curl --retry=3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        curl --retry 3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
         unzip -q android-ndk-"${android_ndk_version}"-*.zip
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
     fi
