@@ -23,7 +23,7 @@ jobs:
       - name: Build Android
         run: |
           curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --android-sdk-triple=aarch64-unknown-linux-android28 ${{ matrix.swift_version }}
+          bash -s -- --android --flags="--static-swift-stdlib" --android-sdk-triple=x86_64-unknown-linux-android28 ${{ matrix.swift_version }}
       - name: Check Binary
         run: file .build/debug/hello
 
