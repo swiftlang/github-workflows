@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['main']
+        swift_version: ['nightly-main']
         #swift_version: ['6.1', '6.2']
         os: ['ubuntu-latest']
     runs-on: ubuntu-latest
