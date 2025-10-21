@@ -575,7 +575,7 @@ install_android_sdk() {
     # guess some common places where the swift-sdks file lives
     cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm || cd /root/.swiftpm
 
-    if [[ ! -d "${ANDROID_NDK_HOME}" ]]; then
+    if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # download and install the Android NDK
         local android_ndk_version=r27d
         curl --retry=3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
