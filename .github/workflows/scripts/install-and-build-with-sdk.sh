@@ -554,7 +554,8 @@ install_android_sdk() {
     # FIXME: we will be removing the "-0.1" suffix
     local android_sdk_suffix="-0.1"
 
-    local android_sdk_bundle_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}.artifactbundle"
+    local android_sdk_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}"
+    local android_sdk_bundle_name="${android_sdk_name}.artifactbundle"
     # FIXME: next SDK will remove the "_" from the name 
     local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/-android}"
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
@@ -569,7 +570,16 @@ install_android_sdk() {
     fi
 
     # now setup the link to the local ANDROID_NDK_HOME
-    cd ~/Library/org.swift.swiftpm || cd "${XDG_CONFIG_HOME:-$HOME}"/swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm
+    swift sdk configure "${android_sdk_name}" --show-configuration
+    cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm
+
+    if [[ ! -d "${ANDROID_NDK_HOME}" ]]; then
+        # download and install the Android NDK
+        local android_ndk_version=r27d
+        curl --retry=3 -fsSLO https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        unzip -q android-ndk-"${android_ndk_version}"-*.zip
+        export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
+    fi
     ./swift-sdks/"${android_sdk_bundle_dir}"/swift-android/scripts/setup-android-sdk.sh
     cd -
 }
