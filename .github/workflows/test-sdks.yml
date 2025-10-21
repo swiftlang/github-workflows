@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ['6.1', '6.2']
+        swift_version: ['swift-DEVELOPMENT-SNAPSHOT-2025-10-16']
+        #swift_version: ['6.1', '6.2']
         os: ['ubuntu-latest']
     runs-on: ubuntu-latest
     timeout-minutes: 60
