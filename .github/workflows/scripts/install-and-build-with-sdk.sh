@@ -587,7 +587,7 @@ install_android_sdk() {
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # permit the "--android-ndk" flag to override the default
         local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-        curl -fsSLO --retry 3 -o "android-ndk-${android_ndk_version}.zip" https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        curl -fsSL -o "android-ndk-${android_ndk_version}.zip" --retry 3 https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
         unzip -q "android-ndk-${android_ndk_version}.zip"
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
     fi
