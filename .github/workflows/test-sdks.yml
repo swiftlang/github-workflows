@@ -34,4 +34,3 @@ jobs:
 
       - name: Check Binary
         run: file .build/debug/hello
-
