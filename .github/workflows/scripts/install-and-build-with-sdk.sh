@@ -32,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_ANDROID=true
             shift
             ;;
+        --android-sdk=*)
+            ANDROID_SDK_NAME="${1#*=}"
+            shift
+            ;;
         --static)
             INSTALL_STATIC_LINUX=true
             shift
@@ -637,12 +641,12 @@ build() {
     if [[ "$INSTALL_ANDROID" == true ]]; then
         log "Running Swift build with Android Swift SDK"
 
-        # FIXME: we will be changing the name in the next nightly
+        # FIXME: we will be trimming "-0.1" from the name in the next nightly
         local sdk_name="${ANDROID_SDK_TAG}-android-0.1"
         #local sdk_name="${ANDROID_SDK_TAG}_android"
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
+        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${ANDROID_SDK_NAME:-$sdk_name}"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
