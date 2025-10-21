@@ -1,0 +1,29 @@
+name: test-sdk-workflows
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - '*'
+jobs:
+  linux-android:
+    strategy:
+      fail-fast: false
+      matrix:
+        swift-version: ['6.1', '6.2']
+        os: ['ubuntu-latest']
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Create Package
+        run: swift package init --name SwiftDemo
+      - name: Build Static Linux
+        run: |
+          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --static --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+      - name: Build Android
+        run: |
+          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --android --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+
