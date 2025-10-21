@@ -556,7 +556,7 @@ install_android_sdk() {
 
     local android_sdk_bundle_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}.artifactbundle"
     # FIXME: next SDK will remove the "_" from the name 
-    local android_sdk_bundle_dir=$(echo ${android_sdk_bundle_name}| sed 's;_android;-android;g')
+    local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/-android}"
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
