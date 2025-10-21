@@ -572,7 +572,8 @@ install_android_sdk() {
     # now setup the link to the local ANDROID_NDK_HOME
     swift sdk configure --show-configuration "$(swift sdk list | grep android | tail -n 1)"
 
-    cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm
+    # guess some common places where the swift-sdks file lives
+    cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm || cd /root/.swiftpm
 
     if [[ ! -d "${ANDROID_NDK_HOME}" ]]; then
         # download and install the Android NDK
