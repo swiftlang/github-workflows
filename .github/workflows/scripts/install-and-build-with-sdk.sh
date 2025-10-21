@@ -570,7 +570,8 @@ install_android_sdk() {
     fi
 
     # now setup the link to the local ANDROID_NDK_HOME
-    swift sdk configure "${android_sdk_name}" --show-configuration
+    swift sdk configure --show-configuration "$(swift sdk list | grep android | tail -n 1)"
+
     cd ~/Library/org.swift.swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm
 
     if [[ ! -d "${ANDROID_NDK_HOME}" ]]; then
