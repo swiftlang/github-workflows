@@ -550,7 +550,8 @@ install_android_sdk() {
     # FIXME: we will be removing the "-0.1" suffix
     local android_sdk_suffix="-0.1"
 
-    local android_sdk_filename="${ANDROID_SDK_TAG}_android${android_sdk_suffix}.artifactbundle.tar.gz"
+    local android_sdk_bundle_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}.artifactbundle"
+    local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
     log "Running: ${SWIFT_EXECUTABLE_FOR_ANDROID_SDK} sdk install ${sdk_url} --checksum ${ANDROID_SDK_CHECKSUM}"
@@ -560,6 +561,9 @@ install_android_sdk() {
     else
         fatal "Failed to install Android Swift SDK"
     fi
+
+    # now setup the link to the local ANDROID_NDK_HOME
+    ${HOME}/.config/swiftpm/swift-sdks/${android_sdk_bundle_name}/swift-android/scripts/setup-android-sdk.sh
 }
 
 install_static_linux_sdk() {
