@@ -32,8 +32,8 @@ while [[ $# -gt 0 ]]; do
             INSTALL_ANDROID=true
             shift
             ;;
-        --android-sdk=*)
-            ANDROID_SDK_NAME="${1#*=}"
+        --android-sdk-triple=*)
+            ANDROID_SDK_TRIPLE="${1#*=}"
             shift
             ;;
         --static)
@@ -569,10 +569,8 @@ install_android_sdk() {
     fi
 
     # now setup the link to the local ANDROID_NDK_HOME
-    ls ${HOME}/.config/
-    ls ${HOME}/.config/swiftpm/
-    ls ${HOME}/.config/swiftpm/swift-sdks/
-    ${HOME}/.config/swiftpm/swift-sdks/${android_sdk_bundle_dir}/swift-android/scripts/setup-android-sdk.sh
+    cd ${HOME}/.config/swiftpm
+    ./swift-sdks/${android_sdk_bundle_dir}/swift-android/scripts/setup-android-sdk.sh
 }
 
 install_static_linux_sdk() {
@@ -646,7 +644,7 @@ build() {
         #local sdk_name="${ANDROID_SDK_TAG}_android"
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${ANDROID_SDK_NAME:-$sdk_name}"
+        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${ANDROID_SDK_TRIPLE:-$sdk_name}"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi

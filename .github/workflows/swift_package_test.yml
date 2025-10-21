@@ -115,6 +115,10 @@ on:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
         default: "swift build"
+      android_sdk_triple:
+        type: string
+        description: "The triple to use when building with the Swift SDK for Android"
+        default: "x86_64-unknown-linux-android28"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
@@ -375,6 +379,59 @@ jobs:
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
+  embedded-wasm-sdk-build:
+    name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    if: ${{ inputs.enable_embedded_wasm_sdk_build }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
+        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        exclude:
+          - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
+    container:
+      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
+    steps:
+      - name: Swift version
+        run: swift --version
+      - name: Clang version
+        run: clang --version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        if: ${{ inputs.linux_env_vars }}
+        run: |
+            for i in "${{ inputs.linux_env_vars }}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Pre-build
+        run: ${{ inputs.linux_pre_build_command }}
+      - name: Install Swift SDK for Wasm and build
+        env:
+          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        run: |
+          ${{ inputs.wasm_sdk_pre_build_command }}
+          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
+            apt-get -q update && apt-get -yq install curl
+          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
+            dnf -y update
+            dnf -y install curl-minimal
+          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
+            yum -y update
+            yum -y install curl
+          else
+            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
+            exit 1
+          fi
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+
   android-sdk-build:
     name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_android_sdk_build }}
@@ -430,60 +487,7 @@ jobs:
             exit 1
           fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" ${{ matrix.swift_version }}
-
-  embedded-wasm-sdk-build:
-    name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_embedded_wasm_sdk_build }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
-        exclude:
-          - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
-    container:
-      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
-    steps:
-      - name: Swift version
-        run: swift --version
-      - name: Clang version
-        run: clang --version
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Provide token
-        if: ${{ inputs.needs_token }}
-        run: |
-            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
-      - name: Set environment variables
-        if: ${{ inputs.linux_env_vars }}
-        run: |
-            for i in "${{ inputs.linux_env_vars }}"
-            do
-              printf "%s\n" $i >> $GITHUB_ENV
-            done
-      - name: Pre-build
-        run: ${{ inputs.linux_pre_build_command }}
-      - name: Install Swift SDK for Wasm and build
-        env:
-          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
-        run: |
-          ${{ inputs.wasm_sdk_pre_build_command }}
-          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
-            apt-get -q update && apt-get -yq install curl
-          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
-            dnf -y update
-            dnf -y install curl-minimal
-          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
-            yum -y update
-            yum -y install curl
-          else
-            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
-            exit 1
-          fi
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-tripe="${{ inputs.android_sdk_triple }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
