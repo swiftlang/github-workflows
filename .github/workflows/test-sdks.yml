@@ -20,12 +20,11 @@ jobs:
     steps:
       - name: Create Package
         run: swift package init --name SwiftDemo
-      - name: Build Static Linux
-        run: |
-          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --static --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
       - name: Build Android
         run: |
           curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --android --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
-
+      - name: Build Static Linux
+        run: |
+          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          bash -s -- --static --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}

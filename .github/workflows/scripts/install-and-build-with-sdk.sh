@@ -547,7 +547,8 @@ install_android_sdk() {
 
     log "Installing Android Swift SDK: $ANDROID_SDK_TAG"
 
-    local android_sdk_filename="${ANDROID_SDK_TAG}_android.artifactbundle.tar.gz"
+    # FIXME: we will be removing the "-0.1" suffix
+    local android_sdk_filename="${ANDROID_SDK_TAG}_android-0.1.artifactbundle.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
     log "Running: ${SWIFT_EXECUTABLE_FOR_ANDROID_SDK} sdk install ${sdk_url} --checksum ${ANDROID_SDK_CHECKSUM}"
