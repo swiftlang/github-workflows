@@ -1,12 +1,15 @@
 name: Swift Matrix
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
       macos_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
-        default: "[\"16.2\", \"16.3\", \"26.b6\"]"
+        default: "[\"16.3\", \"16.4\", \"26.0\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
@@ -22,7 +25,7 @@ on:
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
-        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"nightly-main\", \"nightly-6.2\"]"
+        default: "[ \"5.9\", \"5.10\", \"6.0\", \"6.1\", \"6.2\", \"nightly-main\", \"nightly-6.2\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
@@ -34,11 +37,15 @@ on:
       linux_static_sdk_versions:
         type: string
         description: "Static Linux Swift SDK version list (JSON)"
-        default: "[\"nightly-6.2\"]"
+        default: "[\"nightly-main\", \"nightly-6.2\", \"6.2\"]"
+      linux_static_sdk_exclude_swift_versions:
+        type: string
+        description: "Exclude Static Linux Swift SDK version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
       wasm_sdk_versions:
         type: string
         description: "Wasm Swift SDK version list (JSON)"
-        default: "[\"nightly-main\", \"nightly-6.2\"]"
+        default: "[\"nightly-main\", \"nightly-6.2\", \"6.2\"]"
       wasm_exclude_swift_versions:
         type: string
         description: "Exclude Wasm Swift SDK version list (JSON)"
@@ -47,7 +54,7 @@ on:
         type: string
         description: "Include Windows Swift version list (JSON)"
         # "5.10" is omitted for Windows because the container image is broken.
-        default: "[\"5.9\", \"6.0\", \"6.1\", \"nightly\", \"nightly-6.2\"]"
+        default: "[\"5.9\", \"6.0\", \"6.1\", \"6.2\", \"nightly\", \"nightly-6.2\"]"
       windows_exclude_swift_versions:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
@@ -216,6 +223,8 @@ jobs:
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
         run: xcrun swift --version
+      - name: Clang version
+        run: xcrun clang --version
       - name: Pre-build
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
@@ -238,6 +247,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -275,11 +286,15 @@ jobs:
       matrix:
         swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        exclude:
+          - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -335,6 +350,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
@@ -390,6 +407,8 @@ jobs:
     steps:
       - name: Swift version
         run: swift --version
+      - name: Clang version
+        run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Provide token
@@ -494,6 +513,7 @@ jobs:
           }
           Invoke-Program swift --version
           Invoke-Program swift test --version
+          Invoke-Program clang --version
           Invoke-Program cd $Source
           '@ >> $env:TEMP\test-script\run.ps1
 

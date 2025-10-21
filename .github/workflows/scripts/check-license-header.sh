@@ -116,7 +116,7 @@ while IFS= read -r file_path; do
   file_header=$(head -n "${expected_file_header_linecount}" "${file_path}")
   normalized_file_header=$(
     echo "${file_header}" \
-    | sed -E -e 's/20[12][0123456789] ?- ?20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
+    | sed -E -e 's/20[12][0123456789] ?[-–] ?20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
   )
 
   if ! diff -u \

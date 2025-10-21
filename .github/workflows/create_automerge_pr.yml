@@ -40,6 +40,10 @@ name: Create automerge PR
 #    types: [..., ready_for_review]
 # ```
 # Unfortunately this will also re-trigger testing evenon a normal user's PR (which may have already been tested), but skipping them causes the checks to reset so this is the best we can do for now.
+
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
