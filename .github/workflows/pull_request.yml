@@ -44,6 +44,12 @@ jobs:
         cd MyPackage
         swift package init --type library
       enable_wasm_sdk_build: true
+      # Android
+      android_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_android_sdk_build: true
       # Windows
       windows_build_command: |
         mkdir MyPackage
@@ -58,6 +64,12 @@ jobs:
     with:
       # Skip Linux which doesn't currently support docker-less workflow
       enable_linux_checks: false
+      # Android
+      android_sdk_pre_build_command: |
+        mkdir MyPackage
+        cd MyPackage
+        swift package init --type library
+      enable_android_sdk_build: true
       # Windows
       windows_build_command: |
         mkdir MyPackage
