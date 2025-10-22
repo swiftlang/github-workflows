@@ -666,6 +666,11 @@ build() {
 
         log "Running: $build_command"
 
+        # clear the ANDROID_NDK_ROOT environment variable if it is set
+        # due to https://github.com/swiftlang/swift-driver/pull/1879
+        # otherwise build error: missing required module 'SwiftAndroid'
+        export ANDROID_NDK_ROOT=""
+
         if eval "$build_command"; then
             log "✅ Swift build with Android Swift SDK completed successfully"
         else
