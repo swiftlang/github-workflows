@@ -240,6 +240,10 @@ find_latest_sdk_snapshot() {
 SWIFT_VERSION_BRANCH=""
 ANDROID_SDK_TAG=""
 ANDROID_SDK_CHECKSUM=""
+# TODO: we will be removing the "-0.1" suffix in a future nightly 
+ANDROID_SDK_PATH_SUFFIX="-0.1"
+ANDROID_SDK_PATH_SEP="-"
+
 STATIC_LINUX_SDK_TAG=""
 STATIC_LINUX_SDK_CHECKSUM=""
 WASM_SDK_TAG=""
@@ -549,13 +553,10 @@ install_android_sdk() {
 
     log "Installing Android Swift SDK: $ANDROID_SDK_TAG"
 
-    # FIXME: we will be removing the "-0.1" suffix
-    local android_sdk_suffix="-0.1"
-
-    local android_sdk_name="${ANDROID_SDK_TAG}_android${android_sdk_suffix}"
+    local android_sdk_name="${ANDROID_SDK_TAG}_android${ANDROID_SDK_PATH_SUFFIX}"
     local android_sdk_bundle_name="${android_sdk_name}.artifactbundle"
-    # FIXME: next SDK will remove the "_" from the name 
-    local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/-android}"
+    # TODO: remove once the next nightly changes the "-" to "_" in the name 
+    local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/${ANDROID_SDK_PATH_SEP}android}"
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
@@ -580,8 +581,9 @@ install_android_sdk() {
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # permit the "--android-ndk" flag to override the default
         local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-        curl -fsSL -o "android-ndk-${android_ndk_version}.zip" --retry 3 https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
-        unzip -q "android-ndk-${android_ndk_version}.zip"
+        curl -fsSL -o ndk.zip --retry 3 https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        unzip -q ndk.zip
+        rm ndk.zip
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
     fi
 
@@ -655,9 +657,7 @@ build() {
     if [[ "$INSTALL_ANDROID" == true ]]; then
         log "Running Swift build with Android Swift SDK"
 
-        # FIXME: we will be trimming "-0.1" from the name in the next nightly
-        local sdk_name="${ANDROID_SDK_TAG}-android-0.1"
-        #local sdk_name="${ANDROID_SDK_TAG}_android"
+        local sdk_name="${ANDROID_SDK_TAG}${ANDROID_SDK_PATH_SEP}android${ANDROID_SDK_PATH_SUFFIX}"
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
         local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${ANDROID_SDK_TRIPLE:-$sdk_name}"
