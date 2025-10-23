@@ -492,9 +492,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          # TODO: restore
-          #curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          curl -s --retry 3 https://raw.githubusercontent.com/swift-android-sdk/github-workflows/refs/heads/android-workflow/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ inputs.sdk_triple }}" --android-ndk-version="${{ inputs.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
