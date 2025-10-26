@@ -504,7 +504,7 @@ jobs:
           bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
-    name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - NDK ${{ matrix.ndk_version }})
     if: ${{ inputs.enable_android_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
