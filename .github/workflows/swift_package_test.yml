@@ -504,7 +504,7 @@ jobs:
           bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
-    name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
+    name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - NDK ${{ matrix.ndk_version }})
     if: ${{ inputs.enable_android_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
@@ -560,7 +560,7 @@ jobs:
             exit 1
           fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ inputs.sdk_triple }}" --android-ndk-version="${{ inputs.ndk_version }}" ${{ matrix.swift_version }}
+          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ matrix.sdk_triple }}" --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
