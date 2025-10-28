@@ -25,6 +25,7 @@ BUILD_EMBEDDED_WASM=false
 SWIFT_VERSION_INPUT=""
 SWIFT_BUILD_FLAGS=""
 SWIFT_BUILD_COMMAND="swift build"
+ANDROID_SDK_TRIPLES=()
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -37,7 +38,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --android-sdk-triple=*)
-            ANDROID_SDK_TRIPLE="${1#*=}"
+            ANDROID_SDK_TRIPLES+=("${1#*=}")
             shift
             ;;
         --static)
@@ -660,23 +661,27 @@ build() {
         local sdk_name="${ANDROID_SDK_TAG}${ANDROID_SDK_PATH_SEP}android${ANDROID_SDK_PATH_SUFFIX}"
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${ANDROID_SDK_TRIPLE:-$sdk_name}"
-        if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
-            build_command="$build_command $SWIFT_BUILD_FLAGS"
-        fi
 
-        log "Running: $build_command"
+        # This can become a single invocation in the future when `swift build` supports multiple Android triples at once
+        for android_sdk_triple in "${ANDROID_SDK_TRIPLES[@]}" ; do
+            local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${android_sdk_triple}"
+            if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
+                build_command="$build_command $SWIFT_BUILD_FLAGS"
+            fi
 
-        # clear the ANDROID_NDK_ROOT environment variable if it is set
-        # due to https://github.com/swiftlang/swift-driver/pull/1879
-        # otherwise build error: missing required module 'SwiftAndroid'
-        export ANDROID_NDK_ROOT=""
+            log "Running: $build_command"
 
-        if eval "$build_command"; then
-            log "✅ Swift build with Android Swift SDK completed successfully"
-        else
-            fatal "Swift build with Android Swift SDK failed"
-        fi
+            # clear the ANDROID_NDK_ROOT environment variable if it is set
+            # due to https://github.com/swiftlang/swift-driver/pull/1879
+            # otherwise build error: missing required module 'SwiftAndroid'
+            export ANDROID_NDK_ROOT=""
+
+            if eval "$build_command"; then
+                log "✅ Swift build with Android Swift SDK completed successfully"
+            else
+                fatal "Swift build with Android Swift SDK failed"
+            fi
+        done
     fi
 
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
