@@ -139,13 +139,13 @@ on:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
         default: "swift build"
-      android_sdk_triple:
+      android_sdk_triples:
         type: string
-        description: "The triple to use when building with the Swift SDK for Android"
-        default: "[\"x86_64-unknown-linux-android28\"]"
-      android_ndk_version:
+        description: "The triples to use when building with the Swift SDK for Android"
+        default: "[\"aarch64-unknown-linux-android28\", \"x86_64-unknown-linux-android28\"]"
+      android_ndk_versions:
         type: string
-        description: "The NDK version to use when building with the Swift SDK for Android"
+        description: "The NDK versions to use when building with the Swift SDK for Android"
         default: "[\"r27d\"]"
       windows_pre_build_command:
         type: string
@@ -511,8 +511,7 @@ jobs:
       fail-fast: false
       matrix:
         swift_version: ${{ fromJson(inputs.android_sdk_versions) }}
-        sdk_triple: ${{ fromJson(inputs.android_sdk_triple) }}
-        ndk_version: ${{ fromJson(inputs.android_ndk_version) }}
+        ndk_version: ${{ fromJson(inputs.android_ndk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
@@ -560,7 +559,7 @@ jobs:
             exit 1
           fi
           curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple="${{ matrix.sdk_triple }}" --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
+          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
