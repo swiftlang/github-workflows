@@ -17,8 +17,30 @@ function Install-Swift {
     Set-Variable ErrorActionPreference Stop
     Set-Variable ProgressPreference SilentlyContinue
     Write-Host -NoNewLine ('Downloading {0} ... ' -f $url)
-    Invoke-WebRequest -Uri $url -OutFile installer.exe
-    Write-Host 'SUCCESS'
+    $MaxRetries = 10
+    $BaseDelay = 1
+    $Attempt = 0
+    $Success = $false
+
+    while (-not $Success -and $Attempt -lt $MaxRetries) {
+        $Attempt++
+        try {
+            Invoke-WebRequest -Uri $url -OutFile installer.exe
+            $Success = $true
+            Write-Host 'SUCCESS'
+        }
+        catch {
+            if ($Attempt -eq $MaxRetries) {
+                Write-Host "FAILED after $MaxRetries attempts: $($_.Exception.Message)"
+                exit 1
+            }
+
+            # Calculate exponential backoff delay (2^attempt * base delay)
+            $Delay = $BaseDelay * [Math]::Pow(2, $Attempt - 1)
+            Write-Host "Attempt $Attempt failed, retrying in $Delay seconds..."
+            Start-Sleep -Seconds $Delay
+        }
+    }
     Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $Sha256)
     $Hash = Get-FileHash installer.exe -Algorithm sha256
     if ($Hash.Hash -eq $Sha256 -or $Sha256 -eq "") {

@@ -14,8 +14,30 @@ $VSB_SHA256='C792BDB0FD46155DE19955269CAC85D52C4C63C23DB2CF43D96B9390146F9390'
 Set-Variable ErrorActionPreference Stop
 Set-Variable ProgressPreference SilentlyContinue
 Write-Host -NoNewLine ('Downloading {0} ... ' -f ${VSB})
-Invoke-WebRequest -Uri $VSB -OutFile $env:TEMP\vs_buildtools.exe
-Write-Host 'SUCCESS'
+$MaxRetries = 10
+$BaseDelay = 1
+$Attempt = 0
+$Success = $false
+
+while (-not $Success -and $Attempt -lt $MaxRetries) {
+    $Attempt++
+    try {
+        Invoke-WebRequest -Uri $VSB -OutFile $env:TEMP\vs_buildtools.exe
+        $Success = $true
+        Write-Host 'SUCCESS'
+    }
+    catch {
+        if ($Attempt -eq $MaxRetries) {
+            Write-Host "FAILED after $MaxRetries attempts: $($_.Exception.Message)"
+            exit 1
+        }
+
+        # Calculate exponential backoff delay (2^attempt * base delay)
+        $Delay = $BaseDelay * [Math]::Pow(2, $Attempt - 1)
+        Write-Host "Attempt $Attempt failed, retrying in $Delay seconds..."
+        Start-Sleep -Seconds $Delay
+    }
+}
 Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $VSB_SHA256)
 $Hash = Get-FileHash $env:TEMP\vs_buildtools.exe -Algorithm sha256
 if ($Hash.Hash -eq $VSB_SHA256) {
