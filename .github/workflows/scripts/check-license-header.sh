@@ -91,6 +91,7 @@ while IFS= read -r file_path; do
     plist) continue ;; # Plists don't support line comments
     proto) comment_marker='//' ;;
     ps1) comment_marker='##' ;;
+    psm1) comment_marker='##' ;;
     py) comment_marker='##'; header_prefix=$'#!/usr/bin/env python3\n' ;;
     rb) comment_marker='##'; header_prefix=$'#!/usr/bin/env ruby\n' ;;
     sh) comment_marker='##'; header_prefix=$'#!/bin/bash\n' ;;
