@@ -533,6 +533,10 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
+        if: ${{ matrix.os_version != 'amazonlinux2' }}
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v4
