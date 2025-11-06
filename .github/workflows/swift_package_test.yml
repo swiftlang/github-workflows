@@ -314,6 +314,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v1
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+          ref: main
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -322,7 +343,7 @@ jobs:
         if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}
         run: |
           apt-get update && apt-get install -y curl
-          curl -s https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/cross-pr-checkout.swift > /tmp/cross-pr-checkout.swift
+          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/cross-pr-checkout.swift > /tmp/cross-pr-checkout.swift
           swift /tmp/cross-pr-checkout.swift "${{ github.repository }}" "${{ github.event.number }}"
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
@@ -360,6 +381,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v1
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+          ref: main
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -390,7 +432,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
   wasm-sdk-build:
@@ -417,6 +459,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v1
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+          ref: main
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -447,7 +510,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
   embedded-wasm-sdk-build:
@@ -470,6 +533,27 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v1
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+          ref: main
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -500,7 +584,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          curl -s --retry 3 https://raw.githubusercontent.com/swiftlang/github-workflows/refs/heads/main/.github/workflows/scripts/install-and-build-with-sdk.sh | \
+          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
           bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
@@ -540,6 +624,7 @@ jobs:
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
+          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
