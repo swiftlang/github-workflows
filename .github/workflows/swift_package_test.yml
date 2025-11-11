@@ -223,9 +223,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ${{ fromJson(inputs.macos_xcode_versions) }}
-        os_version: ${{ fromJson(inputs.macos_versions) }}
-        arch: ${{ fromJson(inputs.macos_archs) }}
+        xcode_version: ${{ fromJson((inputs.enable_macos_checks && inputs.macos_xcode_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_macos_checks && inputs.macos_versions) || '[]') }}
+        arch: ${{ fromJson((inputs.enable_macos_checks && inputs.macos_archs) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.macos_exclude_xcode_versions) }}
     steps:
@@ -261,9 +261,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ${{ fromJson(inputs.ios_host_xcode_versions || inputs.macos_xcode_versions) }}
-        os_version: ${{ fromJson(inputs.ios_host_versions || inputs.macos_versions) }}
-        arch: ${{ fromJson(inputs.ios_host_archs || inputs.macos_archs) }}
+        xcode_version: ${{ fromJson((inputs.enable_ios_checks && (inputs.ios_host_xcode_versions || inputs.macos_xcode_versions)) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_ios_checks && (inputs.ios_host_versions || inputs.macos_versions)) || '[]') }}
+        arch: ${{ fromJson((inputs.enable_ios_checks && (inputs.ios_host_archs || inputs.macos_archs)) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.ios_host_exclude_xcode_versions || inputs.macos_exclude_xcode_versions) }}
     steps:
@@ -297,8 +297,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.linux_swift_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_linux_checks && inputs.linux_swift_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_linux_checks && inputs.linux_os_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
     container:
@@ -364,8 +364,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_linux_static_sdk_build && inputs.linux_static_sdk_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_linux_static_sdk_build && inputs.linux_os_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
     container:
@@ -442,8 +442,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_wasm_sdk_build && inputs.wasm_sdk_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_wasm_sdk_build && inputs.linux_os_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
     container:
@@ -520,8 +520,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.wasm_sdk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_embedded_wasm_sdk_build && inputs.wasm_sdk_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_embedded_wasm_sdk_build && inputs.linux_os_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
     container:
@@ -598,9 +598,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.android_sdk_versions) }}
-        ndk_version: ${{ fromJson(inputs.android_ndk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_android_sdk_build && inputs.android_sdk_versions) || '[]') }}
+        ndk_version: ${{ fromJson((inputs.enable_android_sdk_build && inputs.android_ndk_versions) || '[]') }}
+        os_version: ${{ fromJson((inputs.enable_android_sdk_build && inputs.linux_os_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
     container:
@@ -677,7 +677,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift_version: ${{ fromJson(inputs.windows_swift_versions) }}
+        swift_version: ${{ fromJson((inputs.enable_windows_checks && inputs.windows_swift_versions) || '[]') }}
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
