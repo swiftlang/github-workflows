@@ -692,10 +692,16 @@ jobs:
       - name: Determine script-root path
         id: script_path
         run: |
-          if ("${{ github.repository }}" -eq "swiftlang/github-workflows") {
-            echo "root=$env:GITHUB_WORKSPACE" >> $env:GITHUB_OUTPUT
+          if ("${{ inputs.enable_windows_docker }}" -eq "true") {
+            $source = "C:\source"
           } else {
-            echo "root=$env:GITHUB_WORKSPACE/github-workflows" >> $env:GITHUB_OUTPUT
+            $source = $env:GITHUB_WORKSPACE
+          }
+
+          if ("${{ github.repository }}" -eq "swiftlang/github-workflows") {
+            echo "root=$source" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "root=$source/github-workflows" >> $env:GITHUB_OUTPUT
           }
       - name: Provide token
         if: ${{ inputs.needs_token }}
