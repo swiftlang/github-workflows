@@ -102,7 +102,7 @@ jobs:
       enable_ios_checks: true
       ios_pre_build_command: |
         pwd
-        xcrun swift package init --type library
+        "$(xcrun -f swift)" package init --type library
 
   soundness:
     name: Soundness
