@@ -9,6 +9,9 @@
 ## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 ##
 ##===----------------------------------------------------------------------===##
+
+Import-Module $PSScriptRoot\..\web-request-utils.psm1
+
 function Install-Swift {
     param (
         [string]$Url,
@@ -17,8 +20,12 @@ function Install-Swift {
     Set-Variable ErrorActionPreference Stop
     Set-Variable ProgressPreference SilentlyContinue
     Write-Host -NoNewLine ('Downloading {0} ... ' -f $url)
-    Invoke-WebRequest -Uri $url -OutFile installer.exe
-    Write-Host 'SUCCESS'
+    try {
+        Invoke-WebRequestWithRetry -Uri $url -OutFile installer.exe
+    }
+    catch {
+        exit 1
+    }
     Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $Sha256)
     $Hash = Get-FileHash installer.exe -Algorithm sha256
     if ($Hash.Hash -eq $Sha256 -or $Sha256 -eq "") {
