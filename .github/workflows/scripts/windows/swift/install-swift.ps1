@@ -10,8 +10,6 @@
 ##
 ##===----------------------------------------------------------------------===##
 
-Import-Module $PSScriptRoot\..\web-request-utils.psm1
-
 function Install-Swift {
     param (
         [string]$Url,
@@ -21,9 +19,27 @@ function Install-Swift {
     Set-Variable ProgressPreference SilentlyContinue
     Write-Host -NoNewLine ('Downloading {0} ... ' -f $url)
     try {
-        Invoke-WebRequestWithRetry -Uri $url -OutFile installer.exe
+        # Use curl with retry logic (10 retries with exponential backoff starting at 1 second)
+        # --retry-all-errors ensures we retry on transfer failures (e.g., exit code 18)
+        # -C - enables resume for partial downloads
+        $exitCode = (Start-Process -FilePath "curl" -ArgumentList @(
+            "--retry", "10",
+            "--retry-delay", "1",
+            "--retry-all-errors",
+            "--retry-max-time", "300",
+            "--location",
+            "-C", "-",
+            "--output", "installer.exe",
+            $url
+        ) -Wait -PassThru -NoNewWindow).ExitCode
+
+        if ($exitCode -ne 0) {
+            throw "curl failed with exit code $exitCode"
+        }
+        Write-Host 'SUCCESS'
     }
     catch {
+        Write-Host "FAILED: $($_.Exception.Message)"
         exit 1
     }
     Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $Sha256)

@@ -10,17 +10,33 @@
 ##
 ##===----------------------------------------------------------------------===##
 
-Import-Module $PSScriptRoot\web-request-utils.psm1
-
 $VSB='https://download.visualstudio.microsoft.com/download/pr/5536698c-711c-4834-876f-2817d31a2ef2/c792bdb0fd46155de19955269cac85d52c4c63c23db2cf43d96b9390146f9390/vs_BuildTools.exe'
 $VSB_SHA256='C792BDB0FD46155DE19955269CAC85D52C4C63C23DB2CF43D96B9390146F9390'
 Set-Variable ErrorActionPreference Stop
 Set-Variable ProgressPreference SilentlyContinue
 Write-Host -NoNewLine ('Downloading {0} ... ' -f ${VSB})
 try {
-    Invoke-WebRequestWithRetry -Uri $VSB -OutFile $env:TEMP\vs_buildtools.exe
+    # Use curl with retry logic (10 retries with exponential backoff starting at 1 second)
+    # --retry-all-errors ensures we retry on transfer failures (e.g., exit code 18)
+    # -C - enables resume for partial downloads
+    $exitCode = (Start-Process -FilePath "curl" -ArgumentList @(
+        "--retry", "10",
+        "--retry-delay", "1",
+        "--retry-all-errors",
+        "--retry-max-time", "300",
+        "--location",
+        "-C", "-",
+        "--output", "$env:TEMP\vs_buildtools.exe",
+        $VSB
+    ) -Wait -PassThru -NoNewWindow).ExitCode
+
+    if ($exitCode -ne 0) {
+        throw "curl failed with exit code $exitCode"
+    }
+    Write-Host 'SUCCESS'
 }
 catch {
+    Write-Host "FAILED: $($_.Exception.Message)"
     exit 1
 }
 Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $VSB_SHA256)
