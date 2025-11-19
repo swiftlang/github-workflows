@@ -432,8 +432,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
   wasm-sdk-build:
     name: Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
@@ -510,8 +509,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
   embedded-wasm-sdk-build:
     name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
@@ -588,8 +586,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
     name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - NDK ${{ matrix.ndk_version }})
@@ -667,8 +664,7 @@ jobs:
             echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
             exit 1
           fi
-          cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh | \
-          bash -s -- --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - windows-2022)
