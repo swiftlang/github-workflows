@@ -23,7 +23,7 @@ if [ ! -f .spi.yml ]; then
 fi
 
 if ! command -v yq &> /dev/null; then
-  fatal "yq could not be found. Please install yq to proceed."
+  apt -q update && apt -yq install yq
 fi
 
 package_files=$(find . -maxdepth 1 -name 'Package*.swift')

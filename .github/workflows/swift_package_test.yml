@@ -342,7 +342,6 @@ jobs:
       - name: Check out related PRs
         if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}
         run: |
-          apt-get update && apt-get install -y curl
           cat ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/cross-pr-checkout.swift > /tmp/cross-pr-checkout.swift
           swift /tmp/cross-pr-checkout.swift "${{ github.repository }}" "${{ github.event.number }}"
       - name: Set environment variables
@@ -420,18 +419,6 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.linux_static_sdk_pre_build_command }}
-          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
-            apt-get -q update && apt-get -yq install curl
-          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
-            dnf -y update
-            dnf -y install curl-minimal
-          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
-            yum -y update
-            yum -y install curl
-          else
-            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
-            exit 1
-          fi
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
 
   wasm-sdk-build:
@@ -497,18 +484,6 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
-          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
-            apt-get -q update && apt-get -yq install curl
-          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
-            dnf -y update
-            dnf -y install curl-minimal
-          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
-            yum -y update
-            yum -y install curl
-          else
-            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
-            exit 1
-          fi
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
 
   embedded-wasm-sdk-build:
@@ -574,18 +549,6 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
-          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
-            apt-get -q update && apt-get -yq install curl
-          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
-            dnf -y update
-            dnf -y install curl-minimal
-          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
-            yum -y update
-            yum -y install curl
-          else
-            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
-            exit 1
-          fi
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
@@ -652,18 +615,6 @@ jobs:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
-          if command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy, focal
-            apt-get -q update && apt-get -yq install curl
-          elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
-            dnf -y update
-            dnf -y install curl-minimal
-          elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
-            yum -y update
-            yum -y install curl
-          else
-            echo "Unknown package manager (tried apt-get, dnf, yum)" >&2
-            exit 1
-          fi
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
