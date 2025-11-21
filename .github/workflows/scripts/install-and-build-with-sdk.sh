@@ -568,6 +568,8 @@ install_android_sdk() {
         fatal "Failed to install Android Swift SDK"
     fi
 
+    rm -f "${sdk_url}"
+
     # now setup the link to the local ANDROID_NDK_HOME
     swift sdk configure --show-configuration "$(swift sdk list | grep android | tail -n 1)"
 
@@ -611,6 +613,8 @@ install_static_linux_sdk() {
     else
         fatal "Failed to install Static Linux Swift SDK"
     fi
+
+    rm -f "${sdk_url}"
 }
 
 install_wasm_sdk() {
@@ -632,6 +636,8 @@ install_wasm_sdk() {
     else
         fatal "Failed to install Swift SDK for Wasm"
     fi
+
+    rm -f "${sdk_url}"
 }
 
 install_sdks() {
