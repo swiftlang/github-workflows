@@ -30,16 +30,24 @@ name: Create automerge PR
 #       pull-requests: write
 #     with:
 #       base_branch: release/6.2
+#       # Optional: Set to false to automatically trigger tests via "@swift-ci please test" comment
+#       # create_as_draft: false
 # ```
 #
 # PRs created by GitHub Actions don't kick off further actions (https://github.com/peter-evans/create-pull-request/blob/d57e551ebc1a16dee0b8c9ea6d24dba7627a6e35/docs/concepts-guidelines.md#triggering-further-workflow-runs).
-# As a workaround, we mark automerge PRs that are created by GitHub actions as draft and trigger the GitHub actions by marking the PR as ready for review. `ready_for_review` must be added to the PR types for this purpose, eg.
-# ```
-# on:
-#  pull_request:
-#    types: [..., ready_for_review]
-# ```
-# Unfortunately this will also re-trigger testing evenon a normal user's PR (which may have already been tested), but skipping them causes the checks to reset so this is the best we can do for now.
+# This workflow provides two approaches to trigger testing on automerge PRs:
+#
+# 1. **Draft PR approach (default)**: PRs are created as drafts and testing is triggered by marking the PR as ready for review.
+#    For this approach, `ready_for_review` must be added to the PR types, eg.
+#    ```
+#    on:
+#     pull_request:
+#       types: [..., ready_for_review]
+#    ```
+#    Unfortunately this will also re-trigger testing even on a normal user's PR (which may have already been tested), but skipping them causes the checks to reset so this is the best we can do for now.
+#
+# 2. **Auto-trigger approach**: When `create_as_draft` is set to `false`, the workflow will only trigger Swift CI tests  by commenting "@swift-ci please test" on the created PR.  This does not trigger any GitHub actions.
+#    This requires the repository to have the github-actions bot configured to respond to such comments.
 
 permissions:
   contents: read
@@ -59,6 +67,10 @@ on:
         type: string
         description: The message that should be included in the PR created by this job
         default: This PR was automatically opened by a GitHub action. Review the changes included in this PR and determine if they should be included in the release branch. If yes, merge the PR. Otherwise revert changes that should not be included on this branch.
+      create_as_draft:
+        type: boolean
+        description: Whether to create the PR as a draft
+        default: true
 
 jobs:
   create_merge_pr:
@@ -93,6 +105,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Define variables based on workflow input
+          if [[ "${{ inputs.create_as_draft }} == "true" ]] ; then
+            DRAFT_FLAG="--draft"
+          fi
           # Create a branch for the PR instead of opening a PR that merges head_branch directly so that we have a fixed
           # target in the PR and don't modify the PR as new commits are put on the head branch.
           PR_BRANCH="automerge/merge-main-$(date +%Y-%m-%d_%H-%M)"
@@ -102,7 +118,13 @@ jobs:
 
           gh pr create \
             --base "${{ inputs.base_branch }}" \
-            --head "$PR_BRANCH" \
+            --head "$PR_BRANCH" ${DRAFT_FLAG} \
             --title 'Merge `${{ inputs.head_branch }}` into `${{ inputs.base_branch }}`' \
-            --body '${{ inputs.pr_message }}' \
-            --draft
+            --body '${{ inputs.pr_message }}'
+
+          # Trigger tests is requested
+          if [[ "${{ inputs.create_as_draft }}" != "true" ]] ; then
+            PR_URL=$(gh pr view "${PR_BRANCH}" --json url | jq -r '.url')
+
+            gh pr comment "$PR_URL" --body "@swift-ci please test"
+          fi
