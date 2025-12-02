@@ -553,8 +553,6 @@ install_android_sdk() {
 
     local android_sdk_name="${ANDROID_SDK_TAG}_android"
     local android_sdk_bundle_name="${android_sdk_name}.artifactbundle"
-    # TODO: remove once the next nightly changes the "-" to "_" in the name 
-    local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/${ANDROID_SDK_PATH_SEP}android}"
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
@@ -588,7 +586,7 @@ install_android_sdk() {
         export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
     fi
 
-    ./swift-sdks/"${android_sdk_bundle_dir}"/swift-android/scripts/setup-android-sdk.sh
+    ./swift-sdks/"${android_sdk_bundle_name}"/swift-android/scripts/setup-android-sdk.sh
     cd -
 }
 
