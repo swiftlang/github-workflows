@@ -240,8 +240,6 @@ find_latest_sdk_snapshot() {
 SWIFT_VERSION_BRANCH=""
 ANDROID_SDK_TAG=""
 ANDROID_SDK_CHECKSUM=""
-# TODO: we will be removing the "-0.1" suffix in a future nightly 
-ANDROID_SDK_PATH_SUFFIX="-0.1"
 ANDROID_SDK_PATH_SEP="-"
 
 STATIC_LINUX_SDK_TAG=""
@@ -553,7 +551,7 @@ install_android_sdk() {
 
     log "Installing Android Swift SDK: $ANDROID_SDK_TAG"
 
-    local android_sdk_name="${ANDROID_SDK_TAG}_android${ANDROID_SDK_PATH_SUFFIX}"
+    local android_sdk_name="${ANDROID_SDK_TAG}_android"
     local android_sdk_bundle_name="${android_sdk_name}.artifactbundle"
     # TODO: remove once the next nightly changes the "-" to "_" in the name 
     local android_sdk_bundle_dir="${android_sdk_bundle_name//_android/${ANDROID_SDK_PATH_SEP}android}"
@@ -664,7 +662,7 @@ build() {
     if [[ "$INSTALL_ANDROID" == true ]]; then
         log "Running Swift build with Android Swift SDK"
 
-        local sdk_name="${ANDROID_SDK_TAG}${ANDROID_SDK_PATH_SEP}android${ANDROID_SDK_PATH_SUFFIX}"
+        local sdk_name="${ANDROID_SDK_TAG}${ANDROID_SDK_PATH_SEP}android"
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
 
