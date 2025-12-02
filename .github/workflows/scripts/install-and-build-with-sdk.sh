@@ -399,7 +399,7 @@ download_and_verify() {
     local output_file="$3"
     local temp_sig="${output_file}.sig"
 
-    log "Downloading ${url}"
+    log "Downloading with retry flag ${url}"
     curl -fsSL --retry 3 "$url" -o "$output_file"
 
     log "Downloading signature"
