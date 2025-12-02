@@ -125,7 +125,7 @@ find_latest_swift_version() {
     log "Fetching releases from swift.org API..."
 
     local releases_json
-    releases_json=$(curl -fsSL "${SWIFT_API_INSTALL_ROOT}/releases.json") || fatal "Failed to fetch Swift releases"
+    releases_json=$(curl -fsSL --retry 3 "${SWIFT_API_INSTALL_ROOT}/releases.json") || fatal "Failed to fetch Swift releases"
 
     # Find all releases that start with the minor version (e.g, "6.1")
     # Sort them and get the latest one
@@ -212,7 +212,7 @@ find_latest_sdk_snapshot() {
     log "Fetching development snapshots from swift.org API..."
 
     local sdk_json
-    sdk_json=$(curl -fsSL "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
+    sdk_json=$(curl -fsSL --retry 3 "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
 
     # Extract the snapshot tag from the "dir" field of the first (newest) element
     local snapshot_tag
@@ -400,16 +400,16 @@ download_and_verify() {
     local temp_sig="${output_file}.sig"
 
     log "Downloading ${url}"
-    curl -fsSL "$url" -o "$output_file"
+    curl -fsSL --retry 3 "$url" -o "$output_file"
 
     log "Downloading signature"
-    curl -fsSL "$sig_url" -o "$temp_sig"
+    curl -fsSL --retry 3 "$sig_url" -o "$temp_sig"
 
     log "Setting up GPG for verification"
     local gnupghome
     gnupghome="$(mktemp -d)"
     export GNUPGHOME="$gnupghome"
-    curl -fSsL https://swift.org/keys/all-keys.asc | zcat -f | gpg --import - >/dev/null 2>&1
+    curl -fSsL --retry 3 https://swift.org/keys/all-keys.asc | zcat -f | gpg --import - >/dev/null 2>&1
 
     log "Verifying signature"
     if gpg --batch --verify "$temp_sig" "$output_file" >/dev/null 2>&1; then
