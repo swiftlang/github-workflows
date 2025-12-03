@@ -29,11 +29,47 @@ function Invoke-WebRequestWithRetry {
                 Write-Host "Retry attempt $attempt of $MaxRetries after ${RetryDelay}s delay..."
                 Start-Sleep -Seconds $RetryDelay
             }
-            
-            # Use -Resume to support partial downloads if the connection drops
-            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -TimeoutSec $TimeoutSec -UseBasicParsing
-            
-            Write-Host "Download completed successfully"
+
+            Write-Host "Attempt $attempt`: Downloading from $Uri"
+
+            # Clean up any existing partial download
+            if (Test-Path $OutFile) {
+                Remove-Item -Force $OutFile -ErrorAction SilentlyContinue
+            }
+
+            # Get expected file size from HTTP headers
+            $headRequest = Invoke-WebRequest -Uri $Uri -Method Head -UseBasicParsing -TimeoutSec 30
+            $expectedSize = $null
+            if ($headRequest.Headers.ContainsKey('Content-Length')) {
+                $expectedSize = [long]$headRequest.Headers['Content-Length'][0]
+                Write-Host "Expected file size: $($expectedSize / 1MB) MB"
+            }
+
+            # Download with progress tracking disabled for better performance
+            $webClient = New-Object System.Net.WebClient
+            $webClient.DownloadFile($Uri, $OutFile)
+            $webClient.Dispose()
+
+            # Verify file exists and has content
+            if (-not (Test-Path $OutFile)) {
+                throw "Download completed but file not found at $OutFile"
+            }
+
+            $actualSize = (Get-Item $OutFile).Length
+            Write-Host "Downloaded file size: $($actualSize / 1MB) MB"
+
+            # Verify file size matches expected size
+            if ($expectedSize -and $actualSize -ne $expectedSize) {
+                throw "File size mismatch. Expected: $expectedSize bytes, Got: $actualSize bytes"
+            }
+
+            # Verify file is not corrupted by checking if it's a valid PE executable
+            $fileBytes = [System.IO.File]::ReadAllBytes($OutFile)
+            if ($fileBytes.Length -lt 2 -or $fileBytes[0] -ne 0x4D -or $fileBytes[1] -ne 0x5A) {
+                throw "Downloaded file is not a valid executable (missing MZ header)"
+            }
+
+            Write-Host "Download completed and verified successfully"
             return $true
         }
         catch {
