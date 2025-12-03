@@ -33,7 +33,7 @@ on:
 jobs:
   soundness:
     name: Soundness
-    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
+    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@0.0.1
     with:
       license_header_check_project_name: "Swift.org"
 ```
@@ -54,7 +54,7 @@ on:
 jobs:
   tests:
     name: tests
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@main
+    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.1
 ```
 
 If your package only supports newer compiler versions, you can exclude older
