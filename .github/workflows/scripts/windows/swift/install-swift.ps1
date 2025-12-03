@@ -9,6 +9,53 @@
 ## See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 ##
 ##===----------------------------------------------------------------------===##
+
+# Retry configuration
+$MaxRetries = 5
+$RetryDelay = 5
+
+function Invoke-WebRequestWithRetry {
+    param (
+        [string]$Uri,
+        [string]$OutFile,
+        [int]$TimeoutSec = 300
+    )
+    
+    $attempt = 1
+    
+    while ($attempt -le $MaxRetries) {
+        try {
+            if ($attempt -gt 1) {
+                Write-Host "Retry attempt $attempt of $MaxRetries after ${RetryDelay}s delay..."
+                Start-Sleep -Seconds $RetryDelay
+            }
+            
+            # Use -Resume to support partial downloads if the connection drops
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -TimeoutSec $TimeoutSec -UseBasicParsing
+            
+            Write-Host "Download completed successfully"
+            return $true
+        }
+        catch {
+            Write-Host "Download failed on attempt $attempt`: $($_.Exception.Message)"
+            
+            # Clean up partial download if it exists
+            if (Test-Path $OutFile) {
+                Remove-Item -Force $OutFile -ErrorAction SilentlyContinue
+            }
+            
+            if ($attempt -eq $MaxRetries) {
+                Write-Host "Download failed after $MaxRetries attempts"
+                throw
+            }
+        }
+        
+        $attempt++
+    }
+    
+    return $false
+}
+
 function Install-Swift {
     param (
         [string]$Url,
@@ -16,9 +63,18 @@ function Install-Swift {
     )
     Set-Variable ErrorActionPreference Stop
     Set-Variable ProgressPreference SilentlyContinue
-    Write-Host -NoNewLine ('Downloading {0} ... ' -f $url)
-    Invoke-WebRequest -Uri $url -OutFile installer.exe
-    Write-Host 'SUCCESS'
+    
+    Write-Host "Downloading $Url ... "
+    
+    try {
+        Invoke-WebRequestWithRetry -Uri $Url -OutFile installer.exe
+        Write-Host 'SUCCESS'
+    }
+    catch {
+        Write-Host "FAILED: $($_.Exception.Message)"
+        exit 1
+    }
+    
     Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $Sha256)
     $Hash = Get-FileHash installer.exe -Algorithm sha256
     if ($Hash.Hash -eq $Sha256 -or $Sha256 -eq "") {
