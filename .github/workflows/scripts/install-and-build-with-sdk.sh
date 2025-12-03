@@ -22,6 +22,9 @@ CURL_MAX_RETRIES=5
 CURL_RETRY_DELAY=5
 CURL_TIMEOUT=300
 
+SDK_INSTALL_MAX_RETRIES=5
+SDK_INSTALL_INITIAL_RETRY_DELAY=10
+
 curl_with_retry() {
     local attempt=1
     local exit_code=0
@@ -45,6 +48,41 @@ curl_with_retry() {
 
     error "curl failed after $CURL_MAX_RETRIES attempts"
     return $exit_code
+}
+
+swift_sdk_install_with_retry() {
+    local swift_executable="$1"
+    local sdk_url="$2"
+    local checksum="$3"
+    local sdk_type="$4"
+
+    local attempt=1
+    local retry_delay=$SDK_INSTALL_INITIAL_RETRY_DELAY
+
+    while [ $attempt -le $SDK_INSTALL_MAX_RETRIES ]; do
+        if [ $attempt -gt 1 ]; then
+            log "Retry attempt $attempt of $SDK_INSTALL_MAX_RETRIES for ${sdk_type} SDK installation after ${retry_delay}s delay..."
+            sleep $retry_delay
+        fi
+
+        log "Attempt $attempt: Installing ${sdk_type} SDK from ${sdk_url}"
+
+        if "$swift_executable" sdk install "$sdk_url" --checksum "$checksum"; then
+            log "✅ ${sdk_type} SDK installed successfully"
+            return 0
+        else
+            local exit_code=$?
+            log "swift sdk install failed with exit code $exit_code on attempt $attempt"
+
+            # Exponential backoff: double the delay each time
+            retry_delay=$((retry_delay * 2))
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    error "${sdk_type} SDK installation failed after $SDK_INSTALL_MAX_RETRIES attempts"
+    return 1
 }
 
 # Parse command line options
@@ -586,11 +624,7 @@ install_android_sdk() {
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_ANDROID_SDK} sdk install ${sdk_url} --checksum ${ANDROID_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK" sdk install "$sdk_url" --checksum "$ANDROID_SDK_CHECKSUM"; then
-        log "✅ Android Swift SDK installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK" "$sdk_url" "$ANDROID_SDK_CHECKSUM" "Android Swift"; then
         fatal "Failed to install Android Swift SDK"
     fi
 
@@ -632,11 +666,7 @@ install_static_linux_sdk() {
     local static_linux_sdk_filename="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
     local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${static_linux_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK} sdk install ${sdk_url} --checksum ${STATIC_LINUX_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk install "$sdk_url" --checksum "$STATIC_LINUX_SDK_CHECKSUM"; then
-        log "✅ Static Linux Swift SDK installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" "$sdk_url" "$STATIC_LINUX_SDK_CHECKSUM" "Static Linux Swift"; then
         fatal "Failed to install Static Linux Swift SDK"
     fi
 
@@ -655,11 +685,7 @@ install_wasm_sdk() {
     local wasm_sdk_filename="${WASM_SDK_TAG}_wasm.artifactbundle.tar.gz"
     local sdk_url="${WASM_SDK_DOWNLOAD_ROOT}/${WASM_SDK_TAG}/${wasm_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_WASM_SDK} sdk install ${sdk_url} --checksum ${WASM_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_WASM_SDK" sdk install "$sdk_url" --checksum "$WASM_SDK_CHECKSUM"; then
-        log "✅ Swift SDK for Wasm installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_WASM_SDK" "$sdk_url" "$WASM_SDK_CHECKSUM" "Swift Wasm"; then
         fatal "Failed to install Swift SDK for Wasm"
     fi
 
