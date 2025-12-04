@@ -736,7 +736,4 @@ jobs:
       - name: Build / Test
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
-        run: |
-          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
-          RefreshEnv
-          powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+        run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
