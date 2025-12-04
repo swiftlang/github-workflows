@@ -59,9 +59,26 @@ swift_sdk_install_with_retry() {
     local attempt=1
     local retry_delay=$SDK_INSTALL_INITIAL_RETRY_DELAY
 
+    # Extract SDK name from URL for checking if already installed
+    local sdk_filename
+    sdk_filename=$(basename "$sdk_url")
+    local sdk_name="${sdk_filename%.tar.gz}"
+
     while [ $attempt -le $SDK_INSTALL_MAX_RETRIES ]; do
         if [ $attempt -gt 1 ]; then
             log "Retry attempt $attempt of $SDK_INSTALL_MAX_RETRIES for ${sdk_type} SDK installation after ${retry_delay}s delay..."
+
+            # Before retrying, check if SDK was partially installed and remove it
+            log "Checking for partially installed SDK..."
+            if "$swift_executable" sdk list 2>/dev/null | grep -q "^${sdk_name}"; then
+                log "Found partially installed SDK, attempting to remove it..."
+                if "$swift_executable" sdk remove "$sdk_name" 2>/dev/null; then
+                    log "Successfully removed partially installed SDK"
+                else
+                    log "Warning: Failed to remove partially installed SDK, continuing anyway..."
+                fi
+            fi
+
             sleep $retry_delay
         fi
 
