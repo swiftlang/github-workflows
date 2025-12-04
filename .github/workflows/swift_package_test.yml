@@ -83,6 +83,10 @@ on:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
         default: "[{\"swift_version\": \"\"}]"
+      windows_os_versions:
+        type: string
+        description: "Windows OS version label list (JSON)"
+        default: "[\"windows-2022\"]"
       swift_flags:
         type: string
         description: "Swift flags for release version"
@@ -618,13 +622,14 @@ jobs:
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
 
   windows-build:
-    name: Windows (${{ matrix.swift_version }} - windows-2022)
+    name: Windows (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_windows_checks }}
-    runs-on: windows-2022
+    runs-on: ${{ matrix.os_version }}
     strategy:
       fail-fast: false
       matrix:
         swift_version: ${{ fromJson(inputs.windows_swift_versions) }}
+        os_version: ${{ fromJson(inputs.windows_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:

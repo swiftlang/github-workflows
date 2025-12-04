@@ -32,7 +32,8 @@ $Process =
         '--norestart',
         '--nocache',
         '--add', 'Microsoft.VisualStudio.Component.Windows11SDK.22000',
-        '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64'
+        '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+        '--add', 'Microsoft.VisualStudio.Component.VC.Tools.ARM64'
     )
 if ($Process.ExitCode -eq 0 -or $Process.ExitCode -eq 3010) {
     Write-Host 'SUCCESS'
