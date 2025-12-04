@@ -11,8 +11,14 @@
 ##===----------------------------------------------------------------------===##
 . $PSScriptRoot\install-swift.ps1
 
-$SWIFT_RELEASE_METADATA='http://download.swift.org/swift-6.2-branch/windows10/latest-build.json'
+if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") {
+    $swiftOSVersion = 'windows10-arm64'
+} else {
+    $swiftOSVersion = 'windows10'
+}
+
+$SWIFT_RELEASE_METADATA="https://download.swift.org/swift-6.2-branch/$swiftOSVersion/latest-build.json"
 $Release = curl.exe -sL ${SWIFT_RELEASE_METADATA}
-$SWIFT_URL = "https://download.swift.org/swift-6.2-branch/windows10/$($($Release | ConvertFrom-JSON).dir)/$($($Release | ConvertFrom-JSON).download)"
+$SWIFT_URL = "https://download.swift.org/swift-6.2-branch/$swiftOSVersion/$($($Release | ConvertFrom-JSON).dir)/$($($Release | ConvertFrom-JSON).download)"
 
 Install-Swift -Url $SWIFT_URL -Sha256 ""

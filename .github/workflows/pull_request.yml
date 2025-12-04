@@ -17,9 +17,7 @@ jobs:
       enable_macos_checks: false
       enable_windows_checks: false
       wasm_sdk_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
       enable_embedded_wasm_sdk_build: true
 
   tests_with_docker:
@@ -29,32 +27,22 @@ jobs:
       # Linux
       linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
       linux_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
         swift build
       linux_static_sdk_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
       enable_linux_static_sdk_build: true
       # Wasm
       wasm_sdk_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
       enable_wasm_sdk_build: true
       # Android
       android_sdk_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
       enable_android_sdk_build: true
       # Windows
       windows_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        Invoke-Program swift package init --type library
+        cd tests/TestPackage
         Invoke-Program swift build
       enable_windows_docker: true
 
@@ -66,17 +54,14 @@ jobs:
       enable_linux_checks: false
       # Android
       android_sdk_pre_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        swift package init --type library
+        cd tests/TestPackage
       enable_android_sdk_build: true
       # Windows
       windows_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        Invoke-Program swift package init --type library
+        cd tests/TestPackage
         Invoke-Program swift build
       enable_windows_docker: false
+      windows_os_versions: '["windows-2022", "windows-11-arm"]'
 
   tests_macos:
     name: Test
@@ -87,9 +72,7 @@ jobs:
       # macOS
       enable_macos_checks: true
       macos_build_command: |
-        mkdir MyPackage
-        cd MyPackage
-        xcrun swift package init --type library
+        cd tests/TestPackage
         xcrun swift build
 
   build_tests_ios:
@@ -100,9 +83,9 @@ jobs:
       enable_windows_checks: false
       # iOS
       enable_ios_checks: true
-      ios_pre_build_command: |
-        pwd
-        xcrun swift package init --type library
+      ios_build_command: |
+        cd tests/TestPackage
+        xcodebuild -quiet -scheme TestPackage-Package -destination "generic/platform=ios" build
 
   soundness:
     name: Soundness

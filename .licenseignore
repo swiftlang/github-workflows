@@ -3,3 +3,5 @@
 CODEOWNERS
 LICENSE.txt
 README.md
+**/Package.swift
+**/Package@swift-*
