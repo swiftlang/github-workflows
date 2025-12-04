@@ -92,6 +92,40 @@ function Invoke-WebRequestWithRetry {
     return $false
 }
 
+function Remove-FileWithRetry {
+    param (
+        [string]$Path
+    )
+
+    $attempt = 1
+
+    while ($attempt -le $MaxRetries) {
+        try {
+            if (Test-Path $Path) {
+                Remove-Item -Force $Path -ErrorAction Stop
+                Write-Host "Successfully removed $Path"
+                return $true
+            } else {
+                return $true
+            }
+        }
+        catch {
+            if ($attempt -eq $MaxRetries) {
+                Write-Host "Warning: Failed to remove $Path after $MaxRetries attempts: $($_.Exception.Message)"
+                Write-Host "The file may be locked by another process. It will be cleaned up later."
+                return $false
+            }
+
+            Write-Host "Attempt $attempt to remove $Path failed, retrying in ${RetryDelay}s..."
+            Start-Sleep -Seconds $RetryDelay
+        }
+
+        $attempt++
+    }
+
+    return $false
+}
+
 function Install-Swift {
     param (
         [string]$Url,
@@ -108,6 +142,7 @@ function Install-Swift {
     }
     catch {
         Write-Host "FAILED: $($_.Exception.Message)"
+        Remove-FileWithRetry -Path installer.exe
         exit 1
     }
     
@@ -117,18 +152,27 @@ function Install-Swift {
         Write-Host 'SUCCESS'
     } else {
         Write-Host ('FAILED ({0})' -f $Hash.Hash)
+        Remove-FileWithRetry -Path installer.exe
         exit 1
     }
     Write-Host -NoNewLine 'Installing Swift ... '
-    $Process = Start-Process installer.exe -Wait -PassThru -NoNewWindow -ArgumentList @(
-        '/quiet',
-        '/norestart'
-    )
-    if ($Process.ExitCode -eq 0) {
-        Write-Host 'SUCCESS'
-    } else {
-        Write-Host ('FAILED ({0})' -f $Process.ExitCode)
+    try {
+        $Process = Start-Process installer.exe -Wait -PassThru -NoNewWindow -ArgumentList @(
+            '/quiet',
+            '/norestart'
+        )
+        if ($Process.ExitCode -eq 0) {
+            Write-Host 'SUCCESS'
+        } else {
+            Write-Host ('FAILED ({0})' -f $Process.ExitCode)
+            Remove-FileWithRetry -Path installer.exe
+            exit 1
+        }
+    }
+    catch {
+        Write-Host "FAILED: $($_.Exception.Message)"
+        Remove-FileWithRetry -Path installer.exe
         exit 1
     }
-    Remove-Item -Force installer.exe
+    Remove-FileWithRetry -Path installer.exe
 }

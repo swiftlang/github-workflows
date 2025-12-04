@@ -92,6 +92,40 @@ function Invoke-WebRequestWithRetry {
     return $false
 }
 
+function Remove-FileWithRetry {
+    param (
+        [string]$Path
+    )
+
+    $attempt = 1
+
+    while ($attempt -le $MaxRetries) {
+        try {
+            if (Test-Path $Path) {
+                Remove-Item -Force $Path -ErrorAction Stop
+                Write-Host "Successfully removed $Path"
+                return $true
+            } else {
+                return $true
+            }
+        }
+        catch {
+            if ($attempt -eq $MaxRetries) {
+                Write-Host "Warning: Failed to remove $Path after $MaxRetries attempts: $($_.Exception.Message)"
+                Write-Host "The file may be locked by another process. It will be cleaned up later."
+                return $false
+            }
+
+            Write-Host "Attempt $attempt to remove $Path failed, retrying in ${RetryDelay}s..."
+            Start-Sleep -Seconds $RetryDelay
+        }
+
+        $attempt++
+    }
+
+    return $false
+}
+
 function Install-VisualStudioBuildTools {
     param (
         [string]$Url,
@@ -111,15 +145,17 @@ function Install-VisualStudioBuildTools {
     }
     catch {
         Write-Host "Download FAILED: $($_.Exception.Message)"
+        Remove-FileWithRetry -Path $installerPath
         exit 1
     }
 
     Write-Host -NoNewLine ('Verifying SHA256 ({0}) ... ' -f $Sha256)
     $Hash = Get-FileHash $installerPath -Algorithm sha256
-    if ($Hash.Hash -eq $VSB_SHA256) {
+    if ($Hash.Hash -eq $Sha256) {
         Write-Host 'SUCCESS'
     } else {
         Write-Host  ('FAILED ({0})' -f $Hash.Hash)
+        Remove-FileWithRetry -Path $installerPath
         exit 1
     }
 
@@ -138,16 +174,17 @@ function Install-VisualStudioBuildTools {
             Write-Host 'SUCCESS'
         } else {
             Write-Host  ('FAILED ({0})' -f $Process.ExitCode)
+            Remove-FileWithRetry -Path $installerPath
             exit 1
         }
     }
     catch {
         Write-Host "FAILED: $($_.Exception.Message)"
-        Remove-Item -Force $installerPath -ErrorAction SilentlyContinue
+        Remove-FileWithRetry -Path $installerPath
         exit 1
     }
 
-    Remove-Item -Force $installerPath -ErrorAction SilentlyContinue
+    Remove-FileWithRetry -Path $installerPath
 }
 
 $VSB = 'https://download.visualstudio.microsoft.com/download/pr/5536698c-711c-4834-876f-2817d31a2ef2/c792bdb0fd46155de19955269cac85d52c4c63c23db2cf43d96b9390146f9390/vs_BuildTools.exe'
