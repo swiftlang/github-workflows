@@ -12,9 +12,7 @@
 . $PSScriptRoot\install-swift.ps1
 
 if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") {
-    # FIXME: http://download.swift.org/swift-6.2-branch/windows10-arm64/latest-build.json is currently missing on the server
-    #$swiftOSVersion = 'windows10-arm64'
-    $swiftOSVersion = 'windows10'
+    $swiftOSVersion = 'windows10-arm64'
 } else {
     $swiftOSVersion = 'windows10'
 }
