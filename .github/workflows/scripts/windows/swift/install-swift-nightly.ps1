@@ -17,7 +17,7 @@ if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm
     $swiftOSVersion = 'windows10'
 }
 
-$SWIFT_RELEASE_METADATA="http://download.swift.org/development/$swiftOSVersion/latest-build.json"
+$SWIFT_RELEASE_METADATA="https://download.swift.org/development/$swiftOSVersion/latest-build.json"
 $Release = curl.exe -sL ${SWIFT_RELEASE_METADATA}
 $SWIFT_URL = "https://download.swift.org/development/$swiftOSVersion/$($($Release | ConvertFrom-JSON).dir)/$($($Release | ConvertFrom-JSON).download)"
 
