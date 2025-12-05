@@ -17,6 +17,91 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
+# Retry configuration
+CURL_MAX_RETRIES=5
+CURL_RETRY_DELAY=5
+CURL_TIMEOUT=300
+
+SDK_INSTALL_MAX_RETRIES=5
+SDK_INSTALL_INITIAL_RETRY_DELAY=10
+
+curl_with_retry() {
+    local attempt=1
+    local exit_code=0
+
+    while [ $attempt -le $CURL_MAX_RETRIES ]; do
+        if [ $attempt -gt 1 ]; then
+            log "Retry attempt $attempt of $CURL_MAX_RETRIES after ${CURL_RETRY_DELAY}s delay..."
+            sleep $CURL_RETRY_DELAY
+        fi
+
+        # Run curl with connection timeout and max time limits
+        if curl --connect-timeout 30 --max-time $CURL_TIMEOUT --retry 3 --retry-delay 2 --retry-max-time 60 "$@"; then
+            return 0
+        else
+            exit_code=$?
+            log "curl failed with exit code $exit_code on attempt $attempt"
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    error "curl failed after $CURL_MAX_RETRIES attempts"
+    return $exit_code
+}
+
+swift_sdk_install_with_retry() {
+    local swift_executable="$1"
+    local sdk_url="$2"
+    local checksum="$3"
+    local sdk_type="$4"
+
+    local attempt=1
+    local retry_delay=$SDK_INSTALL_INITIAL_RETRY_DELAY
+
+    # Extract SDK name from URL for checking if already installed
+    local sdk_filename
+    sdk_filename=$(basename "$sdk_url")
+    local sdk_name="${sdk_filename%.tar.gz}"
+
+    while [ $attempt -le $SDK_INSTALL_MAX_RETRIES ]; do
+        if [ $attempt -gt 1 ]; then
+            log "Retry attempt $attempt of $SDK_INSTALL_MAX_RETRIES for ${sdk_type} SDK installation after ${retry_delay}s delay..."
+
+            # Before retrying, check if SDK was partially installed and remove it
+            log "Checking for partially installed SDK..."
+            if "$swift_executable" sdk list 2>/dev/null | grep -q "^${sdk_name}"; then
+                log "Found partially installed SDK, attempting to remove it..."
+                if "$swift_executable" sdk remove "$sdk_name" 2>/dev/null; then
+                    log "Successfully removed partially installed SDK"
+                else
+                    log "Warning: Failed to remove partially installed SDK, continuing anyway..."
+                fi
+            fi
+
+            sleep $retry_delay
+        fi
+
+        log "Attempt $attempt: Installing ${sdk_type} SDK from ${sdk_url}"
+
+        if "$swift_executable" sdk install "$sdk_url" --checksum "$checksum"; then
+            log "✅ ${sdk_type} SDK installed successfully"
+            return 0
+        else
+            local exit_code=$?
+            log "swift sdk install failed with exit code $exit_code on attempt $attempt"
+
+            # Exponential backoff: double the delay each time
+            retry_delay=$((retry_delay * 2))
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    error "${sdk_type} SDK installation failed after $SDK_INSTALL_MAX_RETRIES attempts"
+    return 1
+}
+
 # Parse command line options
 INSTALL_ANDROID=false
 INSTALL_STATIC_LINUX=false
@@ -125,7 +210,7 @@ find_latest_swift_version() {
     log "Fetching releases from swift.org API..."
 
     local releases_json
-    releases_json=$(curl -fsSL "${SWIFT_API_INSTALL_ROOT}/releases.json") || fatal "Failed to fetch Swift releases"
+    releases_json=$(curl_with_retry -fsSL "${SWIFT_API_INSTALL_ROOT}/releases.json") || fatal "Failed to fetch Swift releases"
 
     # Find all releases that start with the minor version (e.g, "6.1")
     # Sort them and get the latest one
@@ -212,7 +297,7 @@ find_latest_sdk_snapshot() {
     log "Fetching development snapshots from swift.org API..."
 
     local sdk_json
-    sdk_json=$(curl -fsSL "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
+    sdk_json=$(curl_with_retry -fsSL "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
 
     # Extract the snapshot tag from the "dir" field of the first (newest) element
     local snapshot_tag
@@ -400,16 +485,16 @@ download_and_verify() {
     local temp_sig="${output_file}.sig"
 
     log "Downloading ${url}"
-    curl -fsSL "$url" -o "$output_file"
+    curl_with_retry -fsSL "$url" -o "$output_file"
 
     log "Downloading signature"
-    curl -fsSL "$sig_url" -o "$temp_sig"
+    curl_with_retry -fsSL "$sig_url" -o "$temp_sig"
 
     log "Setting up GPG for verification"
     local gnupghome
     gnupghome="$(mktemp -d)"
     export GNUPGHOME="$gnupghome"
-    curl -fSsL https://swift.org/keys/all-keys.asc | zcat -f | gpg --import - >/dev/null 2>&1
+    curl_with_retry -fSsL https://swift.org/keys/all-keys.asc | zcat -f | gpg --import - >/dev/null 2>&1
 
     log "Verifying signature"
     if gpg --batch --verify "$temp_sig" "$output_file" >/dev/null 2>&1; then
@@ -445,7 +530,7 @@ download_and_extract_toolchain() {
 
     # Check if toolchain is available
     local http_code
-    http_code=$(curl -sSL --head -w "%{http_code}" -o /dev/null "$toolchain_url")
+    http_code=$(curl_with_retry -sSL --head -w "%{http_code}" -o /dev/null "$toolchain_url")
     if [[ "$http_code" == "404" ]]; then
         log "Toolchain not found: ${toolchain_filename}"
         log "Exiting workflow..."
@@ -556,11 +641,7 @@ install_android_sdk() {
     local android_sdk_filename="${android_sdk_bundle_name}.tar.gz"
     local sdk_url="${ANDROID_SDK_DOWNLOAD_ROOT}/${ANDROID_SDK_TAG}/${android_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_ANDROID_SDK} sdk install ${sdk_url} --checksum ${ANDROID_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK" sdk install "$sdk_url" --checksum "$ANDROID_SDK_CHECKSUM"; then
-        log "✅ Android Swift SDK installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK" "$sdk_url" "$ANDROID_SDK_CHECKSUM" "Android Swift"; then
         fatal "Failed to install Android Swift SDK"
     fi
 
@@ -579,7 +660,7 @@ install_android_sdk() {
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         # permit the "--android-ndk" flag to override the default
         local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-        curl -fsSL -o ndk.zip --retry 3 https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
+        curl_with_retry -fsSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
         command -v unzip >/dev/null || install_package unzip
         unzip -q ndk.zip
         rm ndk.zip
@@ -602,11 +683,7 @@ install_static_linux_sdk() {
     local static_linux_sdk_filename="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
     local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${static_linux_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK} sdk install ${sdk_url} --checksum ${STATIC_LINUX_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk install "$sdk_url" --checksum "$STATIC_LINUX_SDK_CHECKSUM"; then
-        log "✅ Static Linux Swift SDK installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" "$sdk_url" "$STATIC_LINUX_SDK_CHECKSUM" "Static Linux Swift"; then
         fatal "Failed to install Static Linux Swift SDK"
     fi
 
@@ -625,11 +702,7 @@ install_wasm_sdk() {
     local wasm_sdk_filename="${WASM_SDK_TAG}_wasm.artifactbundle.tar.gz"
     local sdk_url="${WASM_SDK_DOWNLOAD_ROOT}/${WASM_SDK_TAG}/${wasm_sdk_filename}"
 
-    log "Running: ${SWIFT_EXECUTABLE_FOR_WASM_SDK} sdk install ${sdk_url} --checksum ${WASM_SDK_CHECKSUM}"
-
-    if "$SWIFT_EXECUTABLE_FOR_WASM_SDK" sdk install "$sdk_url" --checksum "$WASM_SDK_CHECKSUM"; then
-        log "✅ Swift SDK for Wasm installed successfully"
-    else
+    if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_WASM_SDK" "$sdk_url" "$WASM_SDK_CHECKSUM" "Swift Wasm"; then
         fatal "Failed to install Swift SDK for Wasm"
     fi
 
