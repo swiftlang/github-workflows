@@ -682,7 +682,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-          architecture: "x86"
+          architecture: "x64"
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
         run: . ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/windows/install-vsb.ps1
