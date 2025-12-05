@@ -677,6 +677,12 @@ jobs:
           }
           docker pull $Image
           echo "image=$Image" >> "$env:GITHUB_OUTPUT"
+      - name: "Install Python 3.10"
+        if: ${{ !inputs.enable_windows_docker }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          architecture: "x86"
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
         run: . ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/windows/install-vsb.ps1
@@ -730,7 +736,4 @@ jobs:
       - name: Build / Test
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
-        run: |
-          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
-          RefreshEnv
-          powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+        run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode

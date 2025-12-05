@@ -175,4 +175,50 @@ function Install-Swift {
         exit 1
     }
     Remove-FileWithRetry -Path installer.exe
+    
+    Write-Host -NoNewLine 'Adding Swift to PATH ... '
+    # Older toolchains modify the Machine PATH to include \Library\Developer\Toolchains
+    foreach ($Item in [Environment]::GetEnvironmentVariables('Machine')['Path'].Split(';')) {
+        if ($Item.Contains('Swift') -or $Item.Contains('Library\Developer\Toolchains')) {
+            GitHubActions-AddPath -Item $Item
+        }
+    }
+    # Newer toolchains modify the User PATH to include a path to a Swift directory
+    foreach ($Item in [Environment]::GetEnvironmentVariables('User')['Path'].Split(';')) {
+        if ($Item.Contains('Swift')) {
+            GitHubActions-AddPath -Item $Item
+        }
+    }
+    # Find and export the SDKROOT environment variable
+    $MachineSDKROOT = [Environment]::GetEnvironmentVariables('Machine')['SDKROOT']
+    $UserSDKROOT = [Environment]::GetEnvironmentVariables('User')['SDKROOT']
+    if ($MachineSDKROOT) {
+        GitHubActions-ExportVariable -Name "SDKROOT" -Value $MachineSDKROOT
+    } elseif ($UserSDKROOT) {
+        GitHubActions-ExportVariable -Name "SDKROOT" -Value $UserSDKROOT
+    }
+    Write-Host 'SUCCESS'
+}
+
+function GitHubActions-AddPath {
+    param (
+        [string]$Item
+    )
+    $FilePath = $env:GITHUB_PATH
+    if ($FilePath) {
+        Add-Content -Path "$FilePath" -Value "$Item`r`n"
+    }
+    $env:Path = $Item + ";" + $env:Path
+}
+
+function GitHubActions-ExportVariable {
+    param (
+        [string]$Name,
+        [string]$Value
+    )
+    $FilePath = $env:GITHUB_ENV
+    if ($FilePath) {
+        Add-Content -Path "$FilePath" -Value "$Name=$Value`r`n"
+    }
+    Set-Content env:\$Name $Value
 }
