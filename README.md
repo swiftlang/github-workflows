@@ -41,7 +41,7 @@ jobs:
 ### Testing
 
 To enable pull request testing for all supported Swift versions (5.9, 5.10,
-6.0, 6.1, nightly, and nightly-6.1) on Linux and Windows, add the following code example in
+6.0, 6.1, 6.2, nightly, and nightly-6.3) on Linux and Windows, add the following code example in
 `.github/workflows/pull_request.yml`:
 
 ```yaml
