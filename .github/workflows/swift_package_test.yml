@@ -50,6 +50,10 @@ on:
         type: string
         description: "Linux OS version list (JSON)"
         default: "[\"jammy\"]"
+      linux_host_archs:
+        type: string
+        description: "Linux arch list (JSON)"
+        default: "[\"x86_64\"]"
       linux_static_sdk_versions:
         type: string
         description: "Static Linux Swift SDK version list (JSON)"
@@ -299,17 +303,24 @@ jobs:
         timeout-minutes: 60
 
   linux-build:
-    name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    runs-on: ubuntu-latest
+    name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         swift_version: ${{ fromJson(inputs.linux_swift_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        arch: ${{ fromJson(inputs.linux_host_archs) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
           - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_swift_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_os_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_host_archs) || '[]') }}
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -366,17 +377,24 @@ jobs:
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   linux-static-sdk-build:
-    name: Static Linux Swift SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    runs-on: ubuntu-latest
+    name: Static Linux Swift SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
+        arch: ${{ fromJson(inputs.linux_host_archs) }}
         exclude:
           - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
           - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_static_sdk_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_os_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_host_archs) || '[]') }}
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:

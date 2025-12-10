@@ -26,6 +26,7 @@ jobs:
     with:
       # Linux
       linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
+      linux_host_archs: '["x86_64", "aarch64"]'
       linux_build_command: |
         cd tests/TestPackage
         swift build
