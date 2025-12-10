@@ -222,7 +222,6 @@ on:
 jobs:
   macos-build:
     name: macOS (Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
-    if: ${{ inputs.enable_macos_checks }}
     runs-on: [self-hosted, macos, "${{ matrix.os_version }}", "${{ matrix.arch }}"]
     strategy:
       fail-fast: false
@@ -232,6 +231,9 @@ jobs:
         arch: ${{ fromJson(inputs.macos_archs) }}
         exclude:
           - ${{ fromJson(inputs.macos_exclude_xcode_versions) }}
+          - ${{ fromJson((!inputs.enable_macos_checks && inputs.macos_xcode_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_macos_checks && inputs.macos_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_macos_checks && inputs.macos_archs) || '[]') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -260,7 +262,6 @@ jobs:
 
   ios-build:
     name: iOS (Build Only, Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
-    if: ${{ inputs.enable_ios_checks }}
     runs-on: [self-hosted, macos, "${{ matrix.os_version }}", "${{ matrix.arch }}"]
     strategy:
       fail-fast: false
@@ -270,6 +271,9 @@ jobs:
         arch: ${{ fromJson(inputs.ios_host_archs || inputs.macos_archs) }}
         exclude:
           - ${{ fromJson(inputs.ios_host_exclude_xcode_versions || inputs.macos_exclude_xcode_versions) }}
+          - ${{ fromJson((!inputs.enable_ios_checks && (inputs.ios_host_xcode_versions || inputs.macos_xcode_versions)) || '[]') }}
+          - ${{ fromJson((!inputs.enable_ios_checks && (inputs.ios_host_versions || inputs.macos_versions)) || '[]') }}
+          - ${{ fromJson((!inputs.enable_ios_checks && (inputs.ios_host_archs || inputs.macos_archs)) || '[]') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -296,7 +300,6 @@ jobs:
 
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_linux_checks }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -305,6 +308,8 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_swift_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -362,7 +367,6 @@ jobs:
 
   linux-static-sdk-build:
     name: Static Linux Swift SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_linux_static_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -371,6 +375,8 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_static_sdk_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -427,7 +433,6 @@ jobs:
 
   wasm-sdk-build:
     name: Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_wasm_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -436,6 +441,8 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_wasm_sdk_build && inputs.wasm_sdk_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_wasm_sdk_build && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -492,7 +499,6 @@ jobs:
 
   embedded-wasm-sdk-build:
     name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_embedded_wasm_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -501,6 +507,8 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.wasm_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_embedded_wasm_sdk_build && inputs.wasm_sdk_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_embedded_wasm_sdk_build && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -557,7 +565,6 @@ jobs:
 
   android-sdk-build:
     name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - NDK ${{ matrix.ndk_version }})
-    if: ${{ inputs.enable_android_sdk_build }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -567,6 +574,9 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_sdk_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_ndk_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -623,7 +633,6 @@ jobs:
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - ${{ matrix.os_version }})
-    if: ${{ inputs.enable_windows_checks }}
     runs-on: ${{ matrix.os_version }}
     strategy:
       fail-fast: false
@@ -632,6 +641,8 @@ jobs:
         os_version: ${{ fromJson(inputs.windows_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
+          - ${{ fromJson((!inputs.enable_windows_checks && inputs.windows_swift_versions) || '[]') }}
+          - ${{ fromJson((!inputs.enable_windows_checks && inputs.windows_os_versions) || '[]') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
