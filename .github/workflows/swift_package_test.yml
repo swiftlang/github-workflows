@@ -311,16 +311,24 @@ jobs:
         swift_version: ${{ fromJson(inputs.linux_swift_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         arch: ${{ fromJson(inputs.linux_host_archs) }}
+        runner: ${{
+            fromJson(
+              contains(fromJson(inputs.linux_host_archs), 'x86_64') && !contains(fromJson(inputs.linux_host_archs), 'aarch64')
+                && '["ubuntu-24.04"]'
+                || contains(fromJson(inputs.linux_host_archs), 'aarch64') && !contains(fromJson(inputs.linux_host_archs), 'x86_64')
+                && '["ubuntu-24.04-arm"]'
+                || '["ubuntu-24.04","ubuntu-24.04-arm"]'
+            )
+          }}
         exclude:
           - ${{ fromJson(inputs.linux_exclude_swift_versions) }}
           - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_swift_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_os_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_checks && inputs.linux_host_archs) || '[]') }}
-        include:
           - arch: x86_64
-            runner: ubuntu-24.04
-          - arch: aarch64
             runner: ubuntu-24.04-arm
+          - arch: aarch64
+            runner: ubuntu-24.04
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -385,16 +393,24 @@ jobs:
         swift_version: ${{ fromJson(inputs.linux_static_sdk_versions) }}
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         arch: ${{ fromJson(inputs.linux_host_archs) }}
+        runner: ${{
+            fromJson(
+              contains(fromJson(inputs.linux_host_archs), 'x86_64') && !contains(fromJson(inputs.linux_host_archs), 'aarch64')
+                && '["ubuntu-24.04"]'
+                || contains(fromJson(inputs.linux_host_archs), 'aarch64') && !contains(fromJson(inputs.linux_host_archs), 'x86_64')
+                && '["ubuntu-24.04-arm"]'
+                || '["ubuntu-24.04","ubuntu-24.04-arm"]'
+            )
+          }}
         exclude:
           - ${{ fromJson(inputs.linux_static_sdk_exclude_swift_versions) }}
           - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_static_sdk_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_os_versions) || '[]') }}
           - ${{ fromJson((!inputs.enable_linux_static_sdk_build && inputs.linux_host_archs) || '[]') }}
-        include:
           - arch: x86_64
-            runner: ubuntu-24.04
-          - arch: aarch64
             runner: ubuntu-24.04-arm
+          - arch: aarch64
+            runner: ubuntu-24.04
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
