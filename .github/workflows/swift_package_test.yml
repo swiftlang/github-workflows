@@ -134,7 +134,7 @@ on:
       ios_build_command:
         type: string
         description: "macOS command to build the package for iOS"
-        default: "xcrun swift build --build-tests --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios"
+        default: "\"$(xcrun -f swift)\" build --build-tests --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios"
       ios_build_timeout:
         type: number
         description: "The default step timeout in minutes"
@@ -311,7 +311,8 @@ jobs:
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
-        run: xcrun swift --version
+        run: |
+          "$(xcrun -f swift)" --version
       - name: Pre-build
         run: ${{ inputs.ios_pre_build_command }}
       - name: Build
