@@ -62,7 +62,7 @@ swift_sdk_install_with_retry() {
     # Extract SDK name from URL for checking if already installed
     local sdk_filename
     sdk_filename=$(basename "$sdk_url")
-    local sdk_name="${sdk_filename%.tar.gz}"
+    local sdk_name="${sdk_filename%.artifactbundle.tar.gz}"
 
     while [ $attempt -le $SDK_INSTALL_MAX_RETRIES ]; do
         if [ $attempt -gt 1 ]; then
