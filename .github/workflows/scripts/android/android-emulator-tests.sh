@@ -37,18 +37,23 @@ install_package() {
     eval "$INSTALL_PACKAGE_COMMAND $1"
 }
 
+command -v curl >/dev/null || install_package curl
+
+# /usr/lib/jvm/java-17-openjdk-amd64
 install_package java-17-openjdk-devel || install_package openjdk-17-jdk
 
 # download and install the Android SDK
 mkdir ~/android-sdk
-cd ~/android-sdk
+pushd ~/android-sdk
 export ANDROID_HOME=${PWD}
 
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
-
-export PATH=${PATH}:${PWD}/cmdline-tools/bin
-cd -
+mv cmdline-tools latest
+mkdir cmdline-tools
+mv latest cmdline-tools
+export PATH=${PATH}:${PWD}/cmdline-tools/latest/bin
+popd
 
 # install and start an Android emulator
 sdkmanager --list_installed
