@@ -40,13 +40,15 @@ install_package() {
 command -v curl >/dev/null || install_package curl
 
 # /usr/lib/jvm/java-17-openjdk-amd64
-install_package java-17-openjdk-devel || install_package openjdk-17-jdk
+log "Installing Java"
+install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
 
 # download and install the Android SDK
 mkdir ~/android-sdk
 pushd ~/android-sdk
 export ANDROID_HOME=${PWD}
 
+log "Installing Android cmdline-tools"
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
 mv cmdline-tools latest
@@ -56,11 +58,21 @@ export PATH=${PATH}:${PWD}/cmdline-tools/latest/bin
 popd
 
 # install and start an Android emulator
+
+log "Listing installed Android SDKs"
 sdkmanager --list_installed
+
+log "Updating Android licenses"
 yes | sdkmanager --licenses > /dev/null
+
+log "Installing Android emulator"
 sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;android-${ANDROID_API}"
+
+log "Creating Android emulator"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 emulator -list-avds
+
+log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
 nohup emulator -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim 2>&1 > emulator.log &
 adb logcat 2>&1 > logcat.log &
