@@ -92,9 +92,9 @@ emulator -list-avds
 log "Enable KVM"
 # enable KVM on Linux, else error on emulator launch:
 # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
-echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-sudo udevadm control --reload-rules
-sudo udevadm trigger --name-match=kvm
+#echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+#sudo udevadm control --reload-rules
+#sudo udevadm trigger --name-match=kvm
 
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
