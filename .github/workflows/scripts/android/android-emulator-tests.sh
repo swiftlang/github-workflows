@@ -23,10 +23,20 @@ EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_A
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Pixel 6"
 
-# see if the Android SDK is even installed
+# download and install the Android SDK
+mkdir ~/android-sdk
+cd ~/android-sdk
+curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+unzip commandlinetools.zip
+
+export ANDROID_HOME=${PWD}
 echo "CHECKING FOR ANDROID SDK"
-find / -type f -name sdkmanager || true
+find . -type f -name sdkmanager || true
 echo "DONE CHECKING FOR ANDROID SDK"
+
+#export PATH=${PATH}:
+
+cd -
 
 # install and start an Android emulator
 sdkmanager --list_installed
