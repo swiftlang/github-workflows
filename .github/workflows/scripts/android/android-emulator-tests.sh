@@ -41,23 +41,27 @@ command -v curl >/dev/null || install_package curl
 
 # /usr/lib/jvm/java-17-openjdk-amd64
 log "Installing Java"
+# Java packages are named different things on different distributions
 install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
+log "JAVA_HOME: ${JAVA_HOME}"
+
+# TODO: java-17-amazon-corretto does not add to JAVA_HOME
+log "Checking: /usr/lib/jvm/"
+ls /usr/lib/jvm/ || true
+log "Checking: /usr/lib/jvm/java-17-amazon-corretto.x86_64"
+ls /usr/lib/jvm/java-17-amazon-corretto.x86_64 || true
 
 # download and install the Android SDK
+log "Installing Android cmdline-tools"
 mkdir ~/android-sdk
 pushd ~/android-sdk
 export ANDROID_HOME=${PWD}
-
-log "Installing Android cmdline-tools"
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
 mv cmdline-tools latest
 mkdir cmdline-tools
 mv latest cmdline-tools
 export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools/latest:${ANDROID_HOME}/platform-tools:${PATH}
-
-find . -name emulator
-
 popd
 
 # install and start an Android emulator
@@ -75,9 +79,18 @@ log "Creating Android emulator"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 emulator -list-avds
 
+log "Enable KVM"
+# enable KVM on Linux, else error on emulator launch:
+# CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
+echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --name-match=kvm
+
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
-nohup emulator -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim 2>&1 > emulator.log &
+nohup emulator -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
+#2>&1 > emulator.log &
+
 #adb logcat 2>&1 > logcat.log &
 
 log "Waiting for Android emulator startup"
