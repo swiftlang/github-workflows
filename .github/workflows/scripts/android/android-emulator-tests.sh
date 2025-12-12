@@ -72,6 +72,8 @@ mv cmdline-tools latest
 mkdir cmdline-tools
 mv latest cmdline-tools
 export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools/latest:${ANDROID_HOME}/platform-tools:${PATH}
+export ANDROID_SDK_HOME=${ANDROID_HOME}
+export ANDROID_AVD_HOME=${ANDROID_SDK_HOME}/avd
 popd
 
 # install and start an Android emulator
@@ -87,9 +89,11 @@ sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;a
 
 log "Creating Android emulator"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
+
+log "Listing Android emulators"
 emulator -list-avds
 
-log "Enable KVM"
+#log "Enable KVM"
 # enable KVM on Linux, else error on emulator launch:
 # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
 #echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
