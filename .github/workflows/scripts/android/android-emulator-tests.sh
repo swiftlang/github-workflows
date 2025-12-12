@@ -25,7 +25,7 @@ ANDROID_PROFILE="Pixel 6"
 
 # see if the Android SDK is even installed
 echo "CHECKING FOR ANDROID SDK"
-find / -name sdkmanager || true
+find / -type f -name sdkmanager || true
 echo "DONE CHECKING FOR ANDROID SDK"
 
 # install and start an Android emulator

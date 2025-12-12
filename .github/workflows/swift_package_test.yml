@@ -630,6 +630,8 @@ jobs:
         run: |
           if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
             echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          elif [ "${{ github.repository }}" = "swift-android-sdk/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
           else
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
