@@ -198,6 +198,10 @@ on:
         type: boolean
         description: "Boolean to enable building with the Swift SDK for Android. Defaults to false"
         default: false
+      enable_android_sdk_checks:
+        type: boolean
+        description: "Boolean to enable testing with the Swift SDK for Android. Defaults to false"
+        default: false
       enable_macos_checks:
         type: boolean
         description: "Boolean to enable macOS testing. Defaults to false"
@@ -592,9 +596,9 @@ jobs:
         os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_sdk_versions) || '[]') }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_ndk_versions) || '[]') }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.linux_os_versions) || '[]') }}
+          - ${{ fromJson((!(inputs.enable_android_sdk_build || inputs.enable_android_sdk_checks) && inputs.android_sdk_versions) || '[]') }}
+          - ${{ fromJson((!(inputs.enable_android_sdk_build || inputs.enable_android_sdk_checks) && inputs.android_ndk_versions) || '[]') }}
+          - ${{ fromJson((!(inputs.enable_android_sdk_build || inputs.enable_android_sdk_checks) && inputs.linux_os_versions) || '[]') }}
     container:
       image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
     steps:
@@ -642,9 +646,14 @@ jobs:
             done
       - name: Pre-build
         run: ${{ inputs.linux_pre_build_command }}
+        # TODO: move this after Install Swift SDK for Android and build
+      - name: Run Android tests on emulator
+        if: ${{ inputs.enable_android_sdk_checks }}
+        run: |
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/android/android-emulator-tests.sh --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}"
       - name: Install Swift SDK for Android and build
         env:
-          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }} ${{ inputs.enable_android_sdk_checks && "--build-tests" }}
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
