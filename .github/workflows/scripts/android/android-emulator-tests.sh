@@ -43,27 +43,15 @@ command -v sudo >/dev/null || install_package sudo
 
 # /usr/lib/jvm/java-17-openjdk-amd64
 log "Installing Java"
-
-#JAVA_HOME=${JAVA_HOME:-/usr/lib/jvm/}
-#if [[ ! -z "${JAVA_HOME}" ]]; then
-#    log "JAVA_HOME: ${JAVA_HOME}" || true
-#fi
-
-log "Checking: /usr/lib/jvm/"
-ls /usr/lib/jvm/ || true
-
 # Java packages are named different things on different distributions
-install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
-which java || true
+command -v java >/dev/null || install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
 
-# TODO: java-17-amazon-corretto does not add to JAVA_HOME
-log "Checking: /usr/lib/jvm/"
-ls /usr/lib/jvm/ || true
-log "Checking: /usr/lib/jvm/java-17-amazon-corretto.x86_64"
-ls /usr/lib/jvm/java-17-amazon-corretto.x86_64 || true
+export PATH=${PATH}:/usr/lib/jvm/java/bin:/usr/lib/jvm/jre/bin
+command -v java
+
 
 log "Installing KVM"
-install_package qemu-kvm || install_package kvm
+install_package qemu-kvm || install_package kvm || install_package @virt
 
 # download and install the Android SDK
 log "Installing Android cmdline-tools"
