@@ -23,21 +23,34 @@ EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_A
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Pixel 6"
 
+install_package() {
+    # Detect package manager
+    if command -v apt >/dev/null 2>&1; then
+        INSTALL_PACKAGE_COMMAND="apt update -q && apt install -yq"
+    elif command -v dnf >/dev/null 2>&1; then
+        INSTALL_PACKAGE_COMMAND="dnf install -y"
+    elif command -v yum >/dev/null 2>&1; then
+        INSTALL_PACKAGE_COMMAND="yum install -y"
+    else
+        fatal "No supported package manager found"
+    fi
+    eval "$INSTALL_PACKAGE_COMMAND $1"
+}
+
+install_package android-sdk
+
 # download and install the Android SDK
-mkdir ~/android-sdk
-cd ~/android-sdk
-curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-unzip commandlinetools.zip
+#mkdir ~/android-sdk
+#cd ~/android-sdk
+#curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+#unzip commandlinetools.zip
 
-echo "CHECKING FOR ANDROID SDK"
-find . -type f -name sdkmanager || true
-echo "DONE CHECKING FOR ANDROID SDK"
-
-export PATH=${PATH}:${PWD}/cmdline-tools/bin
-
+#echo "CHECKING FOR ANDROID SDK"
+#find . -type f -name sdkmanager || true
+#echo "DONE CHECKING FOR ANDROID SDK"
+#export PATH=${PATH}:${PWD}/cmdline-tools/bin
 #export ANDROID_HOME=${PWD}
-
-cd -
+#cd -
 
 # install and start an Android emulator
 sdkmanager --list_installed
