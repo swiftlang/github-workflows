@@ -43,7 +43,7 @@ command -v curl >/dev/null || install_package curl
 log "Installing Java"
 # Java packages are named different things on different distributions
 install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
-log "JAVA_HOME: ${JAVA_HOME}" || true
+#log "JAVA_HOME: ${JAVA_HOME}" || true
 which java || true
 
 # TODO: java-17-amazon-corretto does not add to JAVA_HOME
