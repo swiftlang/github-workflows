@@ -21,7 +21,7 @@ ANDROID_API=28
 ANDROID_EMULATOR_ARCH="x86_64"
 EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_ARCH}"
 EMULATOR_NAME="swiftemu"
-ANDROID_PROFILE="Pixel 6"
+ANDROID_PROFILE="Nexus 10"
 
 install_package() {
     # Detect package manager
