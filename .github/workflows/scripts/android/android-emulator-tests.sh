@@ -37,7 +37,7 @@ install_package() {
     eval "$INSTALL_PACKAGE_COMMAND $1"
 }
 
-install_package openjdk
+install_package java-17-openjdk-devel
 
 # download and install the Android SDK
 mkdir ~/android-sdk
