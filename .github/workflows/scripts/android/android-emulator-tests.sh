@@ -23,8 +23,6 @@ EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_A
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
-# TODO: require that this be set by an argument
-ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_HOME}}"
 
 install_package() {
     # Detect package manager
@@ -55,8 +53,8 @@ log "Installing KVM"
 #install_package qemu-kvm || install_package kvm || install_package @virt
 # https://help.ubuntu.com/community/KVM/Installation
 install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
-sudo adduser `id -un` libvirt || true
-sudo adduser `id -un` kvm || true
+sudo adduser "$(id -un)" libvirt || true
+sudo adduser "$(id -un)" kvm || true
 virsh list --all || true
 ls -la /var/run/libvirt/libvirt-sock || true
 ls -l /dev/kvm || true
@@ -69,6 +67,9 @@ log "Installing Android cmdline-tools"
 mkdir ~/android-sdk
 pushd ~/android-sdk
 export ANDROID_HOME=${PWD}
+# TODO: require that this be set by an argument
+export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_HOME}}"
+
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
 mv cmdline-tools latest
