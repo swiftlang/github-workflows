@@ -49,9 +49,18 @@ command -v java >/dev/null || install_package java-17-openjdk-devel || install_p
 export PATH=${PATH}:/usr/lib/jvm/java/bin:/usr/lib/jvm/jre/bin
 command -v java
 
-
 log "Installing KVM"
-install_package qemu-kvm || install_package kvm || install_package @virt
+#install_package qemu-kvm || install_package kvm || install_package @virt
+# https://help.ubuntu.com/community/KVM/Installation
+install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+sudo adduser `id -un` libvirt
+sudo adduser `id -un` kvm
+virsh list --all
+ls -la /var/run/libvirt/libvirt-sock
+ls -l /dev/kvm
+rmmod kvm
+modprobe -a kvm
+ls /etc/udev/rules.d/99-kvm4all.rules || true
 
 # download and install the Android SDK
 log "Installing Android cmdline-tools"
