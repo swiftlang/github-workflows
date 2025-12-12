@@ -22,6 +22,7 @@ ANDROID_EMULATOR_ARCH="x86_64"
 EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_ARCH}"
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
+ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
 install_package() {
     # Detect package manager
@@ -61,6 +62,9 @@ ls /usr/lib/jvm/ || true
 log "Checking: /usr/lib/jvm/java-17-amazon-corretto.x86_64"
 ls /usr/lib/jvm/java-17-amazon-corretto.x86_64 || true
 
+log "Installing KVM"
+install_package qemu-kvm || install_package kvm
+
 # download and install the Android SDK
 log "Installing Android cmdline-tools"
 mkdir ~/android-sdk
@@ -93,22 +97,25 @@ avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${AN
 log "Listing Android emulators"
 emulator -list-avds
 
-#log "Enable KVM"
+log "Enable KVM"
+emulator -accel-check || true
+
 # enable KVM on Linux, else error on emulator launch:
 # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
-#echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-#sudo udevadm control --reload-rules
-#sudo udevadm trigger --name-match=kvm
+echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --name-match=kvm
+emulator -accel-check
 
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
-nohup emulator -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
+nohup emulator -no-metrics -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
 #2>&1 > emulator.log &
 
 #adb logcat 2>&1 > logcat.log &
 
 log "Waiting for Android emulator startup"
-adb wait-for-any-device
+timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
 
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
