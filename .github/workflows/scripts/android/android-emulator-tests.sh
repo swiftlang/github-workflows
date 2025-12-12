@@ -23,6 +23,8 @@ EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_A
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
+# TODO: require that this be set by an argument
+ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_HOME}}"
 
 install_package() {
     # Detect package manager
@@ -53,13 +55,13 @@ log "Installing KVM"
 #install_package qemu-kvm || install_package kvm || install_package @virt
 # https://help.ubuntu.com/community/KVM/Installation
 install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
-sudo adduser `id -un` libvirt
-sudo adduser `id -un` kvm
-virsh list --all
-ls -la /var/run/libvirt/libvirt-sock
-ls -l /dev/kvm
-rmmod kvm
-modprobe -a kvm
+sudo adduser `id -un` libvirt || true
+sudo adduser `id -un` kvm || true
+virsh list --all || true
+ls -la /var/run/libvirt/libvirt-sock || true
+ls -l /dev/kvm || true
+rmmod kvm || true
+modprobe -a kvm || true
 ls /etc/udev/rules.d/99-kvm4all.rules || true
 
 # download and install the Android SDK
@@ -128,10 +130,10 @@ fi
 cd .build/
 cp -a debug/*.xctest "${STAGING}"
 cp -a debug/*.resources "${STAGING}" || true
-cp -a ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/*/sysroot/usr/lib/${ANDROID_EMULATOR_ARCH_TRIPLE}-linux-android/libc++_shared.so "${STAGING}"
-cp -a ${SWIFT_ANDROID_SDK_HOME}/swift-android/swift-resources/usr/lib/swift-${ANDROID_EMULATOR_ARCH_TRIPLE}/android/*.so "${STAGING}"
+cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING}"
 
-adb push ${STAGING} /data/local/tmp/
+adb push "${STAGING}" /data/local/tmp/
 
 cd -
 
