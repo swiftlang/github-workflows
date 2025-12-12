@@ -29,12 +29,13 @@ cd ~/android-sdk
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
 
-export ANDROID_HOME=${PWD}
 echo "CHECKING FOR ANDROID SDK"
 find . -type f -name sdkmanager || true
 echo "DONE CHECKING FOR ANDROID SDK"
 
-#export PATH=${PATH}:
+export PATH=${PATH}:${PWD}/cmdline-tools/bin
+
+#export ANDROID_HOME=${PWD}
 
 cd -
 
