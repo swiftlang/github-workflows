@@ -63,8 +63,7 @@ log "Listing installed Android SDKs"
 sdkmanager --list_installed
 
 log "Updating Android licenses"
-yes | sdkmanager --licenses 
-#> /dev/null
+yes | sdkmanager --licenses > /dev/null || true
 
 log "Installing Android emulator"
 sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;android-${ANDROID_API}"
