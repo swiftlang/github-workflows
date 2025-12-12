@@ -44,9 +44,9 @@ command -v sudo >/dev/null || install_package sudo
 log "Installing Java"
 
 #JAVA_HOME=${JAVA_HOME:-/usr/lib/jvm/}
-if [[ ! -z "${JAVA_HOME}" ]]; then
-    log "JAVA_HOME: ${JAVA_HOME}" || true
-fi
+#if [[ ! -z "${JAVA_HOME}" ]]; then
+#    log "JAVA_HOME: ${JAVA_HOME}" || true
+#fi
 
 log "Checking: /usr/lib/jvm/"
 ls /usr/lib/jvm/ || true
