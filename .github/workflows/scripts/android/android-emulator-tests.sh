@@ -38,6 +38,7 @@ install_package() {
 }
 
 command -v curl >/dev/null || install_package curl
+command -v sudo >/dev/null || install_package sudo
 
 # /usr/lib/jvm/java-17-openjdk-amd64
 log "Installing Java"
