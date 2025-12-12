@@ -37,20 +37,18 @@ install_package() {
     eval "$INSTALL_PACKAGE_COMMAND $1"
 }
 
-install_package android-sdk
+install_package openjdk
 
 # download and install the Android SDK
-#mkdir ~/android-sdk
-#cd ~/android-sdk
-#curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-#unzip commandlinetools.zip
+mkdir ~/android-sdk
+cd ~/android-sdk
+export ANDROID_HOME=${PWD}
 
-#echo "CHECKING FOR ANDROID SDK"
-#find . -type f -name sdkmanager || true
-#echo "DONE CHECKING FOR ANDROID SDK"
-#export PATH=${PATH}:${PWD}/cmdline-tools/bin
-#export ANDROID_HOME=${PWD}
-#cd -
+curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+unzip commandlinetools.zip
+
+export PATH=${PATH}:${PWD}/cmdline-tools/bin
+cd -
 
 # install and start an Android emulator
 sdkmanager --list_installed
