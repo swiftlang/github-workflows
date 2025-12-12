@@ -54,7 +54,10 @@ unzip commandlinetools.zip
 mv cmdline-tools latest
 mkdir cmdline-tools
 mv latest cmdline-tools
-export PATH=${PATH}:${PWD}/cmdline-tools/latest/bin
+export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools/latest:${ANDROID_HOME}/platform-tools:${PATH}
+
+find . -name emulator
+
 popd
 
 # install and start an Android emulator
@@ -75,7 +78,10 @@ emulator -list-avds
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
 nohup emulator -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim 2>&1 > emulator.log &
-adb logcat 2>&1 > logcat.log &
+#adb logcat 2>&1 > logcat.log &
+
+log "Waiting for Android emulator startup"
+adb wait-for-any-device
 
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
