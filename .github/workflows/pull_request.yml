@@ -40,7 +40,7 @@ jobs:
       # Android
       android_sdk_pre_build_command: |
         cd tests/TestPackage
-      enable_android_sdk_build: true
+      enable_android_sdk_checks: true
       # Windows
       windows_build_command: |
         cd tests/TestPackage
@@ -56,7 +56,7 @@ jobs:
       # Android
       android_sdk_pre_build_command: |
         cd tests/TestPackage
-      enable_android_sdk_build: true
+      enable_android_sdk_checks: true
       # Windows
       windows_build_command: |
         cd tests/TestPackage
