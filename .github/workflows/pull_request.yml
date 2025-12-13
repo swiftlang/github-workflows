@@ -9,7 +9,8 @@ on:
 
 jobs:
   tests_with_docker_embedded_swift:
-    if: false # TODO: re-enable
+    # TODO: re-enable
+    if: false
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml
     with:
@@ -22,7 +23,8 @@ jobs:
       enable_embedded_wasm_sdk_build: true
 
   tests_with_docker:
-    if: false # TODO: re-enable
+    # TODO: re-enable
+    if: false
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
     with:
@@ -67,7 +69,8 @@ jobs:
       windows_os_versions: '["windows-2022", "windows-11-arm"]'
 
   tests_macos:
-    if: false # TODO: re-enable
+    # TODO: re-enable
+    if: false
     name: Test
     uses: ./.github/workflows/swift_package_test.yml
     with:
@@ -80,7 +83,8 @@ jobs:
         xcrun swift build
 
   build_tests_ios:
-    if: false # TODO: re-enable
+    # TODO: re-enable
+    if: false
     name: Build iOS Tests
     uses: ./.github/workflows/swift_package_test.yml
     with:

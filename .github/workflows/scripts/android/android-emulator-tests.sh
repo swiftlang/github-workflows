@@ -120,7 +120,7 @@ df -h
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
 # TODO: -no-accel disables the need for KVM, but is very slow
-nohup emulator -no-accel -no-metrics -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
+nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
 #2>&1 > emulator.log &
 
 #adb logcat 2>&1 > logcat.log &

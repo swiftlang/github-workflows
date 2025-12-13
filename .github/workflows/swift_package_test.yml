@@ -608,7 +608,10 @@ jobs:
         run: clang --version
       - name: Free Disk Space
         run: |
-          rm -rf /opt/microsoft /opt/google /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h
+          # need to free space or the emulator runs out
+          rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
+          df -h
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}
