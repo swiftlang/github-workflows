@@ -606,6 +606,9 @@ jobs:
         run: swift --version
       - name: Clang version
         run: clang --version
+      - name: Free Disk Space
+        run: |
+          rm -rf /opt/microsoft /opt/google /usr/share/dotnet /opt/ghc /usr/local/share/boost
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}

@@ -56,17 +56,17 @@ export PATH=${PATH}:/usr/lib/jvm/java/bin:/usr/lib/jvm/jre/bin
 command -v java
 
 log "Installing KVM"
-#install_package qemu-kvm || install_package kvm || install_package @virt
+###install_package qemu-kvm || install_package kvm || install_package @virt
 # https://help.ubuntu.com/community/KVM/Installation
-install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
-sudo adduser "$(id -un)" libvirt || true
-sudo adduser "$(id -un)" kvm || true
-virsh list --all || true
-ls -la /var/run/libvirt/libvirt-sock || true
-ls -l /dev/kvm || true
-rmmod kvm || true
-modprobe -a kvm || true
-ls /etc/udev/rules.d/99-kvm4all.rules || true
+#install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+#sudo adduser "$(id -un)" libvirt || true
+#sudo adduser "$(id -un)" kvm || true
+#virsh list --all || true
+#ls -la /var/run/libvirt/libvirt-sock || true
+#ls -l /dev/kvm || true
+#rmmod kvm || true
+#modprobe -a kvm || true
+#ls /etc/udev/rules.d/99-kvm4all.rules || true
 
 # download and install the Android SDK
 log "Installing Android cmdline-tools"
