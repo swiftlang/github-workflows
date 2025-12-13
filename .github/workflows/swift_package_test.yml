@@ -650,7 +650,7 @@ jobs:
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Android and build
         env:
-          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }} ${{ inputs.enable_android_sdk_checks && '--build-tests' }}
+          BUILD_FLAGS: ${{ inputs.enable_android_sdk_checks && '--build-tests' }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         shell: bash
         run: |
           ${{ inputs.android_sdk_pre_build_command }}

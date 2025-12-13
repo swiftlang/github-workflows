@@ -44,6 +44,9 @@ install_package() {
 command -v curl >/dev/null || install_package curl
 command -v sudo >/dev/null || install_package sudo
 
+log "Show Disk Space"
+df -h
+
 # /usr/lib/jvm/java-17-openjdk-amd64
 log "Installing Java"
 # Java packages are named different things on different distributions
@@ -75,6 +78,7 @@ export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_HOME}}"
 
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
+rm commandlinetools.zip
 mv cmdline-tools latest
 mkdir cmdline-tools
 mv latest cmdline-tools
@@ -109,6 +113,9 @@ emulator -accel-check || true
 #sudo udevadm control --reload-rules
 #sudo udevadm trigger --name-match=kvm
 #emulator -accel-check
+
+log "Show Disk Space"
+df -h
 
 log "Starting Android emulator"
 # launch the emulator in the background; we will cat the logs at the end
