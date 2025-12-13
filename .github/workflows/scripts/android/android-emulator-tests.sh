@@ -24,6 +24,9 @@ EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
+# FIXME: pass this in with an argument
+PACKAGE="TestPackage"
+
 install_package() {
     # Detect package manager
     if command -v apt >/dev/null 2>&1; then
