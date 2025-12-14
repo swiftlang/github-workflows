@@ -132,6 +132,12 @@ nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${E
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
 
+log "Find libc++_shared.so"
+find / -name 'libc++_shared.so' || true
+
+log "Find libFoundation.so"
+find / -name 'lib*Foundation*.so' || true
+
 log "Prepare Swift test package"
 
 # create a staging folder where we copy the test executable
