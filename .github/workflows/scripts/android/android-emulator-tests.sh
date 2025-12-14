@@ -26,9 +26,6 @@ EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
-# FIXME: pass this in with an argument
-PACKAGE="TestPackage"
-
 install_package() {
     # Detect package manager
     if command -v apt >/dev/null 2>&1; then
@@ -135,30 +132,37 @@ nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${E
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
 
+log "Find libc++_shared.so"
+find / -name 'libc++_shared.so'
+
+log "Prepare Swift test package"
+
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
-STAGING="android-test-${PACKAGE}"
+STAGING="swift-android-test"
 rm -rf .build/"${STAGING}"
 mkdir .build/"${STAGING}"
 
-# for the common case of tests referencing their own files as hardwired resource paths
+# for the common case of tests referencing
+# their own files as hardwired resource paths
 if [[ -d Tests ]]; then
     cp -a Tests .build/"${STAGING}"
 fi
 
-find ~/ -name libc++_shared.so
-
 cd .build/
-cp -a debug/*.xctest "${STAGING}"
-cp -a debug/*.resources "${STAGING}" || true
-cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+TEST_PACKAGE=$(ls -1 debug/*.xctest | tail -n 1 | xargs basename)
+cp -a debug/"${TEST_PACKAGE}" "${STAGING}"
+find debug/ -name '*.resources' -exec cp -a {} "${STAGING}" \;
 cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING}"
+cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+
+log "Copy Swift test package to emulator"
 
 adb push "${STAGING}" /data/local/tmp/
 
 cd -
 
-TEST_CMD="./${PACKAGE}PackageTests.xctest"
+TEST_CMD="./${TEST_PACKAGE}"
 TEST_SHELL="cd /data/local/tmp/${STAGING}"
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 
@@ -168,6 +172,7 @@ TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 # see: https://github.com/swiftlang/swift-package-manager/blob/1b593469e8ad3daf2cc10e798340bd2de68c402d/Sources/Commands/SwiftTestCommand.swift#L1542
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library swift-testing && [ \$? -eq 0 ] || [ \$? -eq 69 ]"
 
+log "Run Swift package tests"
+
 # run the test executable
 adb shell "${TEST_SHELL}"
-
