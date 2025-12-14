@@ -27,8 +27,8 @@ ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
 export SWIFTPM_HOME=/root/.swiftpm
-# e.g., /root/.swiftpm/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
-export SWIFT_ANDROID_SDK_HOME=(ls -1 "${SWIFTPM_HOME}"/swift-sdks/swift-*android.artifactbundle | tail -n 1)
+export SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
+export SWIFT_ANDROID_SDK_HOME=$(ls -1 "${SWIFTPM_HOME}"/swift-sdks/swift-*android.artifactbundle | tail -n 1)
 export ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
 
 install_package() {
@@ -104,7 +104,7 @@ sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;a
 
 log "Creating Android emulator"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
-ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
+#ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
 #mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 # ~2G partition size
 #echo 'disk.dataPartition.size=2000000000' >> "${ANDROID_AVD_CONFIG}"
@@ -158,7 +158,7 @@ if [[ -d Tests ]]; then
 fi
 
 cd .build/
-TEST_PACKAGE=$(ls -1 debug/*.xctest | tail -n 1 | xargs basename)
+TEST_PACKAGE=$(find debug/ -name '*.xctest' | tail -n 1 | xargs basename)
 cp -a debug/"${TEST_PACKAGE}" "${STAGING}"
 find debug/ -name '*.resources' -exec cp -a {} "${STAGING}" \;
 cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING}"
