@@ -26,10 +26,10 @@ EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
-export SWIFTPM_HOME=/root/.swiftpm
-#export SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
-export SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
-export ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
+SWIFTPM_HOME=/root/.swiftpm
+# e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
+SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
+ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
 
 log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
 log "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
@@ -163,7 +163,7 @@ cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROI
 
 log "Copy Swift test package to emulator"
 
-ANDROID_TMP_FOLDER="/data/local/tmp"
+ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
 cd -
