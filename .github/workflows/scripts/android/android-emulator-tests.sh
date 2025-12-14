@@ -146,6 +146,8 @@ if [[ -d Tests ]]; then
     cp -a Tests .build/"${STAGING}"
 fi
 
+find ~/ -name libc++_shared.so
+
 cd .build/
 cp -a debug/*.xctest "${STAGING}"
 cp -a debug/*.resources "${STAGING}" || true
