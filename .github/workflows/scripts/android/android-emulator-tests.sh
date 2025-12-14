@@ -144,31 +144,32 @@ log "Prepare Swift test package"
 
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
-STAGING="swift-android-test"
-rm -rf .build/"${STAGING}"
-mkdir .build/"${STAGING}"
+STAGING_DIR="swift-android-test"
+rm -rf .build/"${STAGING_DIR}"
+mkdir .build/"${STAGING_DIR}"
 
 # for the common case of tests referencing
 # their own files as hardwired resource paths
 if [[ -d Tests ]]; then
-    cp -a Tests .build/"${STAGING}"
+    cp -a Tests .build/"${STAGING_DIR}"
 fi
 
 cd .build/
 TEST_PACKAGE=$(find debug/ -name '*.xctest' | tail -n 1 | xargs basename)
-cp -a debug/"${TEST_PACKAGE}" "${STAGING}"
-find debug/ -name '*.resources' -exec cp -a {} "${STAGING}" \;
-cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING}"
-cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+cp -a debug/"${TEST_PACKAGE}" "${STAGING_DIR}"
+find debug/ -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
+cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING_DIR}"
+cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 log "Copy Swift test package to emulator"
 
-adb push "${STAGING}" /data/local/tmp/
+ANDROID_TMP_FOLDER="/data/local/tmp"
+adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
 cd -
 
 TEST_CMD="./${TEST_PACKAGE}"
-TEST_SHELL="cd /data/local/tmp/${STAGING}"
+TEST_SHELL="cd ${ANDROID_TMP_FOLDER}/${STAGING_DIR}"
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 
 # Run test cases a second time with the Swift Testing library
