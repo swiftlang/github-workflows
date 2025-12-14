@@ -19,10 +19,11 @@ fatal() { error "$@"; exit 1; }
 
 ANDROID_API=28
 ANDROID_EMULATOR_ARCH="x86_64"
+# x86_64=x86_64, armv7=arm
+ANDROID_EMULATOR_ARCH_TRIPLE="${ANDROID_EMULATOR_ARCH}"
 EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_ARCH}"
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
-ANDROID_EMULATOR_ARCH_TRIPLE="x86_64-linux-android"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
 # FIXME: pass this in with an argument
@@ -100,6 +101,11 @@ log "Installing Android emulator"
 sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;android-${ANDROID_API}"
 
 log "Creating Android emulator"
+ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
+mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
+echo '' > "${ANDROID_AVD_CONFIG}"
+# ~2G partition side
+echo 'disk.dataPartition.size=2000000000' > "${ANDROID_AVD_CONFIG}"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 
 log "Listing Android emulators"
@@ -119,6 +125,7 @@ log "Show Disk Space"
 df -h
 
 log "Starting Android emulator"
+
 # launch the emulator in the background; we will cat the logs at the end
 # TODO: -no-accel disables the need for KVM, but is very slow
 nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
