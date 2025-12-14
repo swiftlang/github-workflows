@@ -169,7 +169,7 @@ adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 cd -
 
 TEST_CMD="./${TEST_PACKAGE}"
-TEST_SHELL="cd ${ANDROID_TMP_FOLDER}/${STAGING_DIR}"
+TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 
 # Run test cases a second time with the Swift Testing library
