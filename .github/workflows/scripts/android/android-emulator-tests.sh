@@ -154,7 +154,8 @@ TEST_PACKAGE=$(ls -1 debug/*.xctest | tail -n 1 | xargs basename)
 cp -a debug/"${TEST_PACKAGE}" "${STAGING}"
 find debug/ -name '*.resources' -exec cp -a {} "${STAGING}" \;
 cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING}"
-cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+#cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
+cp -a /root/.swiftpm/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING}"
 
 log "Copy Swift test package to emulator"
 
