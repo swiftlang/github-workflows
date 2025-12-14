@@ -27,9 +27,12 @@ ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
 export SWIFTPM_HOME=/root/.swiftpm
-export SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
-export SWIFT_ANDROID_SDK_HOME=$(ls -1 "${SWIFTPM_HOME}"/swift-sdks/swift-*android.artifactbundle | tail -n 1)
+#export SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
+export SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
 export ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
+
+log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
+log "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
 
 install_package() {
     # Detect package manager
@@ -136,12 +139,6 @@ nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${E
 
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
-
-log "Find libc++_shared.so"
-find / -name 'libc++_shared.so' || true
-
-log "Find libFoundation.so"
-find / -name 'lib*Foundation*.so' || true
 
 log "Prepare Swift test package"
 
