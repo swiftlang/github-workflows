@@ -27,7 +27,8 @@ ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
 export SWIFTPM_HOME=/root/.swiftpm
-export SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
+# e.g., /root/.swiftpm/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
+export SWIFT_ANDROID_SDK_HOME=(ls -1 "${SWIFTPM_HOME}"/swift-sdks/swift-*android.artifactbundle | tail -n 1)
 export ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
 
 install_package() {
