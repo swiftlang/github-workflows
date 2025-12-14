@@ -102,11 +102,10 @@ sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;a
 
 log "Creating Android emulator"
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
-mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
-echo '' > "${ANDROID_AVD_CONFIG}"
-# ~2G partition side
-echo 'disk.dataPartition.size=2000000000' > "${ANDROID_AVD_CONFIG}"
+#mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
+# ~2G partition side
+echo 'disk.dataPartition.size=2000000000' >> "${ANDROID_AVD_CONFIG}"
 
 log "Listing Android emulators"
 emulator -list-avds
