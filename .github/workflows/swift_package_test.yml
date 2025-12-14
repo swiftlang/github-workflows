@@ -611,15 +611,14 @@ jobs:
           df -h
           # need to free space or the emulator runs out
           rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
+          # frees ~4G
           rm -rf /__t/PyPy /__t/Ruby /__t/go /__t/node /usr/bin/docc /__t/CodeQ /__t/Python
-          echo "du top-level"
-          du -skhc / || true
-          echo "du second level"
-          du -skhc /* || true
-          echo "du this level"
-          du -skhc /* || true
-
-          du -skh /*/*/* || true
+          #echo "du top-level"
+          #du -skhc / || true
+          #echo "du second level"
+          #du -skhc /* || true
+          echo "du third level"
+          du -skhc /*/* || true
           df -h
       - name: Checkout repository
         uses: actions/checkout@v4
