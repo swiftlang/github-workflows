@@ -181,4 +181,5 @@ TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library swift-testing && [ \$
 log "Run Swift package tests"
 
 # run the test executable
+adb shell "ls ${ANDROID_TMP_FOLDER}"
 adb shell "${TEST_SHELL}"
