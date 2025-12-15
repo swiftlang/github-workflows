@@ -29,14 +29,6 @@ ANDROID_SDK_TRIPLE="x86_64-unknown-linux-android28"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --android)
-            INSTALL_ANDROID=true
-            shift
-            ;;
-        --android-ndk-version=*)
-            ANDROID_NDK_VERSION="${1#*=}"
-            shift
-            ;;
         --android-sdk-triple=*)
             ANDROID_SDK_TRIPLE="${1#*=}"
             shift
@@ -81,26 +73,14 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 
 log "Creating Android emulator"
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
-echo "Searching for emulator in: ${ANDROID_AVD_HOME}"
-find "${ANDROID_AVD_HOME}" || true
-echo "Searching for emulator in: /"
-find / | grep "${EMULATOR_NAME}" || true
 
 log "Configuring Android emulators"
 emulator -list-avds
-
-ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
-#mkdir -p $(dirname "${ANDROID_AVD_CONFIG}")
-# ~2G partition size
-echo 'disk.dataPartition.size=2GB' >> "${ANDROID_AVD_CONFIG}"
-log "Checking Android emulator"
-cat "${ANDROID_AVD_CONFIG}"
 
 log "Check Hardware Acceleration (KVM)"
 emulator -accel-check
 
 log "Starting Android emulator"
-
 # launch the emulator in the background
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${EMULATOR_NAME}" &
 
@@ -108,7 +88,6 @@ log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
 
 log "Prepare Swift test package"
-
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
 STAGING_DIR="swift-android-test"
