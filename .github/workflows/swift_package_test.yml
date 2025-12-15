@@ -654,10 +654,12 @@ jobs:
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
-          if [[ "${{ inputs.enable_android_sdk_checks }}" == "true" ]]; then
-            # install and launch the emulator and run the tests
-            ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/android/android-emulator-tests.sh --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }}
-          fi
+      - name: Install Android Emulator and run tests
+        if: ${{ inputs.enable_android_sdk_checks }}
+        shell: bash
+        run: |
+          ${{ inputs.android_sdk_pre_build_command }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/android/android-emulator-tests.sh --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - ${{ matrix.os_version }})
