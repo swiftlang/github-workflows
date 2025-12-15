@@ -150,7 +150,7 @@ on:
       android_sdk_triples:
         type: string
         description: "The triples to use when building with the Swift SDK for Android"
-        default: "[\"aarch64-unknown-linux-android28\"]"
+        default: "[\"aarch64-unknown-linux-android28\", \"x86_64-unknown-linux-android28\"]"
       android_ndk_versions:
         type: string
         description: "The NDK versions to use when building with the Swift SDK for Android"
@@ -602,12 +602,6 @@ jobs:
         run: swift --version
       - name: Clang version
         run: clang --version
-      - name: Free Disk Space
-        run: |
-          df -h
-          # need to free space or the emulator runs out
-          sudo rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
-          df -h
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Checkout swiftlang/github-workflows repository
@@ -620,20 +614,9 @@ jobs:
         run: |
           if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
             echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
-          elif [ "${{ github.repository }}" = "swift-android-sdk/github-workflows" ]; then
-            # TODO: for testing in fork, remove when ready to merge
-            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
           else
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
-      - name: Enable KVM
-        if: ${{ inputs.enable_android_sdk_checks }}
-        run: |
-            # enable KVM on Linux for tests, else error on emulator launch:
-            # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
-            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --name-match=kvm
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -654,6 +637,18 @@ jobs:
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
+      - name: Enable KVM and free disk space
+        if: ${{ inputs.enable_android_sdk_checks }}
+        run: |
+          # enable KVM on Linux for tests, else error on emulator launch:
+          # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+          # need to free space or the emulator runs out
+          sudo rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
+          df -h
       - name: Install Android Emulator and run tests
         if: ${{ inputs.enable_android_sdk_checks }}
         shell: bash
