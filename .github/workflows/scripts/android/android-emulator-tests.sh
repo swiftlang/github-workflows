@@ -92,22 +92,21 @@ log "Prepare Swift test package"
 # create a staging folder where we copy the test executable
 # and all the dependent libraries to copy over to the emulator
 STAGING_DIR="swift-android-test"
-rm -rf .build/"${STAGING_DIR}"
-mkdir .build/"${STAGING_DIR}"
+rm -rf "${STAGING_DIR}"
+mkdir "${STAGING_DIR}"
+
+BUILD_DIR=.build/"${ANDROID_SDK_TRIPLE}"/debug
+
+find "${BUILD_DIR}" -name '*.xctest' -o -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
+
+# also copy required libraries
+cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 # for the common case of tests referencing
 # their own files as hardwired resource paths
 if [[ -d Tests ]]; then
-    cp -a Tests .build/"${STAGING_DIR}"
+    cp -a Tests "${STAGING_DIR}"
 fi
-
-pushd .build/
-
-TEST_PACKAGE=$(find debug/ -name '*.xctest' | tail -n 1 | xargs basename)
-cp -a debug/"${TEST_PACKAGE}" "${STAGING_DIR}"
-find debug/ -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
-cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING_DIR}"
-cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 log "Copy Swift test package to emulator"
 
