@@ -92,7 +92,7 @@ mkdir cmdline-tools
 mv latest cmdline-tools
 export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools/latest:${ANDROID_HOME}/platform-tools:${PATH}
 export ANDROID_SDK_HOME=${ANDROID_HOME}
-export ANDROID_AVD_HOME=${ANDROID_SDK_HOME}/avd
+export ANDROID_AVD_HOME=${HOME}/.android/avd
 popd
 
 # install and start an Android emulator
@@ -109,10 +109,8 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 log "Creating Android emulator"
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 
-find / -name 'swiftemu.avd'
-
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
-mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
+#mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 # ~2G partition size
 echo 'disk.dataPartition.size=1024MB' >> "${ANDROID_AVD_CONFIG}"
 log "Checking Android emulator"
