@@ -17,11 +17,6 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
-ANDROID_API=28
-ANDROID_EMULATOR_ARCH="x86_64"
-# x86_64=x86_64, armv7=arm
-ANDROID_EMULATOR_ARCH_TRIPLE="${ANDROID_EMULATOR_ARCH}"
-EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_ARCH}"
 EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
@@ -30,10 +25,52 @@ SWIFTPM_HOME="${XDG_CONFIG_HOME}"/swiftpm
 # e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
 SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
 
+ANDROID_SDK_TRIPLES="x86_64-unknown-linux-android28"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --android)
+            INSTALL_ANDROID=true
+            shift
+            ;;
+        --android-ndk-version=*)
+            ANDROID_NDK_VERSION="${1#*=}"
+            shift
+            ;;
+        --android-sdk-triple=*)
+            ANDROID_SDK_TRIPLES+=("${1#*=}")
+            shift
+            ;;
+        -*)
+            fatal "Unknown option: $1"
+            ;;
+        *)
+            if [[ -z "$SWIFT_VERSION_INPUT" ]]; then
+                SWIFT_VERSION_INPUT="$1"
+            else
+                fatal "Multiple Swift versions specified: $SWIFT_VERSION_INPUT and $1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# extract the API level from the end of the triple 
+ANDROID_API="${ANDROID_EMULATOR_ARCH_TRIPLE/*-unknown-linux-android/}"
+# extract the build arch from the beginning of the triple
+ANDROID_EMULATOR_ARCH="${ANDROID_EMULATOR_ARCH_TRIPLE/-unknown-linux-android*/}"
+
+# x86_64=x86_64, armv7=arm
+ANDROID_EMULATOR_ARCH_TRIPLE="${ANDROID_EMULATOR_ARCH}"
+
+EMULATOR_SPEC="system-images;android-${ANDROID_API};default;${ANDROID_EMULATOR_ARCH}"
+
 log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
 
 # install and start an Android emulator
 log "Listing installed Android SDKs"
+export PATH="${PATH}:$ANDROID_HOME/emulator:$ANDROID_HOME/tools:$ANDROID_HOME/build-tools/latest:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
+
 sdkmanager --list_installed
 
 log "Updating Android SDK licenses"
