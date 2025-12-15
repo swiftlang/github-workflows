@@ -26,13 +26,11 @@ EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
-SWIFTPM_HOME=/root/.swiftpm
+SWIFTPM_HOME="${XDG_CONFIG_HOME}"/swiftpm
 # e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
 SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
-ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
 
 log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
-log "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
 
 # install and start an Android emulator
 log "Listing installed Android SDKs"
@@ -92,7 +90,7 @@ TEST_PACKAGE=$(find debug/ -name '*.xctest' | tail -n 1 | xargs basename)
 cp -a debug/"${TEST_PACKAGE}" "${STAGING_DIR}"
 find debug/ -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
 cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING_DIR}"
-cp -a "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
+cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 log "Copy Swift test package to emulator"
 
