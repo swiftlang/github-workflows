@@ -109,8 +109,7 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 log "Creating Android emulator"
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 
-find "${ANDROID_AVD_HOME}" || true
-find "~/.android" || true
+find / -name 'swiftemu.avd'
 
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
 mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"

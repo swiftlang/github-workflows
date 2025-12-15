@@ -612,7 +612,7 @@ jobs:
           # need to free space or the emulator runs out
           rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
           # frees ~4G
-          rm -rf /__t/PyPy /__t/Ruby /__t/go /__t/node /usr/bin/docc /__t/CodeQ /__t/Python
+          rm -rf /__t/PyPy /__t/Ruby /__t/go /__t/node* /__t/CodeQL /__t/Python
           #echo "du top-level"
           #du -skhc / || true
           #echo "du second level"
