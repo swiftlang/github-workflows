@@ -108,19 +108,22 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 
 log "Creating Android emulator"
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
+echo "Searching for emulator in: ${ANDROID_AVD_HOME}"
+find "${ANDROID_AVD_HOME}" || true
+echo "Searching for emulator in: /"
+find / | grep "${EMULATOR_NAME}" || true
 
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
 #mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 # ~2G partition size
 echo 'disk.dataPartition.size=1024MB' >> "${ANDROID_AVD_CONFIG}"
 log "Checking Android emulator"
-find "${ANDROID_AVD_HOME}"
 
 log "Listing Android emulators"
 emulator -list-avds
 
-log "Enable KVM"
-emulator -accel-check || true
+#log "Enable KVM"
+#emulator -accel-check || true
 
 # enable KVM on Linux, else error on emulator launch:
 # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
