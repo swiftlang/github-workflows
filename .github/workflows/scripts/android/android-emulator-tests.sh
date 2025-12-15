@@ -72,6 +72,7 @@ log "Installing Android emulator"
 sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_API}" "${EMULATOR_SPEC}"
 
 log "Creating Android emulator"
+export ANDROID_AVD_HOME=${XDG_CONFIG_HOME:-$HOME}/.android/avd
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 
 log "Configuring Android emulators"
