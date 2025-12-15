@@ -117,7 +117,7 @@ log "Copy Swift test package to emulator"
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
-TEST_CMD="./${TEST_PACKAGE}"
+TEST_CMD="./*.xctest"
 TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 
