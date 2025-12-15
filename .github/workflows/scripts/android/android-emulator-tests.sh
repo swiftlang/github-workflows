@@ -62,7 +62,7 @@ command -v java >/dev/null || install_package java-17-openjdk-devel || install_p
 export PATH=${PATH}:/usr/lib/jvm/java/bin:/usr/lib/jvm/jre/bin
 command -v java
 
-log "Installing KVM"
+#log "Installing KVM"
 ###install_package qemu-kvm || install_package kvm || install_package @virt
 # https://help.ubuntu.com/community/KVM/Installation
 #install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
@@ -108,7 +108,10 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 
 log "Creating Android emulator"
 avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
-find "${ANDROID_AVD_HOME}"
+
+find "${ANDROID_AVD_HOME}" || true
+find "~/.android" || true
+
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
 mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 # ~2G partition size
