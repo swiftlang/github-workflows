@@ -18,7 +18,7 @@ error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
 ANDROID_PROFILE="Nexus 10"
-ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
+ANDROID_EMULATOR_TIMEOUT=300
 
 SWIFTPM_HOME="${XDG_CONFIG_HOME}"/swiftpm
 # e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
@@ -34,6 +34,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --android-profile=*)
             ANDROID_PROFILE="${1#*=}"
+            shift
+            ;;
+        --android-emulator-timeout=*)
+            ANDROID_EMULATOR_TIMEOUT="${1#*=}"
             shift
             ;;
         -*)
@@ -52,6 +56,7 @@ done
 
 # extract the API level from the end of the triple 
 ANDROID_API="${ANDROID_SDK_TRIPLE/*-unknown-linux-android/}"
+
 # extract the build arch from the beginning of the triple
 ANDROID_EMULATOR_ARCH="${ANDROID_SDK_TRIPLE/-unknown-linux-android*/}"
 
@@ -65,9 +70,9 @@ log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
 # install and start an Android emulator
 log "Listing installed Android SDKs"
 export PATH="${PATH}:$ANDROID_HOME/emulator:$ANDROID_HOME/tools:$ANDROID_HOME/build-tools/latest:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
+sdkmanager --list_installed
 
 log "Updating Android SDK licenses"
-sdkmanager --list_installed
 yes | sdkmanager --licenses > /dev/null || true
 
 log "Installing Android emulator"
@@ -89,7 +94,7 @@ log "Starting Android emulator"
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
 log "Waiting for Android emulator startup"
-timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
+timeout ${ANDROID_EMULATOR_TIMEOUT} adb wait-for-any-device
 
 log "Prepare Swift test package"
 # create a staging folder where we copy the test executable
@@ -103,11 +108,11 @@ BUILD_DIR=.build/"${ANDROID_SDK_TRIPLE}"/debug
 find "${BUILD_DIR}" -name '*.xctest' -exec cp -av {} "${STAGING_DIR}" \;
 find "${BUILD_DIR}" -name '*.resources' -exec cp -av {} "${STAGING_DIR}" \;
 
-# also copy required libraries
+# copy over the required library dependencies
 cp -av "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 # for the common case of tests referencing
-# their own files as hardwired resource paths
+# their own files as hardwired paths instead of resources
 if [[ -d Tests ]]; then
     cp -a Tests "${STAGING_DIR}"
 fi
@@ -119,11 +124,12 @@ adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
 TEST_CMD="./*.xctest"
 TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
-TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
+TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library xctest"
 
 # Run test cases a second time with the Swift Testing library
-# We additionally need to handle the special exit code EXIT_NO_TESTS_FOUND (69 on Android),
-# which can happen when the tests link to Testing, but no tests are executed
+# We additionally need to handle the special exit code
+# EXIT_NO_TESTS_FOUND (69 on Android), which can happen
+# when the tests link to Testing, but no tests are executed
 # see: https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Commands/SwiftTestCommand.swift#L1571
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library swift-testing && [ \$? -eq 0 ] || [ \$? -eq 69 ]"
 
