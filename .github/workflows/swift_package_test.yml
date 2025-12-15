@@ -606,7 +606,7 @@ jobs:
         run: |
           df -h
           # need to free space or the emulator runs out
-          rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
+          sudo rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
           df -h
       - name: Checkout repository
         uses: actions/checkout@v4

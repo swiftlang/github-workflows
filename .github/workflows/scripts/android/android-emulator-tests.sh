@@ -34,20 +34,6 @@ ANDROID_NDK_HOME="${SWIFTPM_HOME}"/android-ndk-r27d
 log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
 log "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
 
-install_package() {
-    # Detect package manager
-    if command -v apt >/dev/null 2>&1; then
-        INSTALL_PACKAGE_COMMAND="apt update -q && apt install -yq"
-    elif command -v dnf >/dev/null 2>&1; then
-        INSTALL_PACKAGE_COMMAND="dnf install -y"
-    elif command -v yum >/dev/null 2>&1; then
-        INSTALL_PACKAGE_COMMAND="yum install -y"
-    else
-        fatal "No supported package manager found"
-    fi
-    eval "$INSTALL_PACKAGE_COMMAND $1"
-}
-
 # install and start an Android emulator
 log "Listing installed Android SDKs"
 sdkmanager --list_installed
