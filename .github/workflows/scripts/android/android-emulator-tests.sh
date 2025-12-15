@@ -48,55 +48,7 @@ install_package() {
     eval "$INSTALL_PACKAGE_COMMAND $1"
 }
 
-command -v curl >/dev/null || install_package curl
-command -v sudo >/dev/null || install_package sudo
-
-log "Show Disk Space"
-df -h
-
-# /usr/lib/jvm/java-17-openjdk-amd64
-log "Installing Java"
-# Java packages are named different things on different distributions
-command -v java >/dev/null || install_package java-17-openjdk-devel || install_package openjdk-17-jdk || install_package java-openjdk17 || install_package java-17-amazon-corretto
-
-export PATH=${PATH}:/usr/lib/jvm/java/bin:/usr/lib/jvm/jre/bin
-command -v java
-
-#log "Installing KVM"
-###install_package qemu-kvm || install_package kvm || install_package @virt
-# https://help.ubuntu.com/community/KVM/Installation
-#install_package qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
-#sudo adduser "$(id -un)" libvirt || true
-#sudo adduser "$(id -un)" kvm || true
-#virsh list --all || true
-#ls -la /var/run/libvirt/libvirt-sock || true
-#ls -l /dev/kvm || true
-#rmmod kvm || true
-#modprobe -a kvm || true
-#ls /etc/udev/rules.d/99-kvm4all.rules || true
-
-# download and install the Android SDK
-log "Installing Android cmdline-tools"
-mkdir ~/android-sdk
-pushd ~/android-sdk
-export ANDROID_HOME=${PWD}
-
-curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-unzip commandlinetools.zip
-rm commandlinetools.zip
-# a quirk of the archive is that its root is cmdline-tools,
-# but when executed they are expected to be at cmdline-tools/latest
-# or else the other relative paths are not identified correctly
-mv cmdline-tools latest
-mkdir cmdline-tools
-mv latest cmdline-tools
-export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools/latest:${ANDROID_HOME}/platform-tools:${PATH}
-export ANDROID_SDK_HOME=${ANDROID_HOME}
-export ANDROID_AVD_HOME=${ANDROID_HOME}/.android/avd
-popd
-
 # install and start an Android emulator
-
 log "Listing installed Android SDKs"
 sdkmanager --list_installed
 
@@ -123,25 +75,13 @@ echo 'disk.dataPartition.size=2GB' >> "${ANDROID_AVD_CONFIG}"
 log "Checking Android emulator"
 cat "${ANDROID_AVD_CONFIG}"
 
-
-#log "Enable KVM"
-#emulator -accel-check || true
-
-# enable KVM on Linux, else error on emulator launch:
-# CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
-#echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-#sudo udevadm control --reload-rules
-#sudo udevadm trigger --name-match=kvm
-#emulator -accel-check
-
-log "Show Disk Space"
-df -h
+log "Check Hardware Acceleration (KVM)"
+emulator -accel-check
 
 log "Starting Android emulator"
 
 # launch the emulator in the background
-# -no-accel disables the need for KVM, but is very slow
-nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${EMULATOR_NAME}" &
+nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${EMULATOR_NAME}" &
 
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
