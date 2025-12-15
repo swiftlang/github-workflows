@@ -80,12 +80,13 @@ log "Installing Android cmdline-tools"
 mkdir ~/android-sdk
 pushd ~/android-sdk
 export ANDROID_HOME=${PWD}
-# TODO: require that this be set by an argument
-export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_HOME}}"
 
 curl --connect-timeout 30 --retry 3 --retry-delay 2 --retry-max-time 60 -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 unzip commandlinetools.zip
 rm commandlinetools.zip
+# a quirk of the archive is that its root is cmdline-tools,
+# but when executed they are expected to be at cmdline-tools/latest
+# or else the other relative paths are not identified correctly
 mv cmdline-tools latest
 mkdir cmdline-tools
 mv latest cmdline-tools
@@ -99,18 +100,18 @@ popd
 log "Listing installed Android SDKs"
 sdkmanager --list_installed
 
-log "Updating Android licenses"
+log "Updating Android SDK licenses"
 yes | sdkmanager --licenses > /dev/null || true
 
 log "Installing Android emulator"
-sdkmanager --install "${EMULATOR_SPEC}" "emulator" "platform-tools" "platforms;android-${ANDROID_API}"
+sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_API}" "${EMULATOR_SPEC}"
 
 log "Creating Android emulator"
 avdmanager create avd -n "${EMULATOR_NAME}" -k "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
-#ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
-#mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
+ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
+mkdir -p "$(dirname ${ANDROID_AVD_CONFIG})"
 # ~2G partition size
-#echo 'disk.dataPartition.size=2000000000' >> "${ANDROID_AVD_CONFIG}"
+echo 'disk.dataPartition.size=1024MB' >> "${ANDROID_AVD_CONFIG}"
 
 log "Listing Android emulators"
 emulator -list-avds
@@ -130,12 +131,9 @@ df -h
 
 log "Starting Android emulator"
 
-# launch the emulator in the background; we will cat the logs at the end
-# TODO: -no-accel disables the need for KVM, but is very slow
-nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -avd "${EMULATOR_NAME}" -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim &
-#2>&1 > emulator.log &
-
-#adb logcat 2>&1 > logcat.log &
+# launch the emulator in the background
+# -no-accel disables the need for KVM, but is very slow
+nohup emulator -no-accel -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${EMULATOR_NAME}" &
 
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
@@ -154,7 +152,8 @@ if [[ -d Tests ]]; then
     cp -a Tests .build/"${STAGING_DIR}"
 fi
 
-cd .build/
+pushd .build/
+
 TEST_PACKAGE=$(find debug/ -name '*.xctest' | tail -n 1 | xargs basename)
 cp -a debug/"${TEST_PACKAGE}" "${STAGING_DIR}"
 find debug/ -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
@@ -166,7 +165,7 @@ log "Copy Swift test package to emulator"
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
-cd -
+popd
 
 TEST_CMD="./${TEST_PACKAGE}"
 TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
@@ -175,11 +174,10 @@ TEST_SHELL="${TEST_SHELL} && ${TEST_CMD}"
 # Run test cases a second time with the Swift Testing library
 # We additionally need to handle the special exit code EXIT_NO_TESTS_FOUND (69 on Android),
 # which can happen when the tests link to Testing, but no tests are executed
-# see: https://github.com/swiftlang/swift-package-manager/blob/1b593469e8ad3daf2cc10e798340bd2de68c402d/Sources/Commands/SwiftTestCommand.swift#L1542
+# see: https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Commands/SwiftTestCommand.swift#L1571
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library swift-testing && [ \$? -eq 0 ] || [ \$? -eq 69 ]"
 
 log "Run Swift package tests"
 
 # run the test executable
-adb shell "ls ${ANDROID_TMP_FOLDER}"
 adb shell "${TEST_SHELL}"
