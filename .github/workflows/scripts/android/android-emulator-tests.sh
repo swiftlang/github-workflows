@@ -17,7 +17,6 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
-EMULATOR_NAME="swiftemu"
 ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_LAUNCH_TIMEOUT=300
 
@@ -31,6 +30,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --android-sdk-triple=*)
             ANDROID_SDK_TRIPLE="${1#*=}"
+            shift
+            ;;
+        --android-profile=*)
+            ANDROID_PROFILE="${1#*=}"
             shift
             ;;
         -*)
@@ -63,9 +66,8 @@ log "SWIFT_ANDROID_SDK_HOME=${SWIFT_ANDROID_SDK_HOME}"
 log "Listing installed Android SDKs"
 export PATH="${PATH}:$ANDROID_HOME/emulator:$ANDROID_HOME/tools:$ANDROID_HOME/build-tools/latest:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
 
-sdkmanager --list_installed
-
 log "Updating Android SDK licenses"
+sdkmanager --list_installed
 yes | sdkmanager --licenses > /dev/null || true
 
 log "Installing Android emulator"
@@ -73,7 +75,8 @@ sdkmanager --install "emulator" "platform-tools" "platforms;android-${ANDROID_AP
 
 log "Creating Android emulator"
 export ANDROID_AVD_HOME=${XDG_CONFIG_HOME:-$HOME}/.android/avd
-avdmanager create avd --force -n "${EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
+ANDROID_EMULATOR_NAME="swiftemu"
+avdmanager create avd --force -n "${ANDROID_EMULATOR_NAME}" --package "${EMULATOR_SPEC}" --device "${ANDROID_PROFILE}"
 
 log "Configuring Android emulators"
 emulator -list-avds
@@ -83,7 +86,7 @@ emulator -accel-check
 
 log "Starting Android emulator"
 # launch the emulator in the background
-nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${EMULATOR_NAME}" &
+nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
 log "Waiting for Android emulator startup"
 timeout ${ANDROID_EMULATOR_LAUNCH_TIMEOUT} adb wait-for-any-device
@@ -97,10 +100,11 @@ mkdir "${STAGING_DIR}"
 
 BUILD_DIR=.build/"${ANDROID_SDK_TRIPLE}"/debug
 
-find "${BUILD_DIR}" -name '*.xctest' -o -name '*.resources' -exec cp -a {} "${STAGING_DIR}" \;
+find "${BUILD_DIR}" -name '*.xctest' -exec cp -av {} "${STAGING_DIR}" \;
+find "${BUILD_DIR}" -name '*.resources' -exec cp -av {} "${STAGING_DIR}" \;
 
 # also copy required libraries
-cp -a "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
+cp -av "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${SWIFT_ANDROID_SDK_HOME}"/swift-android/ndk-sysroot/usr/lib/"${ANDROID_EMULATOR_ARCH_TRIPLE}"-linux-android/libc++_shared.so "${STAGING_DIR}"
 
 # for the common case of tests referencing
 # their own files as hardwired resource paths
@@ -112,8 +116,6 @@ log "Copy Swift test package to emulator"
 
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
-
-popd
 
 TEST_CMD="./${TEST_PACKAGE}"
 TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
