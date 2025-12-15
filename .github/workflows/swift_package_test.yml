@@ -606,6 +606,13 @@ jobs:
         run: swift --version
       - name: Clang version
         run: clang --version
+      - name: Free Disk Space
+        run: |
+          df -h
+          # need to free space or the Android emulator runs out
+          # frees ~4G
+          rm -rf /__t/PyPy /__t/Ruby /__t/go /__t/node* /__t/CodeQL /__t/Python
+          df -h
       - name: Checkout repository
         uses: actions/checkout@v4
         if: ${{ matrix.os_version != 'amazonlinux2' }}

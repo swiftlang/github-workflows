@@ -113,15 +113,16 @@ find "${ANDROID_AVD_HOME}" || true
 echo "Searching for emulator in: /"
 find / | grep "${EMULATOR_NAME}" || true
 
+log "Configuring Android emulators"
+emulator -list-avds
+
 ANDROID_AVD_CONFIG="${ANDROID_AVD_HOME}"/"${EMULATOR_NAME}".avd/config.ini
 #mkdir -p $(dirname "${ANDROID_AVD_CONFIG}")
 # ~2G partition size
-echo 'disk.dataPartition.size=1024MB' >> "${ANDROID_AVD_CONFIG}"
+echo 'disk.dataPartition.size=2GB' >> "${ANDROID_AVD_CONFIG}"
 log "Checking Android emulator"
 cat "${ANDROID_AVD_CONFIG}"
 
-log "Listing Android emulators"
-emulator -list-avds
 
 #log "Enable KVM"
 #emulator -accel-check || true
