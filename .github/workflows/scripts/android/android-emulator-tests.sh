@@ -25,7 +25,7 @@ SWIFTPM_HOME="${XDG_CONFIG_HOME}"/swiftpm
 # e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
 SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
 
-ANDROID_SDK_TRIPLES="x86_64-unknown-linux-android28"
+ANDROID_SDK_TRIPLE="x86_64-unknown-linux-android28"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --android-sdk-triple=*)
-            ANDROID_SDK_TRIPLES+=("${1#*=}")
+            ANDROID_SDK_TRIPLE="${1#*=}"
             shift
             ;;
         -*)
@@ -56,9 +56,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 # extract the API level from the end of the triple 
-ANDROID_API="${ANDROID_EMULATOR_ARCH_TRIPLE/*-unknown-linux-android/}"
+ANDROID_API="${ANDROID_SDK_TRIPLE/*-unknown-linux-android/}"
 # extract the build arch from the beginning of the triple
-ANDROID_EMULATOR_ARCH="${ANDROID_EMULATOR_ARCH_TRIPLE/-unknown-linux-android*/}"
+ANDROID_EMULATOR_ARCH="${ANDROID_SDK_TRIPLE/-unknown-linux-android*/}"
 
 # x86_64=x86_64, armv7=arm
 ANDROID_EMULATOR_ARCH_TRIPLE="${ANDROID_EMULATOR_ARCH}"
