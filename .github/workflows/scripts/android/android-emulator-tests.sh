@@ -120,6 +120,10 @@ if [[ -d Tests ]]; then
     cp -a Tests "${STAGING_DIR}"
 fi
 
+# warn about macros in packages, as per
+# https://github.com/swiftlang/github-workflows/pull/215#discussion_r2621335245
+grep -q '\.macro(' Package.swift && log "WARNING: Packages with macros are known to have issues with cross-compilation: https://github.com/swiftlang/swift-package-manager/issues/8094" || true
+
 log "Copy Swift test package to emulator"
 
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
