@@ -122,7 +122,7 @@ fi
 
 # warn about macros in packages, as per
 # https://github.com/swiftlang/github-workflows/pull/215#discussion_r2621335245
-grep -q '\.macro(' Package.swift && log "WARNING: Packages with macros are known to have issues with cross-compilation: https://github.com/swiftlang/swift-package-manager/issues/8094" || true
+! grep -lq '\.macro(' Package.swift || log "WARNING: Packages with macros are known to have issues with cross-compilation: https://github.com/swiftlang/swift-package-manager/issues/8094"
 
 log "Copy Swift test package to emulator"
 
