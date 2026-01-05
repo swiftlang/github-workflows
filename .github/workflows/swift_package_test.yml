@@ -149,7 +149,7 @@ on:
         default: "swift build"
       android_sdk_triples:
         type: string
-        description: "The triples to use when building with the Swift SDK for Android"
+        description: "The triples to use when building with the Swift SDK for Android. The final triple in the list will be used for the emulator testing and should match the host architecture."
         default: "[\"aarch64-unknown-linux-android28\", \"x86_64-unknown-linux-android28\"]"
       android_ndk_versions:
         type: string
