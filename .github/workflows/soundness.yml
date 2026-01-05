@@ -31,6 +31,26 @@ on:
         type: string
         description: "Additional arguments that should be passed to docc"
         default: ""
+      docs_check_macos_enabled:
+        type: boolean
+        description: "Boolean to enable the macOS docs check job. Defaults to false."
+        default: false
+      docs_check_macos_version:
+        type: string
+        description: "macOS version for the macOS docs check job."
+        default: "sequoia"
+      docs_check_macos_arch:
+        type: string
+        description: "macOS arch for the macOS docs check job."
+        default: "ARM64"
+      docs_check_macos_xcode_version:
+        type: string
+        description: "Xcode version for the macOS docs check job."
+        default: "26.0"
+      docs_check_macos_additional_arguments:
+        type: string
+        description: "Additional arguments that should be passed to docc for the macOS docs check job."
+        default: ""
       unacceptable_language_check_enabled:
         type: boolean
         description: "Boolean to enable the acceptable language check job. Defaults to true."
@@ -162,6 +182,42 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
+
+  docs-check-macos:
+    name: Documentation check (macOS)
+    if: ${{ inputs.docs_check_macos_enabled }}
+    runs-on: [self-hosted, macos, "${{ inputs.docs_check_macos_version }}", "${{ inputs.docs_check_macos_arch }}"]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Select Xcode
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ inputs.docs_check_macos_xcode_version }}.app" >> $GITHUB_ENV
+      - name: Swift version
+        run: xcrun swift --version
+      - name: Clang version
+        run: xcrun clang --version
+      - name: Run documentation check
+        env:
+          ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
         run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
 
   unacceptable-language-check:
