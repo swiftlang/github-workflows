@@ -24,8 +24,8 @@ fi
 
 if ! command -v yq &> /dev/null; then
   case "$(uname -s)" in
-  Darwin*) echo brew install yq;;
-  Linux*) echo apt -q update && apt -yq install yq;;
+  Darwin*) brew install yq;;
+  Linux*) apt -q update && apt -yq install yq;;
   esac
 fi
 
