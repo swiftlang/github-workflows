@@ -149,7 +149,7 @@ on:
         default: "swift build"
       android_sdk_triples:
         type: string
-        description: "The triples to use when building with the Swift SDK for Android"
+        description: "The triples to use when building with the Swift SDK for Android. The final triple in the list will be used for the emulator testing and should match the host architecture."
         default: "[\"aarch64-unknown-linux-android28\", \"x86_64-unknown-linux-android28\"]"
       android_ndk_versions:
         type: string
@@ -197,6 +197,10 @@ on:
       enable_android_sdk_build:
         type: boolean
         description: "Boolean to enable building with the Swift SDK for Android. Defaults to false"
+        default: false
+      enable_android_sdk_checks:
+        type: boolean
+        description: "Boolean to enable testing with the Swift SDK for Android. Defaults to false"
         default: false
       enable_macos_checks:
         type: boolean
@@ -598,21 +602,17 @@ jobs:
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
 
   android-sdk-build:
-    name: Swift SDK for Android Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - NDK ${{ matrix.ndk_version }})
+    name: Swift SDK for Android Build (${{ matrix.swift_version }} - NDK ${{ matrix.ndk_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         swift_version: ${{ fromJson(inputs.android_sdk_versions) }}
         ndk_version: ${{ fromJson(inputs.android_ndk_versions) }}
-        os_version: ${{ fromJson(inputs.linux_os_versions) }}
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_sdk_versions) || '[]') }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.android_ndk_versions) || '[]') }}
-          - ${{ fromJson((!inputs.enable_android_sdk_build && inputs.linux_os_versions) || '[]') }}
-    container:
-      image: ${{ (contains(matrix.swift_version, 'nightly') && 'swiftlang/swift') || 'swift' }}:${{ matrix.swift_version }}-${{ matrix.os_version }}
+          - ${{ fromJson((!(inputs.enable_android_sdk_build || inputs.enable_android_sdk_checks) && inputs.android_sdk_versions) || '[]') }}
+          - ${{ fromJson((!(inputs.enable_android_sdk_build || inputs.enable_android_sdk_checks) && inputs.android_ndk_versions) || '[]') }}
     steps:
       - name: Swift version
         run: swift --version
@@ -620,23 +620,11 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v4
-        if: ${{ matrix.os_version != 'amazonlinux2' }}
-      - name: Checkout repository
-        uses: actions/checkout@v1
-        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v4
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
-      - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
-        with:
-          repository: swiftlang/github-workflows
-          path: ${{ github.event.repository.name }}/github-workflows
-          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
@@ -660,10 +648,29 @@ jobs:
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Android and build
         env:
-          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+          BUILD_FLAGS: ${{ inputs.enable_android_sdk_checks && '--build-tests' }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        shell: bash
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
+      - name: Enable KVM and free disk space
+        if: ${{ inputs.enable_android_sdk_checks }}
+        run: |
+          # enable KVM on Linux for tests, else error on emulator launch:
+          # CPU acceleration status: This user doesn't have permissions to use KVM (/dev/kvm).
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+          # need to free space or the emulator runs out
+          sudo rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
+          df -h
+      - name: Install Android Emulator and run tests
+        if: ${{ inputs.enable_android_sdk_checks }}
+        shell: bash
+        run: |
+          ${{ inputs.android_sdk_pre_build_command }}
+          ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/android/android-emulator-tests.sh --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }}
 
   windows-build:
     name: Windows (${{ matrix.swift_version }} - ${{ matrix.os_version }})
