@@ -96,6 +96,8 @@ log "Starting Android emulator"
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
 log "Waiting for Android emulator startup"
+adb start-server
+sleep 5
 timeout "${ANDROID_EMULATOR_TIMEOUT}" adb wait-for-any-device
 
 log "Prepare Swift test package"
