@@ -1,0 +1,66 @@
+name: Ping Stale PRs
+
+# Posts comments on PRs that haven't had any interaction for more than a given number of weeks.
+#
+# The workflow tries to be smart and infer whether it's the PR author's turn to move the PR forward or if it is blocked
+# on actions by the reviewers and ping them accordingly.concurrency:
+#
+# Example usage in a repository:
+#
+# ```
+# name: Ping stale PRs
+# permissions:
+#   contents: read
+# on:
+#   schedule:
+#     - cron: '0 9 * * *'
+#   workflow_dispatch:
+# jobs:
+#   ping_stale_prs:
+#     name: Ping stale PRs
+#     uses: swiftlang/github-workflows/.github/workflows/ping_stale_prs.yml@main
+#     permissions:
+#       contents: write
+#       pull-requests: write
+#     if: (github.event_name == 'schedule' && github.repository == 'swiftlang/swift-format') || (github.event_name != 'schedule')  # Ensure that we don't run this on a schedule in a fork
+# ```
+
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      stale_duration_weeks:
+        type: string
+        description: "The number of weeks after which a PR should be considered stale."
+        default: "4"
+
+jobs:
+  ping_stale_prs:
+    name: Ping Stale PRs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Post comment on stale PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/ping_stale_prs.py --stale-duration ${{ inputs.stale_duration_weeks }} --repo ${{ github.repository }}
