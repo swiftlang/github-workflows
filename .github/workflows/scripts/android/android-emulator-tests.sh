@@ -95,6 +95,9 @@ log "Starting Android emulator"
 # launch the emulator in the background
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
+# wait briefly before starting to poll the emulator
+sleep 20
+
 log "Waiting for Android emulator startup"
 timeout "${ANDROID_EMULATOR_TIMEOUT}" adb wait-for-any-device
 
