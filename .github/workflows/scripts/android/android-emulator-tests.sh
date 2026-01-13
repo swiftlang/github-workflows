@@ -99,6 +99,8 @@ nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-wind
 sleep 20
 
 log "Waiting for Android emulator startup"
+adb start-server
+sleep 5
 timeout "${ANDROID_EMULATOR_TIMEOUT}" adb wait-for-any-device
 
 log "Prepare Swift test package"
