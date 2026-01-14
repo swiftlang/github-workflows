@@ -99,9 +99,26 @@ nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-wind
 sleep 20
 
 log "Waiting for Android emulator startup"
-adb start-server
-sleep 5
-timeout "${ANDROID_EMULATOR_TIMEOUT}" adb wait-for-any-device
+EMULATOR_CHECK_SECONDS_ELAPSED=0
+EMULATOR_CHECK_INTERVAL=5 # Seconds between status checks
+while true; do
+    # Check if the boot is completed
+    # 'adb shell getprop sys.boot_completed' returns 1 when done
+    BOOT_STATUS=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+
+    if [ "$BOOT_STATUS" == "1" ]; then
+        log "Emulator is ready"
+        break;
+    fi
+
+    if [ "$EMULATOR_CHECK_SECONDS_ELAPSED" -ge "$ANDROID_EMULATOR_TIMEOUT" ]; then
+        log "Timeout reached ($ANDROID_EMULATOR_TIMEOUT seconds). Aborting."
+        exit 1
+    fi
+
+    sleep "$EMULATOR_CHECK_INTERVAL"
+    ((EMULATOR_CHECK_SECONDS_ELAPSED+=EMULATOR_CHECK_INTERVAL))
+done
 
 log "Prepare Swift test package"
 # create a staging folder where we copy the test executable
