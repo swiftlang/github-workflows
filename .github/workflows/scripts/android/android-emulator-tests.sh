@@ -96,7 +96,7 @@ log "Starting Android emulator"
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
 # wait briefly before starting to poll the emulator
-sleep 20
+sleep 10
 
 log "Waiting for Android emulator startup"
 EMULATOR_CHECK_SECONDS_ELAPSED=0
@@ -104,6 +104,7 @@ EMULATOR_CHECK_INTERVAL=5 # Seconds between status checks
 while true; do
     # Check if the boot is completed
     # 'adb shell getprop sys.boot_completed' returns 1 when done
+    adb shell getprop sys.boot_completed
     BOOT_STATUS=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
 
     if [ "$BOOT_STATUS" == "1" ]; then
@@ -112,8 +113,7 @@ while true; do
     fi
 
     if [ "$EMULATOR_CHECK_SECONDS_ELAPSED" -ge "$ANDROID_EMULATOR_TIMEOUT" ]; then
-        log "Timeout reached ($ANDROID_EMULATOR_TIMEOUT seconds). Aborting."
-        exit 1
+        fatal "Timeout reached ($ANDROID_EMULATOR_TIMEOUT seconds). Aborting."
     fi
 
     sleep "$EMULATOR_CHECK_INTERVAL"
