@@ -110,9 +110,7 @@ while true; do
     if [ "$BOOT_STATUS" == "1" ]; then
         log "Emulator is ready"
         break;
-    fi
-
-    if [ "$EMULATOR_CHECK_SECONDS_ELAPSED" -ge "$ANDROID_EMULATOR_TIMEOUT" ]; then
+    elif [ "$EMULATOR_CHECK_SECONDS_ELAPSED" -ge "$ANDROID_EMULATOR_TIMEOUT" ]; then
         fatal "Timeout reached ($ANDROID_EMULATOR_TIMEOUT seconds). Aborting."
     fi
 done
