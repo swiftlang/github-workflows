@@ -104,8 +104,9 @@ EMULATOR_CHECK_INTERVAL=5 # Seconds between status checks
 while true; do
     # Check if the boot is completed
     # 'adb shell getprop sys.boot_completed' returns 1 when done
-    adb shell getprop sys.boot_completed
-    BOOT_STATUS=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+    # Ignore failure status since it will fail with "adb: device offline"
+    adb shell getprop sys.boot_completed || true
+    BOOT_STATUS=$(adb shell getprop sys.boot_completed || true 2>/dev/null | tr -d '\r')
 
     if [ "$BOOT_STATUS" == "1" ]; then
         log "Emulator is ready"
