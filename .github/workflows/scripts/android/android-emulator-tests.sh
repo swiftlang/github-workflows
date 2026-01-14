@@ -98,14 +98,13 @@ nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-wind
 # wait briefly before starting to poll the emulator
 sleep 10
 
-log "Waiting for Android emulator startup"
 EMULATOR_CHECK_SECONDS_ELAPSED=0
 EMULATOR_CHECK_INTERVAL=5 # Seconds between status checks
 while true; do
+    log "Waiting for Android emulator startup ($EMULATOR_CHECK_SECONDS_ELAPSED)"
     # Check if the boot is completed
     # 'adb shell getprop sys.boot_completed' returns 1 when done
     # Ignore failure status since it will fail with "adb: device offline"
-    adb shell getprop sys.boot_completed || true
     BOOT_STATUS=$(adb shell getprop sys.boot_completed || true 2>/dev/null | tr -d '\r')
 
     if [ "$BOOT_STATUS" == "1" ]; then
