@@ -95,13 +95,13 @@ log "Starting Android emulator"
 # launch the emulator in the background
 nohup emulator -no-metrics -partition-size 1024 -memory 4096 -wipe-data -no-window -no-snapshot -noaudio -no-boot-anim -avd "${ANDROID_EMULATOR_NAME}" &
 
-# wait briefly before starting to poll the emulator
-sleep 10
-
 EMULATOR_CHECK_SECONDS_ELAPSED=0
 EMULATOR_CHECK_INTERVAL=5 # Seconds between status checks
 while true; do
+    sleep "$EMULATOR_CHECK_INTERVAL"
+    ((EMULATOR_CHECK_SECONDS_ELAPSED+=EMULATOR_CHECK_INTERVAL))
     log "Waiting for Android emulator startup ($EMULATOR_CHECK_SECONDS_ELAPSED)"
+
     # Check if the boot is completed
     # 'adb shell getprop sys.boot_completed' returns 1 when done
     # Ignore failure status since it will fail with "adb: device offline"
@@ -115,9 +115,6 @@ while true; do
     if [ "$EMULATOR_CHECK_SECONDS_ELAPSED" -ge "$ANDROID_EMULATOR_TIMEOUT" ]; then
         fatal "Timeout reached ($ANDROID_EMULATOR_TIMEOUT seconds). Aborting."
     fi
-
-    sleep "$EMULATOR_CHECK_INTERVAL"
-    ((EMULATOR_CHECK_SECONDS_ELAPSED+=EMULATOR_CHECK_INTERVAL))
 done
 
 log "Prepare Swift test package"
