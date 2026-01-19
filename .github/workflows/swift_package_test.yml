@@ -795,4 +795,3 @@ jobs:
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
-
