@@ -730,10 +730,16 @@ jobs:
           docker pull $Image
           echo "image=$Image" >> "$env:GITHUB_OUTPUT"
       - name: "Install Python 3.10"
-        if: ${{ !inputs.enable_windows_docker }}
+        if: ${{ !inputs.enable_windows_docker && !(matrix.swift_version == '6.1' || matrix.swift_version == '6.0' || matrix.swift_version == '5.10' || matrix.swift_version == '5.9') }}
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
+          architecture: "x64"
+      - name: "Install Python 3.9"
+        if: ${{ !inputs.enable_windows_docker && (matrix.swift_version == '6.1' || matrix.swift_version == '6.0' || matrix.swift_version == '5.10' || matrix.swift_version == '5.9') }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.9"
           architecture: "x64"
       - name: Install Visual Studio Build Tools
         if: ${{ !inputs.enable_windows_docker }}
@@ -789,3 +795,4 @@ jobs:
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+
