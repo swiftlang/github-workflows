@@ -126,7 +126,8 @@ echo "$config" | jq -c '.targets[]' | while read -r target; do
 done
 
 if [[ "${fail_on_changes}" == true ]]; then
-    if [ -n "$(git status --untracked-files=no --porcelain)" ]; then
+    git_status_output=$(git status --untracked-files=no --porcelain 2>&1) || fatal "git status failed: $git_status_output"
+    if [ -n "$git_status_output" ]; then
         fatal "Changes in the cmake files detected. Please update. -- $(git diff)"
     else
         log "✅ CMake files are up-to-date."

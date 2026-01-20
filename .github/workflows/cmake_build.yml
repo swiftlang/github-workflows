@@ -50,6 +50,8 @@ jobs:
           which curl jq || apt -q update
           which curl || apt -yq install curl
           which jq || apt -yq install jq
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          cd ${{ inputs.cmake_build_target_directory }}
           CONFIG_JSON='${{ inputs.update_cmake_lists_config }}' FAIL_ON_CHANGES=true ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/cmake-update-cmake-lists.sh
       - name: CMake build
         run: |

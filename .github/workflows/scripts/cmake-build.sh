@@ -33,7 +33,7 @@ log "Building Ninja build files for target"
 build_dir="${target_dir}/build"
 mkdir -p "$build_dir"
 cd "${build_dir}" || fatal "Could not 'cd' to ${build_dir}"
-ASM="$ASSEMBLY_COMPILER_BIN" "$CMAKE_BIN" build -G Ninja -S ..
+ASM="$ASSEMBLY_COMPILER_BIN" "$CMAKE_BIN" -G Ninja -S ..
 
 log "Building target"
 "$NINJA_BIN"
