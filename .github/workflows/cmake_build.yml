@@ -1,0 +1,60 @@
+name: CMake build
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      update_cmake_lists_config:
+        type: string
+        description: "The configuration used when updating the CMake lists."
+        required: true
+      cmake_build_target_directory:
+        type: string
+        description: "The directory to pass to `cmake build`."
+        default: "."
+      image:
+        type: string
+        description: "The docker image to run the checks in."
+        default: "swift:6.2-noble"
+
+jobs:
+  cmake-checks:
+    name: CMake checks
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Check CMakeLists files
+        run: |
+          which curl jq || apt -q update
+          which curl || apt -yq install curl
+          which jq || apt -yq install jq
+          CONFIG_JSON='${{ inputs.update_cmake_lists_config }}' FAIL_ON_CHANGES=true ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/cmake-update-cmake-lists.sh
+      - name: CMake build
+        run: |
+          which curl cmake ninja || apt -q update
+          which curl || apt -yq install curl
+          which cmake || apt -yq install cmake
+          which ninja || apt -yq install ninja-build
+          TARGET_DIRECTORY="${{ inputs.cmake_build_target_directory }}" ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/cmake-build.sh
