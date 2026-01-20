@@ -123,6 +123,10 @@ on:
         type: string
         description: "macOS command to build and test the package"
         default: "xcrun swift test"
+      macos_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 60
       ios_pre_build_command:
         type: string
         description: "macOS command to execute before building the Swift package for iOS"
@@ -131,6 +135,10 @@ on:
         type: string
         description: "macOS command to build the package for iOS"
         default: "xcrun swift build --build-tests --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios"
+      ios_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 60
       linux_build_command:
         type: string
         description: "Linux command to build and test the package"
@@ -166,6 +174,10 @@ on:
           Note that Powershell does not automatically exit if a subcommand fails. The Invoke-Program utility is available to propagate non-zero exit codes.
           It is strongly encouraged to run all command using `Invoke-Program` unless you want to continue on error eg. `Invoke-Program git apply patch.diff` instead of `git apply patch.diff`.
         default: "Invoke-Program swift test"
+      windows_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 60
       macos_env_vars:
         description: "Newline separated list of environment variables"
         type: string
@@ -266,7 +278,7 @@ jobs:
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
         run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
-        timeout-minutes: 60
+        timeout-minutes: ${{ inputs.macos_build_timeout }}
 
   ios-build:
     name: iOS (Build Only, Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
@@ -304,7 +316,7 @@ jobs:
         run: ${{ inputs.ios_pre_build_command }}
       - name: Build
         run: ${{ inputs.ios_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
-        timeout-minutes: 60
+        timeout-minutes: ${{ inputs.ios_build_timeout }}
 
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
@@ -780,12 +792,12 @@ jobs:
           '@ >> $env:TEMP\test-script\run.ps1
       # Docker build
       - name: Docker Build / Test
-        timeout-minutes: 60
+        timeout-minutes: ${{ inputs.windows_build_timeout }}
         if: ${{ inputs.enable_windows_docker }}
         run: |
           docker run -v ${{ github.workspace }}:C:\source -v $env:TEMP\test-script:C:\test-script ${{ steps.pull_docker_image.outputs.image }} powershell.exe -NoLogo -File C:\test-script\run.ps1
       # Docker-less build
       - name: Build / Test
-        timeout-minutes: 60
+        timeout-minutes: ${{ inputs.windows_build_timeout }}
         if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
