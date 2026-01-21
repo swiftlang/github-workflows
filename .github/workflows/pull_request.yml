@@ -90,3 +90,10 @@ jobs:
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"
+
+  cmake_build:
+    name: CMake build
+    uses: ./.github/workflows/cmake_build.yml
+    with:
+      update_cmake_lists_config: '{"targets":[{"name":"Target1","type":"source","exceptions":[]},{"name":"Target2","type":"source","exceptions":[]}]}'
+      cmake_build_target_directory: "tests/TestPackage"
