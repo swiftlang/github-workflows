@@ -85,6 +85,7 @@ while IFS= read -r file_path; do
     json) continue ;; # JSON doesn't support line comments
     jsx) comment_marker='//' ;;
     kts) comment_marker='//' ;;
+    kt) comment_marker='//' ;;
     md) continue ;; # Text files don't need license headers
     mobileconfig) continue ;; # Doesn't support comments
     modulemap) continue ;; # Configuration file doesn't need a license header
@@ -98,6 +99,7 @@ while IFS= read -r file_path; do
     strings) comment_marker='//' ;;
     swift-format) continue ;; # .swift-format is JSON and doesn't support comments
     swift) comment_marker='//' ;;
+    toml) comment_marker='##' ;;
     ts) comment_marker='//' ;;
     tsx) comment_marker='//' ;;
     txt) continue ;; # Text files don't need license headers
