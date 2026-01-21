@@ -17,7 +17,7 @@ on:
       macos_versions:
         type: string
         description: "macOS version list (JSON)"
-        default: "[\"sequoia\"]"
+        default: "[\"tahoe\"]"
       macos_archs:
         type: string
         description: "macOS arch list (JSON)"
