@@ -38,7 +38,7 @@ on:
       docs_check_macos_version:
         type: string
         description: "macOS version for the macOS docs check job."
-        default: "sequoia"
+        default: "tahoe"
       docs_check_macos_arch:
         type: string
         description: "macOS arch for the macOS docs check job."
