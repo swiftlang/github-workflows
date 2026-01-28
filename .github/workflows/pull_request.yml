@@ -8,6 +8,10 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  pr_dependency_check:
+    name: PR Dependency Check
+    uses: ./.github/workflows/check_pr_dependency.yml
+
   tests_with_docker_embedded_swift:
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml

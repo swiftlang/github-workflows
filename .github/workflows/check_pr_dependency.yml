@@ -1,0 +1,139 @@
+name: Check for Dependencies in PR
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, labeled, unlabeled, synchronize]
+
+jobs:
+  check-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR dependencies and merge status
+        # Check if dependent PRs are merged before allowing this PR to merge
+        run: |
+          set -e
+
+          # Function to check if a PR is merged
+          check_pr_merged() {
+            local pr_ref=$1
+            local repo=""
+            local pr_number=""
+
+            # Parse PR reference - supports multiple formats:
+            # 1. #123 (same repo)
+            # 2. owner/repo#123 (different repo)
+            # 3. https://github.com/owner/repo/pull/123 (GitHub URL)
+            if [[ "$pr_ref" =~ ^https://github\.com/([^/]+/[^/]+)/pull/([0-9]+)$ ]]; then
+              # GitHub URL format: https://github.com/owner/repo/pull/123
+              repo="${BASH_REMATCH[1]}"
+              pr_number="${BASH_REMATCH[2]}"
+            elif [[ "$pr_ref" =~ ^([^#]+)#([0-9]+)$ ]]; then
+              # Cross-repository reference: owner/repo#123
+              repo="${BASH_REMATCH[1]}"
+              pr_number="${BASH_REMATCH[2]}"
+            elif [[ "$pr_ref" =~ ^#([0-9]+)$ ]]; then
+              # Same repository reference: #123
+              repo="$GITHUB_REPOSITORY"
+              pr_number="${BASH_REMATCH[1]}"
+            else
+              echo "::error::Invalid PR reference format: $pr_ref"
+              return 1
+            fi
+
+            echo "Checking PR #$pr_number in repository $repo..."
+
+            local api_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$repo/pulls/$pr_number")
+
+            if echo "$api_response" | jq -e '.message == "Not Found"' >/dev/null 2>&1; then
+              echo "::error::Referenced PR $repo#$pr_number does not exist or is not accessible"
+              return 1
+            fi
+
+            local merged=$(echo "$api_response" | jq -r '.merged')
+            local state=$(echo "$api_response" | jq -r '.state')
+
+            if [ "$merged" = "true" ]; then
+              echo "✓ PR $repo#$pr_number is merged"
+              return 0
+            elif [ "$state" = "open" ]; then
+              echo "::error::PR $repo#$pr_number is still open and not merged"
+              return 1
+            elif [ "$state" = "closed" ]; then
+              echo "::error::PR $repo#$pr_number is closed but not merged"
+              return 1
+            else
+              echo "::error::PR $repo#$pr_number has unknown state: $state"
+              return 1
+            fi
+          }
+
+          # Function to extract PR dependencies from text
+          extract_dependencies() {
+            local text=$1
+            # Match patterns like:
+            # - "depends on #123"
+            # - "depends on owner/repo#123"
+            # - "depends on https://github.com/owner/repo/pull/123"
+            # - "requires #456"
+            # - "requires owner/repo#456"
+            # - "requires https://github.com/owner/repo/pull/456"
+            echo "$text" | grep -iEo "(depends on|requires):?\s+(https://github\.com/[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+/pull/[0-9]+|[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+#[0-9]+|#[0-9]+)" | \
+              sed -E 's/(depends on|requires):?\s+//i' | sort -u
+          }
+
+          # Extract PR body and check for dependencies
+          PR_BODY=$(cat $GITHUB_EVENT_PATH | jq -r '.pull_request.body // ""')
+
+          echo "Checking PR description for dependencies..."
+          DEPENDENCIES=$(extract_dependencies "$PR_BODY")
+
+          TOTAL_FAILED_CHECKS=0
+
+          if [ -n "$DEPENDENCIES" ]; then
+            echo "Found PR dependencies in description:"
+            echo "$DEPENDENCIES"
+
+            while IFS= read -r dependency; do
+              if [ -n "$dependency" ]; then
+                if ! check_pr_merged "$dependency"; then
+                  TOTAL_FAILED_CHECKS=$((TOTAL_FAILED_CHECKS + 1))
+                fi
+              fi
+            done <<< "$DEPENDENCIES"
+          else
+            echo "No PR dependencies found in description."
+          fi
+
+          # Also check commit messages for dependencies
+          echo "Checking commit messages for dependencies..."
+          COMMITS_URL=$(cat $GITHUB_EVENT_PATH | jq -r '.pull_request.commits_url')
+          COMMIT_MESSAGES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$COMMITS_URL" | jq -r '.[].commit.message' | tr '\n' ' ')
+
+          COMMIT_DEPENDENCIES=$(extract_dependencies "$COMMIT_MESSAGES")
+
+          if [ -n "$COMMIT_DEPENDENCIES" ]; then
+            echo "Found PR dependencies in commit messages:"
+            echo "$COMMIT_DEPENDENCIES"
+
+            while IFS= read -r dependency; do
+              if [ -n "$dependency" ]; then
+                if ! check_pr_merged "$dependency"; then
+                  TOTAL_FAILED_CHECKS=$((TOTAL_FAILED_CHECKS + 1))
+                fi
+              fi
+            done <<< "$COMMIT_DEPENDENCIES"
+          else
+            echo "No PR dependencies found in commit messages."
+          fi
+
+          # Final check - block if any dependencies are unmerged
+          if [ $TOTAL_FAILED_CHECKS -gt 0 ]; then
+            echo "::error::This PR has $TOTAL_FAILED_CHECKS unmerged dependencies. Please wait for dependent PRs to be merged before merging this PR."
+            exit 1
+          else
+            echo "✅ All PR dependencies are satisfied. This PR can proceed to merge."
+          fi
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
