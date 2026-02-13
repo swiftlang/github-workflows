@@ -673,7 +673,7 @@ install_android_sdk() {
     # (e.g., "google-android-ndk-r26-installer" on Debian)
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
         install_android_ndk "$android_ndk_version"
-    elif [[ ! $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${ANDROID_NDK_HOME}/source.properties") ]]; then
+    elif [[ $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${ANDROID_NDK_HOME}/source.properties") -eq 1 ]]; then
         log "Android NDK $android_ndk_version did not match $(grep "Pkg.ReleaseName" "$ANDROID_NDK_HOME/source.properties")"
         # Check if the correct NDK is already cached in the same directory, as
         # it often is on GitHub runners, and use it if so
@@ -683,10 +683,10 @@ install_android_sdk() {
             log "Found the directory"
         fi
         local foo=$(cat "${try_ndk_path}/source.properties")
-        local goo=$(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties")
+        local goo=$(grep  "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties")
         log "Looked in $foo"
         log "Got $goo"
-        if [[ -d "${try_ndk_path}" && $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties") ]]; then
+        if [[ -d "${try_ndk_path}" ]] && [[ $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties") -eq 0 ]]; then
             log "Found a matching Android NDK $android_ndk_version at $try_ndk_path instead"
             export ANDROID_NDK_HOME="$try_ndk_path"
         else
