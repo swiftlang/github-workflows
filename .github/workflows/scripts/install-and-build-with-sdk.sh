@@ -627,6 +627,16 @@ ANDROID_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/androi
 STATIC_LINUX_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/static-sdk"
 WASM_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/wasm-sdk"
 
+install_android_ndk() {
+    local ndk_version="$1"
+    log "Installing Android NDK: $ndk_version"
+    curl_with_retry -fsSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-"${ndk_version}"-"$(uname -s)".zip
+    command -v unzip >/dev/null || install_package unzip
+    unzip -q ndk.zip
+    rm ndk.zip
+    export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${ndk_version}"
+}
+
 install_android_sdk() {
     # Check if the Android Swift SDK is already installed
     if "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK" sdk list 2>/dev/null | grep -q "^${ANDROID_SDK_TAG}_android"; then
@@ -653,18 +663,35 @@ install_android_sdk() {
     # guess some common places where the swift-sdks file lives
     cd ~/Library/org.swift.swiftpm || cd ~/.config/swiftpm || cd ~/.local/swiftpm || cd ~/.swiftpm || cd /root/.swiftpm
 
+    # permit the "--android-ndk" flag to override the default
+    local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
+    log "Checking for Android NDK $android_ndk_version at $ANDROID_NDK_HOME"
+
     # Download and install the Android NDK.
     # Note that we could use the system package manager, but it is
     # named different things for different distributions
     # (e.g., "google-android-ndk-r26-installer" on Debian)
     if [[ ! -d "${ANDROID_NDK_HOME:-}" ]]; then
-        # permit the "--android-ndk" flag to override the default
-        local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-        curl_with_retry -fsSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-"${android_ndk_version}"-"$(uname -s)".zip
-        command -v unzip >/dev/null || install_package unzip
-        unzip -q ndk.zip
-        rm ndk.zip
-        export ANDROID_NDK_HOME="${PWD}"/android-ndk-"${android_ndk_version}"
+        install_android_ndk "$android_ndk_version"
+    elif [[ $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${ANDROID_NDK_HOME}/source.properties") -eq 1 ]]; then
+        log "Android NDK $android_ndk_version did not match $(grep "Pkg.ReleaseName" "$ANDROID_NDK_HOME/source.properties")"
+        # Check if the correct NDK is already cached in the same directory, as
+        # it often is on GitHub runners, and use it if so
+        local try_ndk_path=$(find "${ANDROID_NDK_HOME}/.." -name "$(echo $android_ndk_version | tr -d "[:alpha:]")*" -maxdepth 1)
+        log "looking in $try_ndk_path"
+        if [[ -d "${try_ndk_path}" ]]; then
+            log "Found the directory"
+        fi
+        local foo=$(cat "${try_ndk_path}/source.properties")
+        local goo=$(grep  "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties")
+        log "Looked in $foo"
+        log "Got $goo"
+        if [[ -d "${try_ndk_path}" ]] && [[ $(grep -q "Pkg.ReleaseName = ${android_ndk_version}" "${try_ndk_path}/source.properties") -eq 0 ]]; then
+            log "Found a matching Android NDK $android_ndk_version at $try_ndk_path instead"
+            export ANDROID_NDK_HOME="$try_ndk_path"
+        else
+            install_android_ndk "$android_ndk_version"
+        fi
     fi
 
     ./swift-sdks/"${android_sdk_bundle_name}"/swift-android/scripts/setup-android-sdk.sh

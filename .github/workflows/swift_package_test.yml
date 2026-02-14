@@ -162,7 +162,7 @@ on:
       android_ndk_versions:
         type: string
         description: "The NDK versions to use when building with the Swift SDK for Android"
-        default: "[\"r27d\"]"
+        default: "[\"r28c\"]"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
