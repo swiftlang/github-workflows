@@ -1,0 +1,11 @@
+name: yamllint-check
+description: Check yaml files
+runs:
+  using: composite
+  steps:
+    - name: Install yamllint
+      shell: bash
+      run: which yamllint || (apt -q update && apt install -yq yamllint)
+    - name: Run yaml lint
+      shell: bash
+      run: yamllint --strict --config-file $GITHUB_ACTION_PATH/yamllint.yml .

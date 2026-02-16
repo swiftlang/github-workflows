@@ -1,0 +1,8 @@
+name: check-unacceptable-language
+description: Check Language Format
+runs:
+  using: composite
+  steps:
+    - name: Run unacceptable language check
+      shell: bash
+      run: $GITHUB_ACTION_PATH/check-unacceptable-language.sh

@@ -1,0 +1,8 @@
+name: broken-symlink-check
+description: Check for broken symbolic links
+runs:
+  using: composite
+  steps:
+    - name: Run broken symlink check
+      shell: bash
+      run: $GITHUB_ACTION_PATH/check-broken-symlinks.sh

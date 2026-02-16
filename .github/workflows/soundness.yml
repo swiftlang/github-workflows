@@ -118,7 +118,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # This is set to true since swift package diagnose-api-breaking-changes is
           # cloning the repo again and without it being set to true this job won't work for
@@ -168,7 +168,7 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-docs.sh
+        run: ./.github/actions/docs-check
 
   docs-check-macos:
     name: Documentation check (macOS)
@@ -190,7 +190,7 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-docs.sh
+        run: ./.github/actions/docs-check
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -206,7 +206,7 @@ jobs:
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-unacceptable-language.sh
+        run: ./.github/actions/check-unacceptable-language
 
   license-header-check:
     name: License headers check
@@ -222,7 +222,7 @@ jobs:
       - name: Run license header check
         env:
           PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-license-header.sh
+        uses: ./.github/actions/license-header-check
 
   broken-symlink-check:
     name: Broken symlinks check
@@ -236,7 +236,7 @@ jobs:
           persist-credentials: false
           submodules: true
       - name: Run broken symlinks check
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-broken-symlinks.sh
+        run: ./.github/actions/broken-symlinks-check
 
   format-check:
     name: Format check
@@ -255,7 +255,7 @@ jobs:
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run format check
-        run: $GITHUB_ACTION_PATH/.github/workflows/scripts/check-swift-format.sh
+        uses: ./.github/actions/format-check
 
   shell-check:
     name: Shell check
@@ -268,7 +268,7 @@ jobs:
       - name: Install git
         run: which git || (apt -q update && apt -yq install git)
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: true
@@ -292,9 +292,7 @@ jobs:
           persist-credentials: false
           submodules: true
       - name: Run yamllint
-        run: |
-          which yamllint || (apt -q update && apt install -yq yamllint)
-          yamllint --strict --config-file $GITHUB_ACTION_PATH/.github/workflows/configs/yamllint.yml .
+        uses: ./.github/actions/yamllint-check
 
   python-lint-check:
     name: Python lint check

@@ -1,0 +1,8 @@
+name: format-check
+description: Check Swift Format
+runs:
+  using: composite
+  steps:
+    - name: Run format check
+      shell: bash
+      run: $GITHUB_ACTION_PATH/check-swift-format.sh
