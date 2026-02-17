@@ -8,7 +8,7 @@ runs:
       run: pip3 install flake8 flake8-import-order
     - name: Copy flake8 config
       shell: bash
-      run: cp $GITHUB_ACTION_PATH/.github/workflows/configs/.flake8 > .flake8
+      run: cp $GITHUB_ACTION_PATH/.github/workflows/configs/.flake8 .flake8
     - name: Run flake8
       shell: bash
       run: flake8
