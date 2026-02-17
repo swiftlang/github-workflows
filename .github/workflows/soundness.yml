@@ -168,7 +168,7 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
-        run: ./.github/actions/docs-check
+        uses: ./.github/actions/docs-check
 
   docs-check-macos:
     name: Documentation check (macOS)
@@ -190,7 +190,7 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
-        run: ./.github/actions/docs-check
+        uses: ./.github/actions/docs-check
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -206,7 +206,7 @@ jobs:
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-        run: ./.github/actions/check-unacceptable-language
+        uses: ./.github/actions/check-unacceptable-language
 
   license-header-check:
     name: License headers check
@@ -236,7 +236,7 @@ jobs:
           persist-credentials: false
           submodules: true
       - name: Run broken symlinks check
-        run: ./.github/actions/broken-symlinks-check
+        uses: ./.github/actions/broken-symlinks-check
 
   format-check:
     name: Format check
@@ -306,7 +306,4 @@ jobs:
           persist-credentials: false
           submodules: true
       - name: Run flake8
-        run: |
-          pip3 install flake8 flake8-import-order
-          cp $GITHUB_ACTION_PATH/.github/workflows/configs/.flake8 > .flake8
-          flake8
+        uses: ./.github/actions/python-lint-check
