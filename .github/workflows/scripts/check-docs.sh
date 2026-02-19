@@ -1,0 +1,1 @@
+../../actions/docs-check/check-docs.sh
