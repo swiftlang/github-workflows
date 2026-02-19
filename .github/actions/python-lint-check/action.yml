@@ -1,0 +1,14 @@
+name: python-lint-check
+description: Check python files
+runs:
+  using: composite
+  steps:
+    - name: Install flake
+      shell: bash
+      run: pip3 install flake8 flake8-import-order
+    - name: Copy flake8 config
+      shell: bash
+      run: cp $GITHUB_ACTION_PATH/.flake8 .flake8
+    - name: Run flake8
+      shell: bash
+      run: flake8
