@@ -1,4 +1,5 @@
 .github/actions/python-lint-check/.flake8
+.github/workflows/configs/.flake
 **/*.yml
 CODEOWNERS
 LICENSE.txt

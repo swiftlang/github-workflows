@@ -1,0 +1,1 @@
+../../actions/broken-symlinks-check/check-broken-symlinks.sh

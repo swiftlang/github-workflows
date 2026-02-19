@@ -1,0 +1,1 @@
+../../actions/format-check/check-swift-format.sh
