@@ -1,8 +1,0 @@
-name: docs-check
-description: Check Docs
-runs:
-  using: composite
-  steps:
-    - name: Run docs check
-      shell: bash
-      run: $GITHUB_ACTION_PATH/check-docs.sh
