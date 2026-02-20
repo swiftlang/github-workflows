@@ -1,1 +1,0 @@
-../../actions/license-header-check/check-license-header.sh
