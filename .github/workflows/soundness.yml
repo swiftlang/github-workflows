@@ -118,7 +118,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           # This is set to true since swift package diagnose-api-breaking-changes is
           # cloning the repo again and without it being set to true this job won't work for
@@ -158,17 +158,31 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Pre-build
         if: ${{ inputs.linux_pre_build_command }}
         run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
-        uses: ./.github/actions/docs-check
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
 
   docs-check-macos:
     name: Documentation check (macOS)
@@ -177,10 +191,24 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ inputs.docs_check_macos_xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
@@ -190,7 +218,7 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
-        uses: ./.github/actions/docs-check
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -199,14 +227,28 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-        uses: ./.github/actions/check-unacceptable-language
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-unacceptable-language.sh
 
   license-header-check:
     name: License headers check
@@ -215,14 +257,28 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Run license header check
         env:
           PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-        uses: ./.github/actions/license-header-check
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-license-header.sh
 
   broken-symlink-check:
     name: Broken symlinks check
@@ -231,12 +287,26 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Run broken symlinks check
-        uses: ./.github/actions/broken-symlinks-check
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-broken-symlinks.sh
 
   format-check:
     name: Format check
@@ -247,15 +317,29 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run format check
-        uses: ./.github/actions/format-check
+        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-swift-format.sh
 
   shell-check:
     name: Shell check
@@ -268,7 +352,7 @@ jobs:
       - name: Install git
         run: which git || (apt -q update && apt -yq install git)
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
@@ -287,12 +371,33 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Run yamllint
-        uses: ./.github/actions/yamllint-check
+        run: |
+          which yamllint || (apt -q update && apt install -yq yamllint)
+          cd ${GITHUB_WORKSPACE}
+          if [ ! -f ".yamllint.yml" ]; then
+            echo "Downloading default yamllint config file"
+            cat ${{ steps.script_path.outputs.root }}/.github/workflows/configs/yamllint.yml > .yamllint.yml
+          fi
+          yamllint --strict --config-file .yamllint.yml .
 
   python-lint-check:
     name: Python lint check
@@ -301,9 +406,30 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: true
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Determine script-root path
+        id: script_path
+        run: |
+          if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+            echo "root=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
       - name: Run flake8
-        uses: ./.github/actions/python-lint-check
+        run: |
+          pip3 install flake8 flake8-import-order
+          cd ${GITHUB_WORKSPACE}
+          if [ ! -f ".flake8" ]; then
+            echo "Downloading default flake8 config file"
+            cat ${{ steps.script_path.outputs.root }}/.github/workflows/configs/.flake8 > .flake8
+          fi
+          flake8

@@ -1,8 +1,0 @@
-name: license-header-check
-description: Check License Headers
-runs:
-  using: composite
-  steps:
-    - name: Run license header check
-      shell: bash
-      run: $GITHUB_ACTION_PATH/check-license-header.sh
