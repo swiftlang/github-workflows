@@ -627,6 +627,8 @@ ANDROID_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/androi
 STATIC_LINUX_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/static-sdk"
 WASM_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/wasm-sdk"
 
+STATIC_LINUX_SDK_NAME="${STATIC_LINUX_SDK_TAG}_static-linux-0.1.0"
+
 install_android_ndk() {
     local ndk_version="$1"
     log "Installing Android NDK: $ndk_version"
@@ -693,14 +695,14 @@ install_android_sdk() {
 
 install_static_linux_sdk() {
     # Check if the Static Linux Swift SDK is already installed
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk list 2>/dev/null | grep -q "^${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"; then
+    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk list 2>/dev/null | grep -q "^${STATIC_LINUX_SDK_NAME}"; then
         log "✅ Static Linux Swift SDK ${STATIC_LINUX_SDK_TAG} is already installed, skipping installation"
         return 0
     fi
 
     log "Installing Static Linux Swift SDK: $STATIC_LINUX_SDK_TAG"
 
-    local static_linux_sdk_filename="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
+    local static_linux_sdk_filename="${STATIC_LINUX_SDK_NAME}.artifactbundle.tar.gz"
     local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${static_linux_sdk_filename}"
 
     if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" "$sdk_url" "$STATIC_LINUX_SDK_CHECKSUM" "Static Linux Swift"; then
@@ -782,7 +784,7 @@ build() {
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Running Swift build with Static Linux Swift SDK"
 
-        local sdk_name="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"
+        local sdk_name="${STATIC_LINUX_SDK_NAME}"
         alias swift='$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK'
         local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
