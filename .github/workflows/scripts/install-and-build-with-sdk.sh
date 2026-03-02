@@ -202,7 +202,7 @@ SWIFT_API_INSTALL_ROOT="https://www.swift.org/api/v1/install"
 # and gets the checksum for the patch version's Static Linux and/or Wasm Swift SDK.
 #
 # $1 (string): A minor Swift version, e.g. "6.1"
-# Output: A string of the form "<patch-version>|<android-checksum>|<static-checksum>|<wasm-checksum>
+# Output: A string of the form "<patch-version>|<android-checksum>|<static-checksum>|<static-version>|<wasm-checksum>
 find_latest_swift_version() {
     local minor_version="$1"
 
@@ -245,6 +245,7 @@ find_latest_swift_version() {
     fi
 
     local static_linux_sdk_checksum=""
+    local static_linux_sdk_version=""
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         static_linux_sdk_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
             .[]
@@ -259,6 +260,20 @@ find_latest_swift_version() {
         fi
 
         log "Found Static Linux Swift SDK checksum: ${static_linux_sdk_checksum:0:12}..."
+
+        static_linux_sdk_version=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
+            .[]
+            | select(.name == $version)
+            | .platforms[]
+            | select(.platform == "static-sdk")
+            | .version
+        ')
+
+        if [[ -z "$static_linux_sdk_version" ]]; then
+            fatal "No Static Linux Swift SDK version found for Swift $latest_version"
+        fi
+
+        log "Found Static Linux Swift SDK version: ${static_linux_sdk_version}"
     fi
 
     local wasm_sdk_checksum=""
@@ -278,7 +293,7 @@ find_latest_swift_version() {
         log "Found Swift SDK for Wasm checksum: ${wasm_sdk_checksum:0:12}..."
     fi
 
-    echo "${latest_version}|${android_sdk_checksum}|${static_linux_sdk_checksum}|${wasm_sdk_checksum}"
+    echo "${latest_version}|${android_sdk_checksum}|${static_linux_sdk_checksum}|${static_linux_sdk_version}|${wasm_sdk_checksum}"
 }
 
 # Finds the latest Android or Static Linux or Wasm
@@ -287,8 +302,8 @@ find_latest_swift_version() {
 #
 # $1 (string): Nightly Swift version, e.g. "6.2" or "main"
 # $2 (string): "android" or "static" or "wasm"
-# Output: A string of the form "<snapshot>|<sdk-checksum>",
-# e.g. "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a|<sdk-checksum>"
+# Output: A string of the form "<snapshot>|<sdk-checksum>|<download-filename>",
+# e.g. "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a|<sdk-checksum>|swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a_static-linux-0.0.1.artifactbundle.tar.gz"
 find_latest_sdk_snapshot() {
     local version="$1"
     local sdk_name="$2"
@@ -319,7 +334,17 @@ find_latest_sdk_snapshot() {
 
     log "Found ${sdk_name}-sdk checksum: ${checksum:0:12}..."
 
-    echo "${snapshot_tag}|${checksum}"
+    # Extract the download filename
+    local download
+    download=$(echo "$sdk_json" | jq -r '.[0].download')
+
+    if [[ -z "$download" || "$download" == "null" ]]; then
+        fatal "No download filename found for ${sdk_name}-sdk snapshot"
+    fi
+
+    log "Found ${sdk_name}-sdk download filename: $download"
+
+    echo "${snapshot_tag}|${checksum}|${download}"
 }
 
 SWIFT_VERSION_BRANCH=""
@@ -329,6 +354,8 @@ ANDROID_SDK_PATH_SEP="-"
 
 STATIC_LINUX_SDK_TAG=""
 STATIC_LINUX_SDK_CHECKSUM=""
+STATIC_LINUX_SDK_VERSION=""
+STATIC_LINUX_SDK_FILENAME=""
 WASM_SDK_TAG=""
 WASM_SDK_CHECKSUM=""
 
@@ -353,6 +380,7 @@ if [[ "$SWIFT_VERSION_INPUT" == nightly-* ]]; then
 
         STATIC_LINUX_SDK_TAG=$(echo "$static_linux_sdk_info" | cut -d'|' -f1)
         STATIC_LINUX_SDK_CHECKSUM=$(echo "$static_linux_sdk_info" | cut -d'|' -f2)
+        STATIC_LINUX_SDK_FILENAME=$(echo "$static_linux_sdk_info" | cut -d'|' -f3)
     fi
 
     if [[ "$INSTALL_WASM" == true ]]; then
@@ -372,9 +400,11 @@ else
 
     STATIC_LINUX_SDK_TAG="swift-${latest_version}-RELEASE"
     STATIC_LINUX_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f3)
+    STATIC_LINUX_SDK_VERSION=$(echo "$latest_version_info" | cut -d'|' -f4)
+    STATIC_LINUX_SDK_FILENAME="${STATIC_LINUX_SDK_TAG}_static-linux-${STATIC_LINUX_SDK_VERSION}.artifactbundle.tar.gz"
 
     WASM_SDK_TAG="swift-${latest_version}-RELEASE"
-    WASM_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f4)
+    WASM_SDK_CHECKSUM=$(echo "$latest_version_info" | cut -d'|' -f5)
 fi
 
 # Validate that required Swift SDK tags are set
@@ -692,16 +722,17 @@ install_android_sdk() {
 }
 
 install_static_linux_sdk() {
+    local sdk_name="${STATIC_LINUX_SDK_FILENAME%.artifactbundle.tar.gz}"
+
     # Check if the Static Linux Swift SDK is already installed
-    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk list 2>/dev/null | grep -q "^${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"; then
+    if "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" sdk list 2>/dev/null | grep -q "^${sdk_name}"; then
         log "✅ Static Linux Swift SDK ${STATIC_LINUX_SDK_TAG} is already installed, skipping installation"
         return 0
     fi
 
     log "Installing Static Linux Swift SDK: $STATIC_LINUX_SDK_TAG"
 
-    local static_linux_sdk_filename="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1.artifactbundle.tar.gz"
-    local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${static_linux_sdk_filename}"
+    local sdk_url="${STATIC_LINUX_SDK_DOWNLOAD_ROOT}/${STATIC_LINUX_SDK_TAG}/${STATIC_LINUX_SDK_FILENAME}"
 
     if ! swift_sdk_install_with_retry "$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK" "$sdk_url" "$STATIC_LINUX_SDK_CHECKSUM" "Static Linux Swift"; then
         fatal "Failed to install Static Linux Swift SDK"
@@ -782,7 +813,7 @@ build() {
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Running Swift build with Static Linux Swift SDK"
 
-        local sdk_name="${STATIC_LINUX_SDK_TAG}_static-linux-0.0.1"
+        local sdk_name="${STATIC_LINUX_SDK_FILENAME%.artifactbundle.tar.gz}"
         alias swift='$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK'
         local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
