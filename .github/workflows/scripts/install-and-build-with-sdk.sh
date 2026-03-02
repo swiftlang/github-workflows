@@ -627,7 +627,45 @@ ANDROID_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/androi
 STATIC_LINUX_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/static-sdk"
 WASM_SDK_DOWNLOAD_ROOT="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/wasm-sdk"
 
-STATIC_LINUX_SDK_NAME="${STATIC_LINUX_SDK_TAG}_static-linux-0.1.0"
+# Determine the Static Linux SDK version suffix based on the Swift version.
+# Swift >= 6.2.4 uses 0.1.0, older versions use 0.0.1.
+# For nightly snapshots (e.g. swift-6.2-DEVELOPMENT-SNAPSHOT-...), the minor
+# branch version is compared: 6.2 nightly is treated as pre-6.2.4 (0.0.1),
+# while "main" nightly is treated as >= 6.2.4 (0.1.0).
+get_static_linux_sdk_version() {
+    local tag="$1"
+
+    # Extract the version portion from the tag, e.g.:
+    #   swift-6.1.2-RELEASE           -> 6.1.2
+    #   swift-6.2-DEVELOPMENT-...     -> 6.2
+    #   swift-DEVELOPMENT-SNAPSHOT-... (main) -> ""
+    local version
+    version=$(echo "$tag" | sed -n 's/^swift-\([0-9][0-9.]*\).*/\1/p')
+
+    if [[ -z "$version" ]]; then
+        # main branch snapshot — use the newer version
+        echo "0.1.0"
+        return
+    fi
+
+    # Pad to major.minor.patch for comparison (e.g. "6.2" -> "6.2.0")
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    patch="${patch:-0}"
+
+    # Compare against 6.2.4
+    if [[ "$major" -gt 6 ]] ||
+       [[ "$major" -eq 6 && "$minor" -gt 2 ]] ||
+       [[ "$major" -eq 6 && "$minor" -eq 2 && "$patch" -ge 4 ]]; then
+        echo "0.1.0"
+    else
+        echo "0.0.1"
+    fi
+}
+
+STATIC_LINUX_SDK_VERSION=$(get_static_linux_sdk_version "$STATIC_LINUX_SDK_TAG")
+STATIC_LINUX_SDK_NAME="${STATIC_LINUX_SDK_TAG}_static-linux-${STATIC_LINUX_SDK_VERSION}"
+log "Static Linux SDK name: $STATIC_LINUX_SDK_NAME"
 
 install_android_ndk() {
     local ndk_version="$1"
