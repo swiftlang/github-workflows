@@ -22,22 +22,26 @@ on:
         type: string
         description: "macOS arch list (JSON)"
         default: "[\"ARM64\"]"
-      ios_host_xcode_versions:
+      apple_cc_xcode_versions:
         type: string
-        description: "Xcode version list (JSON)"
+        description: "Xcode version list for Apple CC builds (JSON)"
         default: null
-      ios_host_exclude_xcode_versions:
+      apple_cc_exclude_xcode_versions:
         type: string
-        description: "Exclude Xcode version list (JSON)"
+        description: "Exclude Xcode version list for Apple CC builds (JSON)"
         default: null
-      ios_host_versions:
+      apple_cc_macos_versions:
         type: string
-        description: "iOS host (macOS) version list (JSON)"
+        description: "Apple CC host (macOS) version list (JSON)"
         default: null
-      ios_host_archs:
+      apple_cc_macos_archs:
         type: string
-        description: "iOS host (macOS) arch list (JSON)"
+        description: "Apple CC host (macOS) arch list (JSON)"
         default: null
+      apple_cc_platforms:
+        type: string
+        description: "Apple CC target platforms as JSON array of objects with name and platform keys"
+        default: '[{"name": "iOS", "platform": "iOS"}, {"name": "tvOS", "platform": "tvOS"}, {"name": "visionOS", "platform": "xrOS"}, {"name": "watchOS", "platform": "watchOS"}]'
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
@@ -127,17 +131,21 @@ on:
         type: number
         description: "The default step timeout in minutes"
         default: 60
-      ios_pre_build_command:
+      apple_cc_pre_build_command:
         type: string
-        description: "macOS command to execute before building the Swift package for iOS"
+        description: "macOS command to execute before the Apple CC build"
         default: ""
-      ios_build_command:
+      apple_cc_scheme:
         type: string
-        description: "macOS command to build the package for iOS"
-        default: "\"$(xcrun -f swift)\" build --build-tests --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios"
-      ios_build_timeout:
+        description: "Xcode scheme to build for Apple CC targets"
+        default: ""
+      apple_cc_build_command:
+        type: string
+        description: "macOS command to build the package for Apple CC targets"
+        default: "xcodebuild build-for-testing -scheme $APPLE_CC_SCHEME -destination generic/platform=$APPLE_CC_PLATFORM"
+      apple_cc_build_timeout:
         type: number
-        description: "The default step timeout in minutes"
+        description: "The default step timeout in minutes for Apple CC builds"
         default: 60
       linux_build_command:
         type: string
@@ -181,8 +189,8 @@ on:
       macos_env_vars:
         description: "Newline separated list of environment variables"
         type: string
-      ios_host_env_vars:
-        description: "Newline separated list of environment variables"
+      apple_cc_env_vars:
+        description: "Newline separated list of environment variables for Apple CC builds"
         type: string
       linux_env_vars:
         description: "Newline separated list of environment variables"
@@ -218,9 +226,9 @@ on:
         type: boolean
         description: "Boolean to enable macOS testing. Defaults to false"
         default: false
-      enable_ios_checks:
+      enable_apple_cc_checks:
         type: boolean
-        description: "Boolean to enable iOS testing. Defaults to false"
+        description: "Boolean to enable Apple cross-compilation builds. Defaults to false"
         default: false
       enable_windows_checks:
         type: boolean
@@ -278,18 +286,19 @@ jobs:
         run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: ${{ inputs.macos_build_timeout }}
 
-  ios-build:
-    name: iOS (Build Only, Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
-    if: ${{ inputs.enable_ios_checks }}
+  apple-cc-build:
+    name: ${{ matrix.os.name }} (Xcode ${{ matrix.xcode_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    if: ${{ inputs.enable_apple_cc_checks }}
     runs-on: [self-hosted, macos, "${{ matrix.os_version }}", "${{ matrix.arch }}"]
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ${{ fromJson(inputs.ios_host_xcode_versions || inputs.macos_xcode_versions) }}
-        os_version: ${{ fromJson(inputs.ios_host_versions || inputs.macos_versions) }}
-        arch: ${{ fromJson(inputs.ios_host_archs || inputs.macos_archs) }}
+        xcode_version: ${{ fromJson(inputs.apple_cc_xcode_versions || inputs.macos_xcode_versions) }}
+        os_version: ${{ fromJson(inputs.apple_cc_macos_versions || inputs.macos_versions) }}
+        arch: ${{ fromJson(inputs.apple_cc_macos_archs || inputs.macos_archs) }}
+        os: ${{ fromJson(inputs.apple_cc_platforms) }}
         exclude:
-          - ${{ fromJson(inputs.ios_host_exclude_xcode_versions || inputs.macos_exclude_xcode_versions) }}
+          - ${{ fromJson(inputs.apple_cc_exclude_xcode_versions || inputs.macos_exclude_xcode_versions) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -298,22 +307,31 @@ jobs:
         run: |
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
-        if: ${{ inputs.ios_host_env_vars }}
+        if: ${{ inputs.apple_cc_env_vars }}
         run: |
-            for i in "${{ inputs.ios_host_env_vars }}"
+            for i in "${{ inputs.apple_cc_env_vars }}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
+      - name: Install xcbeautify
+        run: |
+          curl -L https://github.com/cpisciotta/xcbeautify/releases/download/2.28.0/xcbeautify-2.28.0-arm64-apple-macosx.zip -o xcbeautify.zip
+          sha256 -c 00d16a08b426e004e5d101631515ea1bbc0ab20209541cd4cacb569d3289c9e7 xcbeautify.zip
+          unzip xcbeautify.zip -d /tmp
+          chmod +x /tmp/xcbeautify
+          /tmp/xcbeautify --version
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
-        run: |
-          "$(xcrun -f swift)" --version
+        run: xcrun swift --version
       - name: Pre-build
-        run: ${{ inputs.ios_pre_build_command }}
+        run: ${{ inputs.apple_cc_pre_build_command }}
       - name: Build
-        run: ${{ inputs.ios_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
-        timeout-minutes: ${{ inputs.ios_build_timeout }}
+        env:
+          APPLE_CC_PLATFORM: ${{ matrix.os.platform }}
+          APPLE_CC_SCHEME: ${{ inputs.apple_cc_scheme }}
+        run: ${{ inputs.apple_cc_build_command }} | /tmp/xcbeautify
+        timeout-minutes: ${{ inputs.apple_cc_build_timeout }}
 
   linux-build:
     name: Linux (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})

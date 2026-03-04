@@ -74,17 +74,16 @@ jobs:
         cd tests/TestPackage
         xcrun swift build
 
-  build_tests_ios:
-    name: Build iOS Tests
+  build_tests_apple_cc:
+    name: Build
     uses: ./.github/workflows/swift_package_test.yml
     with:
       enable_linux_checks: false
       enable_windows_checks: false
-      # iOS
-      enable_ios_checks: true
-      ios_build_command: |
-        cd tests/TestPackage
-        xcodebuild -quiet -scheme TestPackage-Package -destination "generic/platform=ios" build
+      # Apple CC
+      enable_apple_cc_checks: true
+      apple_cc_scheme: TestPackage-Package
+      apple_cc_pre_build_command: cd tests/TestPackage
 
   soundness:
     name: Soundness
