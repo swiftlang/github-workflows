@@ -313,13 +313,6 @@ jobs:
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
-      - name: Install xcbeautify
-        run: |
-          curl -L https://github.com/cpisciotta/xcbeautify/releases/download/2.28.0/xcbeautify-2.28.0-arm64-apple-macosx.zip -o xcbeautify.zip
-          sha256 -c 00d16a08b426e004e5d101631515ea1bbc0ab20209541cd4cacb569d3289c9e7 xcbeautify.zip
-          unzip xcbeautify.zip -d /tmp
-          chmod +x /tmp/xcbeautify
-          /tmp/xcbeautify --version
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
       - name: Swift version
@@ -330,7 +323,7 @@ jobs:
         env:
           APPLE_CC_PLATFORM: ${{ matrix.os.platform }}
           APPLE_CC_SCHEME: ${{ inputs.apple_cc_scheme }}
-        run: ${{ inputs.apple_cc_build_command }} | /tmp/xcbeautify
+        run: ${{ inputs.apple_cc_build_command }}
         timeout-minutes: ${{ inputs.apple_cc_build_timeout }}
 
   linux-build:
