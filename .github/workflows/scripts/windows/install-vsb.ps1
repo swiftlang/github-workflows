@@ -14,6 +14,12 @@
 $MaxRetries = 5
 $RetryDelay = 5
 
+$RequiredComponents = @(
+    'Microsoft.VisualStudio.Component.Windows11SDK.22000',
+    'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+    'Microsoft.VisualStudio.Component.VC.Tools.ARM64'
+)
+
 function Invoke-WebRequestWithRetry {
     param (
         [string]$Uri,
@@ -126,6 +132,52 @@ function Remove-FileWithRetry {
     return $false
 }
 
+function Get-VSComponents {
+    param (
+        [string]$InstallPath
+    )
+
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path $vswhere)) {
+        return @()
+    }
+
+    $json = & $vswhere -format json -products '*' -requires Microsoft.Component.MSBuild -all 2>$null
+    if (-not $json) {
+        return @()
+    }
+
+    $instances = $json | ConvertFrom-Json
+    foreach ($instance in $instances) {
+        if ($instance.installationPath -eq $InstallPath) {
+            return $instance.packages | ForEach-Object { $_.id }
+        }
+    }
+
+    return @()
+}
+
+function Get-VS2022InstallPath {
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path $vswhere)) {
+        return $null
+    }
+
+    $json = & $vswhere -format json -products '*' -requires Microsoft.Component.MSBuild -all 2>$null
+    if (-not $json) {
+        return $null
+    }
+
+    $instances = $json | ConvertFrom-Json
+    foreach ($instance in $instances) {
+        if ($instance.installationVersion -like '17.*') {
+            return $instance.installationPath
+        }
+    }
+
+    return $null
+}
+
 function Install-VisualStudioBuildTools {
     param (
         [string]$Url,
@@ -187,7 +239,57 @@ function Install-VisualStudioBuildTools {
     Remove-FileWithRetry -Path $installerPath
 }
 
-$VSB = 'https://download.visualstudio.microsoft.com/download/pr/5536698c-711c-4834-876f-2817d31a2ef2/c792bdb0fd46155de19955269cac85d52c4c63c23db2cf43d96b9390146f9390/vs_BuildTools.exe'
-$VSB_SHA256 = 'C792BDB0FD46155DE19955269CAC85D52C4C63C23DB2CF43D96B9390146F9390'
+function Add-MissingVSComponents {
+    param (
+        [string]$InstallPath,
+        [string[]]$Components
+    )
 
-Install-VisualStudioBuildTools -Url $VSB -Sha256 $VSB_SHA256
+    $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+    if (-not (Test-Path $vsInstaller)) {
+        Write-Host "VS installer not found at $vsInstaller"
+        exit 1
+    }
+
+    $addArgs = @('modify', '--installPath', $InstallPath, '--quiet', '--norestart', '--nocache')
+    foreach ($component in $Components) {
+        $addArgs += '--add'
+        $addArgs += $component
+    }
+
+    Write-Host "Adding missing components to existing VS installation: $($Components -join ', ')"
+    try {
+        $Process = Start-Process $vsInstaller -Wait -PassThru -NoNewWindow -ArgumentList $addArgs
+        if ($Process.ExitCode -eq 0 -or $Process.ExitCode -eq 3010) {
+            Write-Host 'SUCCESS'
+        } else {
+            Write-Host ('FAILED ({0})' -f $Process.ExitCode)
+            exit 1
+        }
+    }
+    catch {
+        Write-Host "FAILED: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+$existingInstallPath = Get-VS2022InstallPath
+if ($existingInstallPath) {
+    Write-Host "Found existing VS 2022 installation at $existingInstallPath"
+
+    $installedComponents = Get-VSComponents -InstallPath $existingInstallPath
+    $missingComponents = $RequiredComponents | Where-Object { $_ -notin $installedComponents }
+
+    if ($missingComponents.Count -eq 0) {
+        Write-Host "All required components are already installed. Skipping installation."
+        exit 0
+    }
+
+    Write-Host "Missing components: $($missingComponents -join ', ')"
+    Add-MissingVSComponents -InstallPath $existingInstallPath -Components $missingComponents
+} else {
+    $VSB = 'https://download.visualstudio.microsoft.com/download/pr/5536698c-711c-4834-876f-2817d31a2ef2/c792bdb0fd46155de19955269cac85d52c4c63c23db2cf43d96b9390146f9390/vs_BuildTools.exe'
+    $VSB_SHA256 = 'C792BDB0FD46155DE19955269CAC85D52C4C63C23DB2CF43D96B9390146F9390'
+
+    Install-VisualStudioBuildTools -Url $VSB -Sha256 $VSB_SHA256
+}
