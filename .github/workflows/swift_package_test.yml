@@ -261,8 +261,10 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.macos_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.macos_env_vars }}
         run: |
-            for i in "${{ inputs.macos_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
@@ -273,8 +275,10 @@ jobs:
       - name: Clang version
         run: xcrun clang --version
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: ${{ inputs.macos_build_timeout }}
 
@@ -299,8 +303,10 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.ios_host_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.ios_host_env_vars }}
         run: |
-            for i in "${{ inputs.ios_host_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
@@ -310,8 +316,10 @@ jobs:
         run: |
           "$(xcrun -f swift)" --version
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.ios_pre_build_command }}
       - name: Build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.ios_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: ${{ inputs.ios_build_timeout }}
 
@@ -385,14 +393,18 @@ jobs:
           swift /tmp/cross-pr-checkout.swift "${{ github.repository }}" "${{ github.event.number }}"
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.linux_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
   linux-static-sdk-build:
@@ -460,16 +472,20 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.linux_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Static Linux Swift SDK and build
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.linux_static_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --static --flags="$BUILD_FLAGS" --build-command="${{ inputs.linux_static_sdk_build_command }}" ${{ matrix.swift_version }}
@@ -525,16 +541,20 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.linux_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Wasm and build
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --wasm --flags="$BUILD_FLAGS" --build-command="${{ inputs.wasm_sdk_build_command }}" ${{ matrix.swift_version }}
@@ -590,16 +610,20 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.linux_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Wasm and build
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.wasm_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --embedded-wasm --flags="$BUILD_FLAGS" ${{ matrix.swift_version }}
@@ -641,17 +665,21 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Set environment variables
         if: ${{ inputs.linux_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.linux_env_vars }}
         run: |
-            for i in "${{ inputs.linux_env_vars }}"
+            for i in "${ENV_VARS}"
             do
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Pre-build
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Android and build
         env:
           BUILD_FLAGS: ${{ inputs.enable_android_sdk_checks && '--build-tests' || '' }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         shell: bash
+        # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/install-and-build-with-sdk.sh --android --flags="$BUILD_FLAGS" --build-command="${{ inputs.android_sdk_build_command }}" --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }} --android-ndk-version="${{ matrix.ndk_version }}" ${{ matrix.swift_version }}
@@ -670,6 +698,7 @@ jobs:
       - name: Install Android Emulator and run tests
         if: ${{ inputs.enable_android_sdk_checks }}
         shell: bash
+        # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.android_sdk_pre_build_command }}
           ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/android/android-emulator-tests.sh --android-sdk-triple=${{ join(fromJson(inputs.android_sdk_triples), ' --android-sdk-triple=') }}
@@ -714,8 +743,10 @@ jobs:
           echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       - name: Set environment variables
         if: ${{ inputs.windows_env_vars }}
+        env:
+          WINDOWS_ENV_VARS: ${{ inputs.windows_env_vars }}
         run: |
-          $lines = "${{ inputs.windows_env_vars }}" -split "`r`n"
+          $lines = $env:WINDOWS_ENV_VARS -split "`r`n"
           foreach ($line in $lines) {
               echo $line | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           }
@@ -749,6 +780,7 @@ jobs:
         if: ${{ !inputs.enable_windows_docker }}
         run: . ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/windows/swift/install-swift-${{ matrix.swift_version }}.ps1
       - name: Create test script
+         # zizmor: ignore[template-injection]
         run: |
           mkdir $env:TEMP\test-script
           echo @'
