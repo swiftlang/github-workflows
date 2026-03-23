@@ -251,7 +251,7 @@ function Add-MissingVSComponents {
         exit 1
     }
 
-    $addArgs = @('modify', '--installPath', $InstallPath, '--quiet', '--norestart', '--nocache')
+    $addArgs = @('modify', '--installPath', "`"$InstallPath`"", '--quiet', '--norestart', '--nocache')
     foreach ($component in $Components) {
         $addArgs += '--add'
         $addArgs += $component
