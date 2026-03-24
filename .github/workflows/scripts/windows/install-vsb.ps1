@@ -132,15 +132,24 @@ function Remove-FileWithRetry {
     return $false
 }
 
+function Get-VSInstallerDir {
+    $candidates = @(
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer",
+        "${env:ProgramFiles}\Microsoft Visual Studio\Installer"
+    )
+    return $candidates | Where-Object { Test-Path "$_\vswhere.exe" } | Select-Object -First 1
+}
+
 function Get-VSComponents {
     param (
         [string]$InstallPath
     )
 
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path $vswhere)) {
+    $installerDir = Get-VSInstallerDir
+    if (-not $installerDir) {
         return @()
     }
+    $vswhere = Join-Path $installerDir "vswhere.exe"
 
     $json = & $vswhere -format json -products '*' -requires Microsoft.Component.MSBuild -all 2>$null
     if (-not $json) {
@@ -158,10 +167,11 @@ function Get-VSComponents {
 }
 
 function Get-VS2022InstallPath {
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path $vswhere)) {
+    $installerDir = Get-VSInstallerDir
+    if (-not $installerDir) {
         return $null
     }
+    $vswhere = Join-Path $installerDir "vswhere.exe"
 
     $json = & $vswhere -format json -products '*' -requires Microsoft.Component.MSBuild -all 2>$null
     if (-not $json) {
@@ -245,7 +255,12 @@ function Add-MissingVSComponents {
         [string[]]$Components
     )
 
-    $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+    $installerDir = Get-VSInstallerDir
+    if (-not $installerDir) {
+        Write-Host "VS installer directory not found"
+        exit 1
+    }
+    $vsInstaller = Join-Path $installerDir "setup.exe"
     if (-not (Test-Path $vsInstaller)) {
         Write-Host "VS installer not found at $vsInstaller"
         exit 1
