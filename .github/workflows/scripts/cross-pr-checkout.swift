@@ -142,7 +142,7 @@ struct CrossRepoPR {
 func getCrossRepoPrs(repository: String, prNumber: String) async throws -> [CrossRepoPR] {
   var result: [CrossRepoPR] = []
   let prInfo = try await getPRInfo(repository: repository, prNumber: prNumber)
-  for line in prInfo.body?.split(separator: "\n") ?? [] {
+  for line in prInfo.body?.split(whereSeparator: \.isNewline) ?? [] {
     guard line.lowercased().starts(with: "linked pr:") else {
       continue
     }
