@@ -199,7 +199,7 @@ command -v jq >/dev/null || install_package jq
 SWIFT_API_INSTALL_ROOT="https://www.swift.org/api/v1/install"
 
 # Transforms a minor Swift release version into its latest patch version
-# and gets the checksum for the patch version's Static Linux and/or Wasm Swift SDK.
+# and gets the checksum for the patch version's Android, Static Linux, or Wasm Swift SDK.
 #
 # $1 (string): A minor Swift version, e.g. "6.1"
 # Output: A string of the form "<patch-version>|<android-checksum>|<static-checksum>|<static-version>|<wasm-checksum>
