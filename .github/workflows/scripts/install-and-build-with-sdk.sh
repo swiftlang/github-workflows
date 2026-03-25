@@ -233,7 +233,7 @@ find_latest_swift_version() {
             .[]
             | select(.name == $version)
             | .platforms[]
-            | select(.platform == "android")
+            | select(.platform == "android-sdk")
             | .checksum
         ')
 
