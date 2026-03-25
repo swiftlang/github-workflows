@@ -229,6 +229,14 @@ find_latest_swift_version() {
 
     local android_sdk_checksum=""
     if [[ "$INSTALL_ANDROID" == true ]]; then
+        log "Android Swift SDK releases_json: ${releases_json}"
+        echo "$releases_json" | jq -r --arg version "$latest_version" '
+            .[]
+            | select(.name == $version)
+            | .platforms[]
+            | select(.platform == "android-sdk")
+        '
+
         android_sdk_checksum=$(echo "$releases_json" | jq -r --arg version "$latest_version" '
             .[]
             | select(.name == $version)
