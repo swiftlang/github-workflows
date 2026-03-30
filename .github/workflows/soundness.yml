@@ -132,21 +132,25 @@ jobs:
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Pre-build
         if: ${{ inputs.linux_pre_build_command }}
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Run API breakage check
         shell: bash
+        env:
+          API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
+          API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
         run: |
-          if [[ -z '${{ inputs.api_breakage_check_baseline }}' ]]; then
+          if [[ -z "${API_BREAKAGE_CHECK_BASELINE}" ]]; then
             git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
             BASELINE_REF='pull-base-ref'
           else
-            BASELINE_REF='${{ inputs.api_breakage_check_baseline }}'
+            BASELINE_REF="${API_BREAKAGE_CHECK_BASELINE}"
           fi
           echo "Using baseline: $BASELINE_REF"
-          if [[ -z '${{ inputs.api_breakage_check_allowlist_path }}' ]]; then
+          if [[ -z "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ]]; then
             swift package diagnose-api-breaking-changes "$BASELINE_REF"
           else
-            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path '${{ inputs.api_breakage_check_allowlist_path }}'
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}"
           fi
 
   docs-check:
@@ -178,11 +182,13 @@ jobs:
           fi
       - name: Pre-build
         if: ${{ inputs.linux_pre_build_command }}
+        # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh
 
   docs-check-macos:
     name: Documentation check (macOS)
@@ -210,7 +216,9 @@ jobs:
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ inputs.docs_check_macos_xcode_version }}.app" >> $GITHUB_ENV
+        env:
+          XCODE_VERSION: ${{ inputs.docs_check_macos_xcode_version }}
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app" >> $GITHUB_ENV
       - name: Swift version
         run: xcrun swift --version
       - name: Clang version
@@ -218,7 +226,8 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-docs.sh
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh
 
   unacceptable-language-check:
     name: Unacceptable language check
@@ -248,7 +257,8 @@ jobs:
       - name: Run unacceptable language check
         env:
           UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-unacceptable-language.sh
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-unacceptable-language.sh
 
   license-header-check:
     name: License headers check
@@ -278,7 +288,8 @@ jobs:
       - name: Run license header check
         env:
           PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-license-header.sh
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-license-header.sh
 
   broken-symlink-check:
     name: Broken symlinks check
@@ -306,7 +317,9 @@ jobs:
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
       - name: Run broken symlinks check
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-broken-symlinks.sh
+        env:
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-broken-symlinks.sh
 
   format-check:
     name: Format check
@@ -339,7 +352,9 @@ jobs:
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Run format check
-        run: ${{ steps.script_path.outputs.root }}/.github/workflows/scripts/check-swift-format.sh
+        env:
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
+        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-swift-format.sh
 
   shell-check:
     name: Shell check
@@ -390,12 +405,14 @@ jobs:
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
       - name: Run yamllint
+        env:
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
         run: |
           which yamllint || (apt -q update && apt install -yq yamllint)
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".yamllint.yml" ]; then
             echo "Downloading default yamllint config file"
-            cat ${{ steps.script_path.outputs.root }}/.github/workflows/configs/yamllint.yml > .yamllint.yml
+            cat "${SCRIPT_ROOT}/.github/workflows/configs/yamllint.yml" > .yamllint.yml
           fi
           yamllint --strict --config-file .yamllint.yml .
 
@@ -425,11 +442,13 @@ jobs:
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
       - name: Run flake8
+        env:
+          SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
         run: |
           pip3 install flake8 flake8-import-order
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".flake8" ]; then
             echo "Downloading default flake8 config file"
-            cat ${{ steps.script_path.outputs.root }}/.github/workflows/configs/.flake8 > .flake8
+            cat "${SCRIPT_ROOT}/.github/workflows/configs/.flake8" > .flake8
           fi
           flake8

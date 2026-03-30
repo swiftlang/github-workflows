@@ -42,16 +42,26 @@ jobs:
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
       - name: Measure PR performance
+        env:
+          PACKAGE_PATH: ${{ inputs.package_path }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          swift package --package-path ${{ inputs.package_path }} --allow-writing-to-directory ${{ inputs.package_path }}/.benchmarkBaselines/ benchmark baseline update "${{ github.head_ref }}"
+          swift package --package-path "${PACKAGE_PATH}" --allow-writing-to-directory "${PACKAGE_PATH}/.benchmarkBaselines/" benchmark baseline update "${HEAD_REF}"
       - name: Measure base branch performance
+        env:
+          PACKAGE_PATH: ${{ inputs.package_path }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git checkout ${{ github.base_ref }}
-          swift package --package-path ${{ inputs.package_path }} --allow-writing-to-directory ${{ inputs.package_path }}/.benchmarkBaselines/ benchmark baseline update "${{ github.base_ref }}"
+          git checkout "${BASE_REF}"
+          swift package --package-path "${PACKAGE_PATH}" --allow-writing-to-directory "${PACKAGE_PATH}/.benchmarkBaselines/" benchmark baseline update "${BASE_REF}"
       - name: Compare performance measurements
         id: compare_performance
+        env:
+          PACKAGE_PATH: ${{ inputs.package_path }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          if ! swift package --package-path ${{ inputs.package_path }} benchmark baseline check "${{ github.base_ref }}" "${{ github.head_ref }}" --format markdown > /tmp/comparison.md 2>/tmp/comparison-stderr.txt; then
+          if ! swift package --package-path "${PACKAGE_PATH}" benchmark baseline check "${BASE_REF}" "${HEAD_REF}" --format markdown > /tmp/comparison.md 2>/tmp/comparison-stderr.txt; then
             echo "has_significant_changes=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_significant_changes=false" >> "$GITHUB_OUTPUT"

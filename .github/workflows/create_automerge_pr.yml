@@ -74,13 +74,16 @@ jobs:
           fetch-depth: 0
       - name: Check if there are commits to merge
         id: create_merge_commit
+        env:
+          HEAD_BRANCH: ${{ inputs.head_branch }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
         run: |
           # Without this, we can't perform git operations in GitHub actions.
           git config --global --add safe.directory "$(realpath .)"
           git config --local user.name 'swift-ci'
           git config --local user.email 'swift-ci@users.noreply.github.com'
 
-          if [[ "$(git rev-list --left-only --count origin/${{ inputs.head_branch }}...origin/${{ inputs.base_branch }})" == 0 ]]; then
+          if [[ "$(git rev-list --left-only --count origin/${HEAD_BRANCH}...origin/${BASE_BRANCH})" == 0 ]]; then
             echo "Nothing to merge"
             echo "has_commits_to_merge=false" >> "$GITHUB_OUTPUT"
             exit
@@ -92,17 +95,20 @@ jobs:
         if: ${{ steps.create_merge_commit.outputs.has_commits_to_merge == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ inputs.head_branch }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+          PR_MESSAGE: ${{ inputs.pr_message }}
         run: |
           # Create a branch for the PR instead of opening a PR that merges head_branch directly so that we have a fixed
           # target in the PR and don't modify the PR as new commits are put on the head branch.
           PR_BRANCH="automerge/merge-main-$(date +%Y-%m-%d_%H-%M)"
-          git checkout ${{ inputs.head_branch }}
+          git checkout "${HEAD_BRANCH}"
           git checkout -b "$PR_BRANCH"
           git push --set-upstream origin "$PR_BRANCH"
 
           gh pr create \
-            --base "${{ inputs.base_branch }}" \
+            --base "${BASE_BRANCH}" \
             --head "$PR_BRANCH" \
-            --title 'Merge `${{ inputs.head_branch }}` into `${{ inputs.base_branch }}`' \
-            --body '${{ inputs.pr_message }}' \
+            --title "Merge \`${HEAD_BRANCH}\` into \`${BASE_BRANCH}\`" \
+            --body "${PR_MESSAGE}" \
             --draft
