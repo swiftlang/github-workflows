@@ -91,6 +91,22 @@ on:
         type: string
         description: "Windows OS version label list (JSON)"
         default: "[\"windows-2022\"]"
+      freebsd_swift_versions:
+        type: string
+        description: "FreeBSD Swift version list (JSON)"
+        default: "[\"nightly-main\"]"
+      freebsd_exclude_swift_versions:
+        type: string
+        description: "Exclude FreeBSD Swift version list (JSON)"
+        default: "[{\"swift_version\": \"\"}]"
+      freebsd_os_versions:
+        type: string
+        description: "FreeBSD OS version list (JSON)"
+        default: "[\"14.3\"]"
+      freebsd_host_archs:
+        type: string
+        description: "FreeBSD host arch list (JSON)"
+        default: "[\"x86_64\"]"
       swift_flags:
         type: string
         description: "Swift flags for release version"
@@ -178,6 +194,14 @@ on:
         type: number
         description: "The default step timeout in minutes"
         default: 60
+      freebsd_pre_build_command:
+        type: string
+        description: "FreeBSD command to execute before building the Swift package"
+        default: ""
+      freebsd_build_command:
+        type: string
+        description: "FreeBSD command to build and test the package"
+        default: "swift test"
       macos_env_vars:
         description: "Newline separated list of environment variables"
         type: string
@@ -188,6 +212,9 @@ on:
         description: "Newline separated list of environment variables"
         type: string
       windows_env_vars:
+        description: "Newline separated list of environment variables"
+        type: string
+      freebsd_env_vars:
         description: "Newline separated list of environment variables"
         type: string
       enable_linux_checks:
@@ -230,6 +257,10 @@ on:
         type: boolean
         description: "Boolean to enable running build in windows docker container. Defaults to true"
         default: true
+      enable_freebsd_checks:
+        type: boolean
+        description: "Boolean to enable FreeBSD testing. Defaults to false"
+        default: false
       needs_token:
         type: boolean
         description: "Boolean to enable providing the GITHUB_TOKEN to downstream job."
@@ -862,3 +893,101 @@ jobs:
         timeout-minutes: ${{ inputs.windows_build_timeout }}
         if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+
+  freebsd-build:
+    name: FreeBSD (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    if: ${{ inputs.enable_freebsd_checks }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        swift_version: ${{ fromJson(inputs.freebsd_swift_versions) }}
+        os_version: ${{ fromJson(inputs.freebsd_os_versions) }}
+        arch: ${{ fromJson(inputs.freebsd_host_archs) }}
+        runner: ${{
+            fromJson(
+              contains(fromJson(inputs.freebsd_host_archs), 'x86_64') && !contains(fromJson(inputs.freebsd_host_archs), 'aarch64')
+                && '["ubuntu-24.04"]'
+                || contains(fromJson(inputs.freebsd_host_archs), 'aarch64') && !contains(fromJson(inputs.freebsd_host_archs), 'x86_64')
+                && '["ubuntu-24.04-arm"]'
+                || '["ubuntu-24.04","ubuntu-24.04-arm"]'
+            )
+          }}
+        exclude:
+          - ${{ fromJson(inputs.freebsd_exclude_swift_versions) }}
+          - arch: x86_64
+            runner: ubuntu-24.04-arm
+          - arch: aarch64
+            runner: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Checkout swiftlang/github-workflows repository
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
+        uses: actions/checkout@v6
+        with:
+          repository: swiftlang/github-workflows
+          path: github-workflows
+      - name: Validate host architecture
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          if [[ "$ARCH" != "x86_64" ]]; then
+            echo "::error::FreeBSD builds currently only support x86_64 host architecture"
+            exit 1
+          fi
+      - name: Determine Swift download URL
+        id: swift_url
+        env:
+          SWIFT_VERSION: ${{ matrix.swift_version }}
+        run: |
+          if [[ "$SWIFT_VERSION" != "nightly-main" ]]; then
+            echo "::error::FreeBSD builds currently only support nightly-main Swift version"
+            exit 1
+          fi
+          echo "url=https://download.swift.org/tmp-ci-nightly/development/freebsd-14_ci_latest.tar.gz" >> $GITHUB_OUTPUT
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Build / Test
+        # zizmor: ignore[template-injection]
+        uses: vmactions/freebsd-vm@v1
+        env:
+          SWIFT_WEB_URL: ${{ steps.swift_url.outputs.url }}
+          BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+          FREEBSD_ENV_VARS: ${{ inputs.freebsd_env_vars }}
+        with:
+          envs: 'SWIFT_WEB_URL BUILD_FLAGS FREEBSD_ENV_VARS GITHUB_TOKEN'
+          release: "${{ matrix.os_version }}"
+          arch: "${{ matrix.arch }}"
+          sync: rsync
+          copyback: false
+          usesh: true
+          prepare: |
+            fetch -o /tmp/swift.tar.gz "$SWIFT_WEB_URL"
+            mkdir -p /opt/swift
+            tar -xzf /tmp/swift.tar.gz -C /opt/swift
+            pkg install -y git sqlite3 libuuid python3 curl brotli bash
+            git config --global init.defaultBranch 'main'
+            /opt/swift/usr/bin/swift --version
+          run: |
+            export PATH="/opt/swift/usr/bin:$PATH"
+            swift --version
+            if [ -n "$FREEBSD_ENV_VARS" ]; then
+              printf '%s\n' "$FREEBSD_ENV_VARS" > /tmp/.env_vars
+              while IFS= read -r _line || [ -n "$_line" ]; do
+                export "$_line"
+              done < /tmp/.env_vars
+            fi
+            if [ "${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}" = "true" ]; then
+              if [ "${{ github.repository }}" = "swiftlang/github-workflows" ]; then
+                SCRIPT_ROOT="."
+              else
+                SCRIPT_ROOT="github-workflows"
+              fi
+              cat "$SCRIPT_ROOT/.github/workflows/scripts/cross-pr-checkout.swift" > /tmp/cross-pr-checkout.swift
+              swift /tmp/cross-pr-checkout.swift "${{ github.repository }}" "${{ github.event.number }}"
+            fi
+            ${{ inputs.freebsd_pre_build_command }}
+            ${{ inputs.freebsd_build_command }} $BUILD_FLAGS
