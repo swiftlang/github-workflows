@@ -750,6 +750,40 @@ jobs:
           foreach ($line in $lines) {
               echo $line | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           }
+      - name: Ensure Docker engine is ready
+        if: ${{ inputs.enable_windows_docker }}
+        run: |
+          # Start Docker service
+          Write-Host "Starting Docker service..."
+          Start-Service docker
+
+          # Wait for Docker to be ready with exponential backoff
+          $maxRetries = 10
+          $retryCount = 0
+          $baseDelay = 1
+          $maxDelay = 30
+          while ($retryCount -lt $maxRetries) {
+            try {
+              docker info | Out-Null
+              if ($LASTEXITCODE) {
+                throw "docker engine is not ready"
+              }
+              Write-Host "Docker engine is ready"
+              break
+            } catch {
+              $retryCount++
+              if ($retryCount -lt $maxRetries) {
+                # Exponential backoff: 2^retryCount * baseDelay, capped at maxDelay
+                $delay = [Math]::Min([Math]::Pow(2, $retryCount) * $baseDelay, $maxDelay)
+                Write-Host "Waiting for Docker engine to be ready... (attempt $retryCount/$maxRetries, waiting $delay seconds)"
+                Start-Sleep -Seconds $delay
+              }
+            }
+          }
+          if ($retryCount -eq $maxRetries) {
+            Write-Error "Docker engine failed to start after $maxRetries attempts"
+            exit 1
+          }
       - name: Pull Docker image
         id: pull_docker_image
         if: ${{ inputs.enable_windows_docker }}
