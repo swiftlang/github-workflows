@@ -61,6 +61,8 @@ jobs:
         Invoke-Program swift build
       enable_windows_docker: false
       windows_os_versions: '["windows-2022", "windows-11-arm"]'
+      # FreeBSD
+      enable_freebsd_checks: true
 
   tests_macos:
     name: Test
