@@ -94,6 +94,48 @@ Linked PR: swiftlang/swift-syntax#2859
 
 Enabling cross-PR testing will add about 10s to PR testing time.
 
+### CMake build
+
+For Swift projects that support CMake as their build system, the CMake build
+workflow provides automated checks to ensure CMakeLists files are up-to-date and
+that the project builds successfully with CMake.
+
+A recommended workflow looks like this:
+
+```yaml
+name: Pull request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  cmake-build:
+    name: CMake build
+    uses: swiftlang/github-workflows/.github/workflows/cmake_build.yml@0.0.1
+    with:
+      update_cmake_lists_config: '{"exclude": ["Tests/**"]}'
+```
+
+The workflow accepts the following inputs:
+
+- `update_cmake_lists_config` (required): JSON configuration for updating
+  CMakeLists files. This is passed to the `cmake-update-cmake-lists.sh` script
+  to verify that CMakeLists files are in sync with the source tree.
+- `cmake_build_target_directory` (optional, default: `"."`): The directory to
+  pass to `cmake build`.
+- `cmake_version` (optional): Specific version of CMake to install. If not
+  provided, uses the version available in the container image.
+- `image` (optional, default: `"swift:6.2-noble"`): The Docker image to run the
+  checks in.
+
+The workflow performs two main checks:
+
+1. **CMakeLists validation**: Verifies that CMakeLists files are up-to-date with
+   the source tree using the provided configuration.
+2. **CMake build**: Builds the project using CMake and Ninja to ensure the CMake
+   build system is working correctly.
+
 ## Running workflows locally
 
 You can run the Github Actions workflows locally using
