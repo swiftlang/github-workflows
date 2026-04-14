@@ -54,7 +54,7 @@ jobs:
         cd tests/TestPackage
       enable_android_sdk_build: true
       enable_android_sdk_checks: true
-      android_ndk_versions: "[\"r28c\"]"
+      android_ndk_versions: "[\"r27d\"]"
       # Windows
       windows_build_command: |
         cd tests/TestPackage
