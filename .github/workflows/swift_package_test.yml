@@ -166,11 +166,13 @@ on:
       wasm_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Wasm"
-        default: "swift build"
+        # Temporarily use native build system on Android due to https://github.com/swiftlang/swift/issues/88282
+        default: "swift build --build-system native"
       android_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
-        default: "swift build"
+        # Temporarily use native build system on Android due to https://github.com/swiftlang/swift/issues/88282
+        default: "swift build --build-system native"
       android_sdk_triples:
         type: string
         description: "The triples to use when building with the Swift SDK for Android. The final triple in the list will be used for the emulator testing and should match the host architecture."
@@ -178,7 +180,7 @@ on:
       android_ndk_versions:
         type: string
         description: "The NDK versions to use when building with the Swift SDK for Android"
-        default: "[\"r27d\", \"28c\"]"
+        default: "[\"r27d\", \"r28c\"]"
       windows_pre_build_command:
         type: string
         description: "Windows Command Prompt command to execute before building the Swift package"
