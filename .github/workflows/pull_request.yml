@@ -2,15 +2,22 @@ name: Pull request
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, edited, reopened, labeled, unlabeled, synchronize]
 
 jobs:
+  github_actiion_pr_dependency_check:
+    name: GitHub Action Dependency Check
+    uses: ./.github/workflows/github_actions_dependencies.yml
+
   tests_with_docker_embedded_swift:
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Wasm
       enable_linux_checks: false
@@ -23,6 +30,7 @@ jobs:
   tests_with_docker:
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Linux
       linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
@@ -46,6 +54,7 @@ jobs:
   tests_without_docker:
     name: Test without Docker
     uses: ./.github/workflows/swift_package_test.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Skip Linux which doesn't currently support docker-less workflow
       enable_linux_checks: false
@@ -67,6 +76,7 @@ jobs:
   tests_macos:
     name: Test
     uses: ./.github/workflows/swift_package_test.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       enable_linux_checks: false
       enable_windows_checks: false
@@ -79,6 +89,7 @@ jobs:
   build_tests_ios:
     name: Build iOS Tests
     uses: ./.github/workflows/swift_package_test.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       enable_linux_checks: false
       enable_windows_checks: false
@@ -91,6 +102,7 @@ jobs:
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml
+    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"

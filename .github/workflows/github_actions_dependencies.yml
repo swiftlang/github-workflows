@@ -1,0 +1,17 @@
+name: Check for Dependencies in PR
+
+on:
+  workflow_call:
+
+permissions:
+  issues: read
+  pull-requests: read
+
+jobs:
+  check_dependencies:
+    runs-on: ubuntu-latest
+    name: "Check GitHub Actions Dependencies"
+    steps:
+      - uses: gregsdennis/dependencies-action@v1.4.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
