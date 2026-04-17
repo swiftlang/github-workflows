@@ -797,10 +797,17 @@ build() {
 
             log "Running: $build_command"
 
-            # clear the ANDROID_NDK_ROOT environment variable if it is set
-            # due to https://github.com/swiftlang/swift-driver/pull/1879
-            # otherwise build error: missing required module 'SwiftAndroid'
+            # Clear NDK environment variables to prevent tools from picking up a
+            # different NDK version's clang headers, which would conflict with the
+            # Swift SDK's bundled clang resources (module.modulemap redefinition).
+            # ANDROID_NDK_ROOT: due to https://github.com/swiftlang/swift-driver/pull/1879
+            # ANDROID_NDK_HOME / ANDROID_NDK_LATEST_HOME: prevent GitHub runners'
+            # pre-installed NDK r29 from being discovered when building with an
+            # older NDK's Swift SDK (the sysroot symlink already captures the
+            # correct NDK; these variables are no longer needed at build time).
             export ANDROID_NDK_ROOT=""
+            export ANDROID_NDK_HOME=""
+            export ANDROID_NDK_LATEST_HOME=""
 
             if eval "$build_command"; then
                 log "✅ Swift build with Android Swift SDK completed successfully"
