@@ -1,0 +1,14 @@
+name: PR Dependency Check
+
+permissions:
+  issues: read
+  pull-requests: read
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, labeled, unlabeled, synchronize]
+
+jobs:
+  github_actiion_pr_dependency_check:
+    name: GitHub Action Dependency Check
+    uses: ./.github/workflows/github_actions_dependencies.yml
