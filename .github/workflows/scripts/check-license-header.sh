@@ -39,15 +39,20 @@ fi
 
 paths_with_missing_license=( )
 
+static_exclude_list=( )
+static_exclude_list+=( '":(exclude).license_header_template"' )
+static_exclude_list+=( '":(exclude).swift-version"' ) # Swift version files do not have comments nor licenses in them
+dynamic_exclude_list=( )
+
 if [[ -f .licenseignore ]]; then
-  static_exclude_list='":(exclude).licenseignore" ":(exclude).license_header_template" '
-  dynamic_exclude_list=$(tr '\n' '\0' < .licenseignore | xargs -0 -I% printf '":(exclude)%" ')
-  exclude_list=$static_exclude_list$dynamic_exclude_list
-else
-  exclude_list=":(exclude).license_header_template"
+  static_exclude_list+=( '":(exclude).licenseignore"' )
+  readarray -t dynamic_exclude_list <<< "$(sed -E 's/^(.*)$/":(exclude)\1"/' <.licenseignore)"
 fi
 
-file_paths=$(echo "$exclude_list" | xargs git ls-files)
+exclude_list=( "${static_exclude_list[@]}" "${dynamic_exclude_list[@]}" )
+excludes=$(IFS=" " ; echo "${exclude_list[*]}")
+
+file_paths=$(echo "$excludes" | xargs git ls-files)
 
 while IFS= read -r file_path; do
   file_basename=$(basename -- "${file_path}")
