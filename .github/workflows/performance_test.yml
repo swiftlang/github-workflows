@@ -35,7 +35,7 @@ jobs:
       - name: Install libjemalloc-dev
         run: apt-get update && apt-get install -y libjemalloc-dev
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Mark the workspace as safe
