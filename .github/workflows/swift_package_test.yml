@@ -171,8 +171,7 @@ on:
       android_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
-        # Temporarily use native build system on Android due to https://github.com/swiftlang/swift/issues/88282
-        default: "swift build --build-system native"
+        default: "swift build"
       android_sdk_triples:
         type: string
         description: "The triples to use when building with the Swift SDK for Android. The final triple in the list will be used for the emulator testing and should match the host architecture."
@@ -673,10 +672,13 @@ jobs:
         exclude:
           - ${{ fromJson(inputs.android_exclude_swift_versions) }}
     steps:
-      - name: Swift version
-        run: swift --version
-      - name: Clang version
-        run: clang --version
+      # https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-swift.sh
+      - name: Remove Swift
+        run: |
+          sudo rm /usr/local/bin/swift
+          sudo rm /usr/local/bin/swiftc
+          sudo rm /usr/local/lib/libsourcekitdInProc.so
+          sudo rm -r /usr/share/swift
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Checkout swiftlang/github-workflows repository
