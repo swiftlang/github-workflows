@@ -166,8 +166,7 @@ on:
       wasm_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Wasm"
-        # Temporarily use native build system on Android due to https://github.com/swiftlang/swift/issues/88282
-        default: "swift build --build-system native"
+        default: "swift build"
       android_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
