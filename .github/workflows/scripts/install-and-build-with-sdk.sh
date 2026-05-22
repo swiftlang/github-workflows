@@ -843,9 +843,17 @@ build() {
     if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Running Swift build with Static Linux Swift SDK"
 
-        local sdk_name="${STATIC_LINUX_SDK_FILENAME%.artifactbundle.tar.gz}"
+        local arch
+        local sdk_triple
+        arch=$(uname -m)
+        if [[ "$arch" == "aarch64" ]]; then
+            sdk_triple="aarch64-swift-linux-musl"
+        else
+            sdk_triple="x86_64-swift-linux-musl"
+        fi
+
         alias swift='$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
+        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_triple"
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
