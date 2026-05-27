@@ -122,10 +122,20 @@ while IFS= read -r file_path; do
     | sed -E -e 's/20[12][0123456789] ?[-–] ?20[12][0123456789]/YEARS/' -e 's/20[12][0123456789]/YEARS/' \
   )
 
-  if ! diff -u \
+  if ! diff_output=$(diff -u \
     --label "Expected header" <(echo "${expected_file_header}") \
-    --label "${file_path}" <(echo "${normalized_file_header}")
+    --label "${file_path}" <(echo "${normalized_file_header}"))
   then
+    expected_file_header_without_contributors=$(echo "${expected_file_header}" | sed '/CONTRIBUTORS\.txt/d')
+    normalized_file_header_without_contributors=$(echo "${normalized_file_header}" | sed '/CONTRIBUTORS\.txt/d')
+    if [ "${expected_file_header}" != "${expected_file_header_without_contributors}" ] \
+      && diff -u \
+        --label "Expected header" <(echo "${expected_file_header_without_contributors}") \
+        --label "${file_path}" <(echo "${normalized_file_header_without_contributors}") > /dev/null
+    then
+      continue
+    fi
+    echo "${diff_output}"
     paths_with_missing_license+=("${file_path} ")
   fi
 done <<< "$file_paths"
