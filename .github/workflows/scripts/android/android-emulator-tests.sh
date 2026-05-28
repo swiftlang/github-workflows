@@ -139,7 +139,7 @@ unset _swift_bin_dir
 SWIFT_SDK_ID=$(basename "${SWIFT_ANDROID_SDK_HOME}" .artifactbundle)
 BUILD_DIR=$(swift build --show-bin-path --swift-sdk "${SWIFT_SDK_ID}" --triple "${ANDROID_SDK_TRIPLE}")
 
-find "${BUILD_DIR}" \( -name '*.xctest' -o -name '*.resources' -o -name '*-test-runner' -o -name '*.so' \) -exec cp -av {} "${STAGING_DIR}" \;
+find "${BUILD_DIR}" \( -name '*.xctest' -o -name '*.bundle' -o -name '*.resources' -o -name '*-test-runner' -o -name '*.so' \) -exec cp -av {} "${STAGING_DIR}" \;
 
 # copy over the required library dependencies
 cp -av "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING_DIR}"
