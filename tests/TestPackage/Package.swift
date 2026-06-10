@@ -18,5 +18,6 @@ let package = Package(
       name: "Target1Tests",
       dependencies: ["Target1"]
     ),
+    .target(name: "theDocs"),
   ]
 )
