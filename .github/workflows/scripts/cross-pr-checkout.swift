@@ -131,7 +131,7 @@ func getPRInfo(repository: String, prNumber: String) async throws -> PRInfo {
       print(
         "Failed to load PR info from \(prInfoUrl) (attempt \(attempt) of \(maxAttempts)): \(error). Retrying in \(delaySeconds)s..."
       )
-      try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
+      try await Task.sleep(for: .seconds(delaySeconds))
       attempt += 1
     }
   }
