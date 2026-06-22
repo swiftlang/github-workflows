@@ -186,7 +186,7 @@ func main() async throws {
     throw GenericError(
       """
       Expected two arguments:
-      - Repository name, eg. `swiftlang/swift-syntax
+      - Repository name, eg. `swiftlang/swift-syntax`
       - PR number
       """
     )
