@@ -815,12 +815,16 @@ build() {
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
 
+        log "Using NDK at $ANDROID_NDK_HOME"
+
         # This can become a single invocation in the future when `swift build` supports multiple Android triples at once
         for android_sdk_triple in "${ANDROID_SDK_TRIPLES[@]}" ; do
             if [[ "$SWIFT_VERSION_INPUT" == "6.3" || "$SWIFT_VERSION_INPUT" == "nightly-6.3" ]]; then
                 local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${android_sdk_triple}"
             else
                 local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${sdk_name} --triple ${android_sdk_triple}"
+                # Work around swift-build issue with ANDROID_NDK_ROOT overriding ANDROID_NDK_HOME
+                export ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}"
             fi
             if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
                 build_command="$build_command $SWIFT_BUILD_FLAGS"
