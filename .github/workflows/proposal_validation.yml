@@ -1,0 +1,54 @@
+name: Proposal Validation
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        type: string
+        description: "Name of project supported by swift-evolution-metadata-extractor tool"
+        default: swift
+
+jobs:
+  run-swift-evolution-metadata-extractor:
+    name: Validate proposals with swift-evolution-metadata-extractor
+    runs-on: ubuntu-latest
+    container:
+      image: "swift:6.2-noble"
+    timeout-minutes: 10
+    steps:
+      - name: Checkout swiftlang/swift-evolution-metadata-extractor (main)
+        uses: actions/checkout@v6
+        with:
+          repository: swiftlang/swift-evolution-metadata-extractor
+          ref: main
+          path: seme
+
+      - name: Create cache key
+        id: cache-key
+        run: echo "key=seme-$(git -C seme rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Restore cache
+        uses: actions/cache/restore@v5
+        id: restore-cache
+        with:
+          path: ${{ github.workspace }}/swift-evolution-metadata-extractor
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Build swift-evolution-metadata-extractor (release)
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: |
+          swift --version
+          swift build -c release --very-verbose
+          cp .build/release/swift-evolution-metadata-extractor $GITHUB_WORKSPACE/swift-evolution-metadata-extractor
+        working-directory: seme
+
+      - name: Save to cache
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        id: save-to-cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/swift-evolution-metadata-extractor
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Validate proposals
+        run: $GITHUB_WORKSPACE/swift-evolution-metadata-extractor validate --pull-request ${{ github.event.number }}
