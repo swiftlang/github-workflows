@@ -96,3 +96,10 @@ jobs:
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"
+      
+  proposal_validation:
+  name: Test
+  uses: ./.github/workflows/proposal_validation.yml
+  with:
+    with:
+  project: "swift"
