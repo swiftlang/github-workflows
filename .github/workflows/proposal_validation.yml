@@ -7,6 +7,10 @@ on:
         type: string
         description: "Name of project supported by swift-evolution-metadata-extractor tool"
         default: swift
+      workflow_test_enabled:
+        type: boolean
+        description: "Flag to test this workflow within the github-workflows repository"
+        default: false
 
 jobs:
   run-swift-evolution-metadata-extractor:
@@ -15,6 +19,8 @@ jobs:
     container:
       image: "swift:6.2-noble"
     timeout-minutes: 10
+    env:
+      RESOLVED_PR_NUMBER: ${{ case(inputs.workflow_test_enabled, '3331', github.event.number) }}
     steps:
       - name: Checkout swiftlang/swift-evolution-metadata-extractor (main)
         uses: actions/checkout@v6
@@ -51,4 +57,4 @@ jobs:
           key: ${{ steps.cache-key.outputs.key }}
 
       - name: Validate proposals
-        run: $GITHUB_WORKSPACE/swift-evolution-metadata-extractor validate --pull-request ${{ github.event.number }}
+        run: $GITHUB_WORKSPACE/swift-evolution-metadata-extractor validate --pull-request $RESOLVED_PR_NUMBER
