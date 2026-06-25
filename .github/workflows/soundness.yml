@@ -18,7 +18,7 @@ on:
       api_breakage_check_container_image:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.2-noble"
+        default: "swift:6.3-noble"
       docs_check_enabled:
         type: boolean
         description: "Boolean to enable the docs check job. Defaults to true."
@@ -26,7 +26,7 @@ on:
       docs_check_container_image:
         type: string
         description: "Container image for the docs check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.2-noble"
+        default: "swift:6.3-noble"
       docs_check_additional_arguments:
         type: string
         description: "Additional arguments that should be passed to docc"
@@ -94,7 +94,7 @@ on:
       format_check_container_image:
         type: string
         description: "Container image for the format check job. Defaults to latest Swift Ubuntu image."
-        default: "swift:6.2-noble"
+        default: "swift:6.3-noble"
       shell_check_enabled:
         type: boolean
         description: "Boolean to enable the shell check job. Defaults to true."
@@ -200,10 +200,6 @@ jobs:
           else
             echo "root=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
           fi
-      - name: Pre-build
-        if: ${{ inputs.linux_pre_build_command }}
-        # zizmor: ignore[template-injection]
-        run: ${{ inputs.linux_pre_build_command }}
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
@@ -211,12 +207,14 @@ jobs:
           DOCS_TARGETS: ${{ inputs.docs_check_targets}}
           SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
         run: |
+          set -x
+          ${{ inputs.linux_pre_build_command }}
           analyze_arg=""
           doc_target_arg=""
-          if [[ "${DOCS_TARGETS}" != "" ]] ; then
+          if [ "${DOCS_TARGETS}" != "" ] ; then
             doc_target_arg="--doc-targets ${DOCS_TARGETS}"
           fi
-          if [[ "${DOCC_ANALYZE}" != "true" ]]; then
+          if [ "${DOCC_ANALYZE}" != "true" ]; then
             analyze_arg="--no-analyze"
           fi
           "${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
@@ -263,12 +261,13 @@ jobs:
         run: |
           analyze_arg=""
           doc_target_arg=""
-          if [[ "${DOCS_TARGETS}" != "" ]] ; then
+          if [ "${DOCS_TARGETS}" != "" ] ; then
             doc_target_arg="--doc-targets ${DOCS_TARGETS}"
           fi
-          if [[ "${DOCC_ANALYZE}" != "true" ]]; then
+          if [ "${DOCC_ANALYZE}" != "true" ]; then
             analyze_arg="--no-analyze"
           fi
+          set -x
           "${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
 
   unacceptable-language-check:
