@@ -94,6 +94,38 @@ Linked PR: swiftlang/swift-syntax#2859
 
 Enabling cross-PR testing will add about 10s to PR testing time.
 
+### Evolution Proposal Validation
+
+The proposal validation workflow validates added and changed proposals in a pull request to check for formatting and content errors that will cause metadata extraction to fail or be incomplete.
+
+To accomplish this, the workflow builds the [swift-evolution-metadata-extractor](https://github.com/swiftlang/swift-evolution-metadata-extractor) tool and runs its `validate` command.  To minimize validation times, the built tool is cached and only rebuilt when the tool has changed.
+
+To use the proposal validation workflow, add a workflow to the repository that contains the directory of proposals.  The calling workflow specifies project-specific details such as the directory where the proposals are located.  It is only run if a pull request contains changes in the specified directory.
+
+> [!NOTE]
+> The extraction tool currently only supports the evolution proposals of the Swift project at swiftlang/swift-evolution/proposals. The tool and workflow has been designed to be extended to support additional projects in the future.
+
+An example workflow for Swift Testing which uses a subfolder in the swift-evolution repository:
+
+```yaml
+name: Validate proposals with swift-evolution-metadata-extractor
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - 'main'
+    paths:
+      - 'proposals/testing/*'
+
+jobs:
+  validate:
+    name: Validate Proposals
+    uses: swiftlang/github-workflows/.github/workflows/proposal_validation.yml@main
+    with:
+      project: "testing"
+```
+
 ## Running workflows locally
 
 You can run the Github Actions workflows locally using
