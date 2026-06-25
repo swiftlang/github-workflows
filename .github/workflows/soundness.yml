@@ -31,6 +31,14 @@ on:
         type: string
         description: "Additional arguments that should be passed to docc"
         default: ""
+      docs_check_targets:
+        type: string
+        description: "List of targets to check for documentation."
+        default: ""
+      docs_check_analyze:
+        type: boolean
+        description: "Boolean to pass --analyze to the docs check. Defaults to true."
+        default: true
       docs_check_macos_enabled:
         type: boolean
         description: "Boolean to enable the macOS docs check job. Defaults to false."
@@ -51,6 +59,14 @@ on:
         type: string
         description: "Additional arguments that should be passed to docc for the macOS docs check job."
         default: ""
+      docs_check_macos_targets:
+        type: string
+        description: "List of targets to check for documentation."
+        default: ""
+      docs_check_macos_analyze:
+        type: boolean
+        description: "Boolean to pass --analyze to the macOS docs check. Defaults to true."
+        default: true
       unacceptable_language_check_enabled:
         type: boolean
         description: "Boolean to enable the acceptable language check job. Defaults to true."
@@ -99,13 +115,17 @@ on:
         type: string
         description: "Linux command to execute before building the Swift package"
         default: ""
+      concurrency_group_suffix:
+        type: string
+        description: "Optional suffix appended to the concurrency group. Use this when calling soundness.yml from a matrix so that matrix entries don't cancel each other."
+        default: ""
 
 permissions:
   contents: read
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-soundness
+  group: ${{ github.workflow }}-${{ github.ref }}-soundness-${{ inputs.concurrency_group_suffix }}
   cancel-in-progress: true
 
 jobs:
@@ -187,8 +207,19 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
+          DOCC_ANALYZE: ${{ inputs.docs_check_analyze }}
+          DOCS_TARGETS: ${{ inputs.docs_check_targets}}
           SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
-        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh
+        run: |
+          analyze_arg=""
+          doc_target_arg=""
+          if [[ "${DOCS_TARGETS}" != "" ]] ; then
+            doc_target_arg="--doc-targets ${DOCS_TARGETS}"
+          fi
+          if [[ "${DOCC_ANALYZE}" != "true" ]]; then
+            analyze_arg="--no-analyze"
+          fi
+          "${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
 
   docs-check-macos:
     name: Documentation check (macOS)
@@ -226,8 +257,19 @@ jobs:
       - name: Run documentation check
         env:
           ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
+          DOCC_ANALYZE: ${{ inputs.docs_check_macos_analyze }}
+          DOCS_TARGETS: ${{ inputs.docs_check_macos_targets}}
           SCRIPT_ROOT: ${{ steps.script_path.outputs.root }}
-        run: ${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh
+        run: |
+          analyze_arg=""
+          doc_target_arg=""
+          if [[ "${DOCS_TARGETS}" != "" ]] ; then
+            doc_target_arg="--doc-targets ${DOCS_TARGETS}"
+          fi
+          if [[ "${DOCC_ANALYZE}" != "true" ]]; then
+            analyze_arg="--no-analyze"
+          fi
+          "${SCRIPT_ROOT}/.github/workflows/scripts/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
 
   unacceptable-language-check:
     name: Unacceptable language check

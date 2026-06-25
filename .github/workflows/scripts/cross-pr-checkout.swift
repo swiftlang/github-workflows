@@ -117,11 +117,23 @@ func getPRInfo(repository: String, prNumber: String) async throws -> PRInfo {
     throw GenericError("Failed to form URL for GitHub API")
   }
 
-  do {
-    let data = try await downloadData(from: prInfoUrl)
-    return try JSONDecoder().decode(PRInfo.self, from: data)
-  } catch {
-    throw GenericError("Failed to load PR info from \(prInfoUrl): \(error)")
+  let maxAttempts = 5
+  var attempt = 1
+  while true {
+    do {
+      let data = try await downloadData(from: prInfoUrl)
+      return try JSONDecoder().decode(PRInfo.self, from: data)
+    } catch {
+      if attempt == maxAttempts {
+        throw GenericError("Failed to load PR info from \(prInfoUrl) after \(maxAttempts) attempts: \(error)")
+      }
+      let delaySeconds = UInt64(1 << (attempt - 1))
+      print(
+        "Failed to load PR info from \(prInfoUrl) (attempt \(attempt) of \(maxAttempts)): \(error). Retrying in \(delaySeconds)s..."
+      )
+      try await Task.sleep(for: .seconds(delaySeconds))
+      attempt += 1
+    }
   }
 }
 

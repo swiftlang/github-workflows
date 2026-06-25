@@ -103,3 +103,26 @@ jobs:
     with:
       project: "swift"
       workflow_test_enabled: true
+
+  soundness-docs:
+    name: "Soundness - Docs (override_target_name: ${{ matrix.override_target_name }} ; post command: ${{ matrix.post_command }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        override_target_name: ["theDocs", ""]
+        post_command: ["cat .spi.yml", 'rm -rfv .spi.yml']
+    uses: ./.github/workflows/soundness.yml
+    with:
+      concurrency_group_suffix: "${{ matrix.override_target_name }}-${{ matrix.post_command }}"
+      linux_pre_build_command: "cd tests/TestPackage && ${{ matrix.post_command }}"
+      docs_check_enabled: true
+      docs_check_targets: ${{ matrix.override_target_name}}
+      docs_check_macos_enabled: false
+      api_breakage_check_enabled: false
+      unacceptable_language_check_enabled: false
+      license_header_check_enabled: false
+      broken_symlink_check_enabled: false
+      format_check_enabled: false
+      shell_check_enabled: false
+      yamllint_check_enabled: false
+      python_lint_check_enabled: false
