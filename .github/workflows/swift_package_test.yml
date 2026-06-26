@@ -285,7 +285,7 @@ jobs:
           - ${{ fromJson(inputs.macos_exclude_xcode_versions) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -327,7 +327,7 @@ jobs:
           - ${{ fromJson(inputs.ios_host_exclude_xcode_versions || inputs.macos_exclude_xcode_versions) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Provide token
         if: ${{ inputs.needs_token }}
         run: |
@@ -387,14 +387,14 @@ jobs:
       - name: Clang version
         run: clang --version
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -471,14 +471,14 @@ jobs:
       - name: Clang version
         run: clang --version
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -540,14 +540,14 @@ jobs:
       - name: Clang version
         run: clang --version
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -609,14 +609,14 @@ jobs:
       - name: Clang version
         run: clang --version
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
         uses: actions/checkout@v1
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -679,9 +679,9 @@ jobs:
           sudo rm /usr/local/lib/libsourcekitdInProc.so
           sudo rm -r /usr/share/swift
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Checkout swiftlang/github-workflows repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -750,10 +750,10 @@ jobs:
           - ${{ fromJson(inputs.windows_exclude_swift_versions) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
@@ -924,10 +924,10 @@ jobs:
             runner: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
