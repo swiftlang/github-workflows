@@ -23,7 +23,7 @@ jobs:
       RESOLVED_PR_NUMBER: ${{ case(inputs.workflow_test_enabled, '3331', github.event.number) }}
     steps:
       - name: Checkout swiftlang/swift-evolution-metadata-extractor (main)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/swift-evolution-metadata-extractor
           ref: main
