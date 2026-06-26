@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 10
     env:
       RESOLVED_PR_NUMBER: ${{ case(inputs.workflow_test_enabled, '3331', github.event.number) }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout swiftlang/swift-evolution-metadata-extractor (main)
         uses: actions/checkout@v6
