@@ -81,7 +81,7 @@ done
 
 if [ -z "${docs_targets}" ] ; then
   if [ ! -f .spi.yml ]; then
-    log "No '.spi.yml' found, no documentation targets to check."
+    log "No '.spi.yml' found in \"$(pwd)\", no documentation targets to check."
     exit 0
   fi
 fi
@@ -94,12 +94,12 @@ if ! command -v yq &> /dev/null; then
 fi
 
 if [ -z "${docs_targets}" ] ; then
-  docs_targets=$(yq ".builder.configs[] | select(.documentation_targets[] != \"\") | .documentation_targets[]" .spi.yml)
+  docs_targets=$(yq -r ".builder.configs[] | select(.documentation_targets[] != \"\") | .documentation_targets[]" .spi.yml)
 fi
 
 package_files=$(find . -maxdepth 1 -name 'Package*.swift')
 if [ -z "$package_files" ]; then
-  fatal "Package.swift not found. Please ensure you are running this script from the root of a Swift package."
+  fatal "Package.swift not found in \"$(pwd)\". Please ensure you are running this script from the root of a Swift package."
 fi
 
 # yq 3.1.0-3 doesn't have filter, otherwise we could replace the grep call with "filter(.identity == "swift-docc-plugin") | keys | .[]"
