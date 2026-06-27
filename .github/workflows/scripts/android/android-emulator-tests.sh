@@ -21,8 +21,18 @@ ANDROID_PROFILE="Nexus 10"
 ANDROID_EMULATOR_TIMEOUT=300
 
 SWIFTPM_HOME="${XDG_CONFIG_HOME}"/swiftpm
+# Prefer the bundle name exported by install-and-build-with-sdk.sh so that we
+# pick the SDK matching the requested swift_version (release, snapshot, or main),
+# rather than whichever happens to sort last on disk.
 # e.g., "${SWIFTPM_HOME}"/swift-sdks/swift-DEVELOPMENT-SNAPSHOT-2025-12-11-a_android.artifactbundle/
-SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
+if [[ -n "${SWIFT_ANDROID_SDK_BUNDLE:-}" ]]; then
+    SWIFT_ANDROID_SDK_HOME="${SWIFTPM_HOME}/swift-sdks/${SWIFT_ANDROID_SDK_BUNDLE}"
+    if [[ ! -d "${SWIFT_ANDROID_SDK_HOME}" ]]; then
+        fatal "Android Swift SDK bundle not found at: ${SWIFT_ANDROID_SDK_HOME}"
+    fi
+else
+    SWIFT_ANDROID_SDK_HOME=$(find "${SWIFTPM_HOME}"/swift-sdks -maxdepth 1 -name 'swift-*android.artifactbundle' | tail -n 1)
+fi
 
 ANDROID_SDK_TRIPLE="x86_64-unknown-linux-android28"
 
@@ -122,10 +132,14 @@ STAGING_DIR="swift-android-test"
 rm -rf "${STAGING_DIR}"
 mkdir "${STAGING_DIR}"
 
-BUILD_DIR=.build/"${ANDROID_SDK_TRIPLE}"/debug
+_swift_bin_dir="$(dirname "$SWIFT_EXECUTABLE_FOR_ANDROID_SDK")"
+export PATH="$_swift_bin_dir:$PATH"
+unset _swift_bin_dir
 
-find "${BUILD_DIR}" -name '*.xctest' -exec cp -av {} "${STAGING_DIR}" \;
-find "${BUILD_DIR}" -name '*.resources' -exec cp -av {} "${STAGING_DIR}" \;
+SWIFT_SDK_ID=$(basename "${SWIFT_ANDROID_SDK_HOME}" .artifactbundle)
+BUILD_DIR=$(swift build --show-bin-path --swift-sdk "${SWIFT_SDK_ID}" --triple "${ANDROID_SDK_TRIPLE}")
+
+find "${BUILD_DIR}" \( -name '*.xctest' -o -name '*.bundle' -o -name '*.resources' -o -name '*-test-runner' -o -name '*.so' \) -exec cp -av {} "${STAGING_DIR}" \;
 
 # copy over the required library dependencies
 cp -av "${SWIFT_ANDROID_SDK_HOME}"/swift-android/swift-resources/usr/lib/swift-"${ANDROID_EMULATOR_ARCH_TRIPLE}"/android/*.so "${STAGING_DIR}"
@@ -146,7 +160,10 @@ log "Copy Swift test package to emulator"
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
-TEST_CMD="./*.xctest"
+TEST_CMD="./*-test-runner"
+if ! find "${STAGING_DIR}" -name '*-test-runner' -maxdepth 1 | grep -q .; then
+    TEST_CMD="./*.xctest"
+fi
 TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
 TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library xctest"
 
