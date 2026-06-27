@@ -453,7 +453,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           if [ ! -f ".yamllint.yml" ]; then
             echo "Downloading default yamllint config file"
-            cat "${SCRIPT_ROOT}/.github/workflows/configs/yamllint.yml" > .yamllint.yml
+            cat "${SCRIPT_ROOT}/.github/configs/yamllint.yml" > .yamllint.yml
           fi
           yamllint --strict --config-file .yamllint.yml .
 

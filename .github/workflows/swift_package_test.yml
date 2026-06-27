@@ -955,7 +955,8 @@ jobs:
             echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
       - name: Build / Test
         # zizmor: ignore[template-injection]
-        uses: vmactions/freebsd-vm@v1
+        # Pin past v1.4.5 until a release includes the cache.tzst rsync race fix (vmactions/freebsd-vm#13).
+        uses: vmactions/freebsd-vm@36f545528696c61b36dda522c224a646c8f34fdf
         env:
           SWIFT_WEB_URL: ${{ steps.swift_url.outputs.url }}
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
