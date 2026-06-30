@@ -35,7 +35,7 @@ jobs:
         run: echo "key=seme-$(git -C seme rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Restore cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         id: restore-cache
         with:
           path: ${{ github.workspace }}/swift-evolution-metadata-extractor
@@ -52,7 +52,7 @@ jobs:
       - name: Save to cache
         if: steps.restore-cache.outputs.cache-hit != 'true'
         id: save-to-cache
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/swift-evolution-metadata-extractor
           key: ${{ steps.cache-key.outputs.key }}
