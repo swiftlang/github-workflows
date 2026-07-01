@@ -126,3 +126,18 @@ jobs:
       shell_check_enabled: false
       yamllint_check_enabled: false
       python_lint_check_enabled: false
+
+  required:
+    needs:
+      - tests_with_docker_embedded_swift
+      - tests_with_docker
+      - tests_without_docker
+      - tests_macos
+      - build_tests_ios
+      - soundness
+      - proposal_validation
+      - soundness-docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: echo "All required jobs succeeded."
