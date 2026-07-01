@@ -25,7 +25,9 @@ jobs:
     uses: ./.github/workflows/swift_package_test.yml
     with:
       # Linux
-      linux_os_versions: '["jammy", "rhel-ubi9"]'
+      linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2023"]'
+      # Amazon Linux 2023 images are only available for Swift 6.3 and later.
+      linux_exclude_swift_versions: '[{"swift_version": "5.9", "os_version": "amazonlinux2023"}, {"swift_version": "5.10", "os_version": "amazonlinux2023"}, {"swift_version": "6.0", "os_version": "amazonlinux2023"}, {"swift_version": "6.1", "os_version": "amazonlinux2023"}, {"swift_version": "6.2", "os_version": "amazonlinux2023"}]'
       linux_host_archs: '["x86_64", "aarch64"]'
       linux_build_command: |
         cd tests/TestPackage

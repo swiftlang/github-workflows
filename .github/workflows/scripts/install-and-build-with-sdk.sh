@@ -485,6 +485,9 @@ initialize_os_info() {
     elif [[ "$os_id" == "amzn" && "$version_id" == "2" ]]; then
         OS_NAME="amazonlinux2"
         OS_NAME_NO_DOT="amazonlinux2"
+    elif [[ "$os_id" == "amzn" && "$version_id" == "2023" ]]; then
+        OS_NAME="amazonlinux2023"
+        OS_NAME_NO_DOT="amazonlinux2023"
     else
         # Ubuntu, Debian, Fedora
         OS_NAME="${os_id}${version_id}"
