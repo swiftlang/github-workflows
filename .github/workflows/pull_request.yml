@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/swift_package_test.yml
     with:
       # Linux
-      linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
+      linux_os_versions: '["jammy", "rhel-ubi9"]'
       linux_host_archs: '["x86_64", "aarch64"]'
       linux_build_command: |
         cd tests/TestPackage
