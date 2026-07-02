@@ -11,7 +11,7 @@
 ##
 ##===----------------------------------------------------------------------===##
 
-set -euo pipefail
+set -xeuo pipefail
 
 log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
@@ -41,7 +41,7 @@ is_known_option() {
 }
 
 analyze_flag="--analyze"
-additional_docc_arguments=""
+additional_docc_arguments="${ADDITIONAL_DOCC_ARGUMENTS:-}"
 docs_targets=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
