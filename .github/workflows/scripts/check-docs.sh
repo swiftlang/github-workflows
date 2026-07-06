@@ -94,7 +94,7 @@ if ! command -v yq &> /dev/null; then
 fi
 
 if [ -z "${docs_targets}" ] ; then
-  docs_targets=$(yq -r ".builder.configs[] | select(.documentation_targets[] != \"\") | .documentation_targets[]" .spi.yml)
+  docs_targets=$(yq -r ".builder.configs[].documentation_targets[] | select(. != \"\")" .spi.yml)
 fi
 
 package_files=$(find . -maxdepth 1 -name 'Package*.swift')
