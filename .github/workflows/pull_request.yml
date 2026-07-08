@@ -79,6 +79,10 @@ jobs:
       macos_build_command: |
         cd tests/TestPackage
         xcrun swift build
+      enable_macos_swiftly_checks: true
+      macos_swiftly_build_command: |
+        cd tests/TestPackage
+        swift build
 
   build_tests_ios:
     name: Build iOS Tests
