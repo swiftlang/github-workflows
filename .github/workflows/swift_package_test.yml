@@ -351,8 +351,13 @@ jobs:
             done
       - name: Select Xcode
         run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
-      - name: Add Swiftly to PATH
-        run: echo "$HOME/.swiftly/bin" >> $GITHUB_PATH
+      - name: Set up Swiftly environment
+        run: |
+          . "$HOME/.swiftly/env.sh"
+          echo "SWIFTLY_HOME_DIR=$SWIFTLY_HOME_DIR" >> $GITHUB_ENV
+          echo "SWIFTLY_BIN_DIR=$SWIFTLY_BIN_DIR" >> $GITHUB_ENV
+          echo "SWIFTLY_TOOLCHAINS_DIR=$SWIFTLY_TOOLCHAINS_DIR" >> $GITHUB_ENV
+          echo "$SWIFTLY_BIN_DIR" >> $GITHUB_PATH
       - name: Install Swift toolchain via Swiftly
         run: |
           swiftly install ${{ matrix.swift_version }}
