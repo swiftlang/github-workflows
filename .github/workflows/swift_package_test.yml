@@ -146,7 +146,7 @@ on:
       macos_swiftly_build_command:
         type: string
         description: "macOS command to build and test the package when using a Swiftly-managed toolchain (run via `swiftly run`, so it should not use `xcrun`)"
-        default: "swift test"
+        default: "swiftly run swift test"
       macos_build_timeout:
         type: number
         description: "The default step timeout in minutes"
