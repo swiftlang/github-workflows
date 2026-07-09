@@ -82,7 +82,7 @@ jobs:
       enable_macos_swiftly_checks: true
       macos_swiftly_build_command: |
         cd tests/TestPackage
-        swift build
+        swiftly run swift build
 
   build_tests_ios:
     name: Build iOS Tests
