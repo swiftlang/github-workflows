@@ -369,7 +369,7 @@ jobs:
         run: ${{ inputs.macos_pre_build_command }}
       - name: Build / Test
         # zizmor: ignore[template-injection]
-        run: swiftly run ${{ inputs.macos_swiftly_build_command }} ${{ (contains(matrix.swift_version, 'snapshot') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        run: ${{ inputs.macos_swiftly_build_command }} ${{ (contains(matrix.swift_version, 'snapshot') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: ${{ inputs.macos_build_timeout }}
 
   ios-build:
