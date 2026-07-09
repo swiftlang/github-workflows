@@ -312,7 +312,7 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
       - name: Swift version
         run: xcrun swift --version
       - name: Clang version
@@ -350,7 +350,7 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
       - name: Set up Swiftly environment
         run: |
           . "$HOME/.swiftly/env.sh"
@@ -401,7 +401,7 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
       - name: Swift version
         run: |
           "$(xcrun -f swift)" --version
