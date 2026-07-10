@@ -22,6 +22,10 @@ on:
         type: string
         description: "macOS arch list (JSON)"
         default: "[\"ARM64\"]"
+      macos_swiftly_toolchains:
+        type: string
+        description: "List of macOS Swiftly toolchain builds to test, each pairing an Xcode version with a Swiftly-managed Swift toolchain (JSON list of objects with xcode_version, swift_version, os_version, arch)"
+        default: "[{\"xcode_version\": \"26.4\", \"swift_version\": \"main-snapshot\", \"os_version\": \"tahoe\", \"arch\": \"ARM64\"}]"
       ios_host_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
@@ -139,6 +143,10 @@ on:
         type: string
         description: "macOS command to build and test the package"
         default: "xcrun swift test"
+      macos_swiftly_build_command:
+        type: string
+        description: "macOS command to build and test the package when using a Swiftly-managed toolchain (run via `swiftly run`, so it should not use `xcrun`)"
+        default: "swiftly run swift test"
       macos_build_timeout:
         type: number
         description: "The default step timeout in minutes"
@@ -245,6 +253,10 @@ on:
         type: boolean
         description: "Boolean to enable macOS testing. Defaults to false"
         default: false
+      enable_macos_swiftly_checks:
+        type: boolean
+        description: "Boolean to enable macOS testing with Swiftly-managed toolchains (e.g. nightly snapshots). Defaults to false"
+        default: false
       enable_ios_checks:
         type: boolean
         description: "Boolean to enable iOS testing. Defaults to false"
@@ -300,7 +312,7 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
       - name: Swift version
         run: xcrun swift --version
       - name: Clang version
@@ -311,6 +323,53 @@ jobs:
       - name: Build / Test
         # zizmor: ignore[template-injection]
         run: ${{ inputs.macos_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+        timeout-minutes: ${{ inputs.macos_build_timeout }}
+
+  macos-swiftly-build:
+    name: macOS via Swiftly (Xcode ${{ matrix.xcode_version }} + ${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
+    if: ${{ inputs.enable_macos_swiftly_checks }}
+    runs-on: [self-hosted, macos, "${{ matrix.os_version }}", "${{ matrix.arch }}"]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(inputs.macos_swiftly_toolchains) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Provide token
+        if: ${{ inputs.needs_token }}
+        run: |
+            echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+      - name: Set environment variables
+        if: ${{ inputs.macos_env_vars }}
+        env:
+          ENV_VARS: ${{ inputs.macos_env_vars }}
+        run: |
+            for i in "${ENV_VARS}"
+            do
+              printf "%s\n" $i >> $GITHUB_ENV
+            done
+      - name: Select Xcode
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
+      - name: Set up Swiftly environment
+        run: |
+          . "$HOME/.swiftly/env.sh"
+          echo "SWIFTLY_HOME_DIR=$SWIFTLY_HOME_DIR" >> $GITHUB_ENV
+          echo "SWIFTLY_BIN_DIR=$SWIFTLY_BIN_DIR" >> $GITHUB_ENV
+          echo "SWIFTLY_TOOLCHAINS_DIR=$SWIFTLY_TOOLCHAINS_DIR" >> $GITHUB_ENV
+          echo "$SWIFTLY_BIN_DIR" >> $GITHUB_PATH
+      - name: Install Swift toolchain via Swiftly
+        run: |
+          swiftly install ${{ matrix.swift_version }}
+          swiftly use ${{ matrix.swift_version }}
+      - name: Swift version
+        run: swiftly run swift --version
+      - name: Pre-build
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.macos_pre_build_command }}
+      - name: Build / Test
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.macos_swiftly_build_command }} ${{ (contains(matrix.swift_version, 'snapshot') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         timeout-minutes: ${{ inputs.macos_build_timeout }}
 
   ios-build:
@@ -342,7 +401,7 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app" >> $GITHUB_ENV
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
       - name: Swift version
         run: |
           "$(xcrun -f swift)" --version
