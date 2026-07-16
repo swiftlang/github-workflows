@@ -150,16 +150,14 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Pre-build
-        if: ${{ inputs.linux_pre_build_command }}
-        # zizmor: ignore[template-injection]
-        run: ${{ inputs.linux_pre_build_command }}
       - name: Run API breakage check
         shell: bash
         env:
           API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
           API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
+        # zizmor: ignore[template-injection]
         run: |
+          ${{ inputs.linux_pre_build_command }}
           if [[ -z "${API_BREAKAGE_CHECK_BASELINE}" ]]; then
             git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
             BASELINE_REF='pull-base-ref'
