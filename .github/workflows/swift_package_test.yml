@@ -449,7 +449,7 @@ jobs:
         uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
@@ -459,7 +459,7 @@ jobs:
           path: github-workflows
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: ${{ github.event.repository.name }}/github-workflows
@@ -533,7 +533,7 @@ jobs:
         uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
@@ -543,7 +543,7 @@ jobs:
           path: github-workflows
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: ${{ github.event.repository.name }}/github-workflows
@@ -602,7 +602,7 @@ jobs:
         uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
@@ -612,7 +612,7 @@ jobs:
           path: github-workflows
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: ${{ github.event.repository.name }}/github-workflows
@@ -671,7 +671,7 @@ jobs:
         uses: actions/checkout@v7
         if: ${{ matrix.os_version != 'amazonlinux2' }}
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
@@ -681,7 +681,7 @@ jobs:
           path: github-workflows
       - name: Checkout swiftlang/github-workflows repository
         if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: ${{ github.event.repository.name }}/github-workflows
@@ -890,13 +890,13 @@ jobs:
           echo "image=$Image" >> "$env:GITHUB_OUTPUT"
       - name: "Install Python 3.10"
         if: ${{ !inputs.enable_windows_docker && !(matrix.swift_version == '6.1' || matrix.swift_version == '6.0' || matrix.swift_version == '5.10' || matrix.swift_version == '5.9') }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
           architecture: "x64"
       - name: "Install Python 3.9"
         if: ${{ !inputs.enable_windows_docker && (matrix.swift_version == '6.1' || matrix.swift_version == '6.0' || matrix.swift_version == '5.10' || matrix.swift_version == '5.9') }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
           architecture: "x64"
