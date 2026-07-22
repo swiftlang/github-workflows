@@ -920,10 +920,17 @@ jobs:
 
           # Run the command following `Invoke-Program`.
           # If that command returns a non-zero exit code, return the same exit code from this script.
+          # When there is no exit code (e.g. program failed to launch), we fall back to $?.
           function Invoke-Program($Executable) {
+            $global:LASTEXITCODE = $null
             & $Executable @args
-            if ($LastExitCode -ne 0) {
-              exit $LastExitCode
+            $ok = $?
+            if ($null -eq $LASTEXITCODE) {
+              if (-not $ok) {
+                exit 1
+              }
+            } elseif ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
             }
           }
           Invoke-Program swift --version
