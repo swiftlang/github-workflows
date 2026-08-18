@@ -1,0 +1,50 @@
+name: 'Install CMake'
+description: 'Download and install CMake'
+
+inputs:
+  cmake-version:
+    description: "CMake version (e.g. '3.30.2')"
+    required: true
+  hash:
+    description: "Expected SHA-256 hash of the target archive (Required)."
+    required: true
+  install_dir:
+    description: "Location where to install CMake"
+    required: false
+    default: ""
+
+outputs:
+  cmake-dir:
+    description: "Directory containing the CMake binaries"
+    value: ${{ steps.install.outputs.cmake-dir }}
+  cmake:
+    description: "Path to the installed CMake binary"
+    value: ${{ steps.install.outputs.cmake-path }}
+  ctest:
+    description: "Path to the installed CTest binary"
+    value: ${{ steps.install.outputs.ctest-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run CMake Installer
+      id: install
+      shell: bash
+      env:
+        CMAKE_VERSION: ${{ inputs.cmake-version }}
+        CMAKE_SHA256: ${{ inputs.hash }}
+        CMAKE_INSTALL_DIR: ${{ inputs.install_dir }}
+        RAW_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        # Resolve path whether running on the host runner or inside a Docker container
+        SCRIPT_PATH="${RAW_ACTION_PATH}/install-cmake.sh"
+        if [ ! -f "${SCRIPT_PATH}" ]; then
+          CONTAINER_PATH="$(echo "${RAW_ACTION_PATH}" | sed 's|^/home/runner/work|/__w|')"
+          if [ -f "${CONTAINER_PATH}/install-cmake.sh" ]; then
+            SCRIPT_PATH="${CONTAINER_PATH}/install-cmake.sh"
+          elif [ -f "${GITHUB_WORKSPACE}/.github/actions/install-cmake/install-cmake.sh" ]; then
+            SCRIPT_PATH="${GITHUB_WORKSPACE}/.github/actions/install-cmake/install-cmake.sh"
+          fi
+        fi
+
+        bash "${SCRIPT_PATH}"
