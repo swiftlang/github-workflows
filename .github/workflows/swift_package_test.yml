@@ -9,7 +9,7 @@ on:
       macos_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
-        default: "[\"16.4\", \"26.3\", \"26.4\", \"27.b2\"]"
+        default: "[\"16.4\", \"26.3\", \"26.5\", \"27.b5\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
@@ -25,7 +25,7 @@ on:
       macos_swiftly_toolchains:
         type: string
         description: "List of macOS Swiftly toolchain builds to test, each pairing an Xcode version with a Swiftly-managed Swift toolchain (JSON list of objects with xcode_version, swift_version, os_version, arch)"
-        default: "[{\"xcode_version\": \"26.4\", \"swift_version\": \"main-snapshot\", \"os_version\": \"tahoe\", \"arch\": \"ARM64\"}]"
+        default: "[{\"xcode_version\": \"26.5\", \"swift_version\": \"main-snapshot\", \"os_version\": \"tahoe\", \"arch\": \"ARM64\"}]"
       ios_host_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
