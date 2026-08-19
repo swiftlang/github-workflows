@@ -114,6 +114,16 @@ jobs:
     name: Install CMake
     uses: ./.github/workflows/install_cmake_test.yml
 
+  cmake_build:
+    name: CMake Build
+    uses: ./.github/workflows/cmake_build.yml
+    with:
+      # Linux uses the default Ninja generator; install Ninja first.
+      linux_pre_build_command: "apt-get install -y ninja-build"
+      linux_configure_command: "$CMAKE -G Ninja -B build -S tests/CMakeProject"
+      # Windows uses CMake's default generator (MSVC), so Ninja is not required.
+      windows_configure_command: "Invoke-Program cmake -B build -S tests/CMakeProject"
+
   soundness-docs:
     name: "Soundness - Docs (override_target_name: ${{ matrix.override_target_name }} ; post command: ${{ matrix.post_command }})"
     strategy:

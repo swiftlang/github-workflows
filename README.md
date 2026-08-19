@@ -94,6 +94,56 @@ Linked PR: swiftlang/swift-syntax#2859
 
 Enabling cross-PR testing will add about 10s to PR testing time.
 
+### CMake Build
+
+The `cmake_build` workflow installs a pinned CMake (using the `install-cmake`
+action) and runs your configure and build commands across Linux, macOS, and
+Windows. It removes the boilerplate of installing CMake and wiring up
+`$CMAKE`-based build steps in each consumer.
+
+By default it installs CMake 4.0.3, configures with
+`$CMAKE -G Ninja -B build -S .`, and builds with `$CMAKE --build build`.
+Linux builds run by default. macOS and Windows builds can be enabled with
+`enable_macos_checks` and `enable_windows_checks` respectively. A minimal
+example:
+
+```yaml
+name: Pull request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  cmake_build:
+    name: CMake Build
+    uses: swiftlang/github-workflows/.github/workflows/cmake_build.yml@<version>
+```
+
+Override the per-platform configure and build commands to point at your
+project. `$CMAKE` and `$CTEST` are exposed as environment variables, and the
+installed CMake is also on `PATH`:
+
+```yaml
+with:
+  linux_configure_command: "$CMAKE -G Ninja -B build -S Sources -DCMAKE_BUILD_TYPE=Release"
+  linux_build_command: "$CMAKE --build build"
+```
+
+The default configure command uses the Ninja generator, but the workflow does
+not install Ninja. Ensure Ninja is available in your environment, install it
+via a `*_pre_build_command`, or override the configure command to use a
+different generator:
+
+```yaml
+with:
+  linux_pre_build_command: "apt-get install -y ninja-build"
+```
+
+To pin a different CMake version, override `cmake_version` together with the
+matching per-platform SHA-256 hashes (`linux_x86_64_hash`, `linux_aarch64_hash`,
+`macos_hash`, `windows_x86_64_hash`, `windows_arm64_hash`).
+
 ### Evolution Proposal Validation
 
 The proposal validation workflow validates added and changed proposals in a pull request to check for formatting and content errors that will cause metadata extraction to fail or be incomplete.

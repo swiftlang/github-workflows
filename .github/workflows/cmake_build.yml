@@ -1,0 +1,237 @@
+name: CMake Build
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      cmake_version:
+        type: string
+        description: "CMake version to install and build with"
+        default: "4.0.3"
+      linux_x86_64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-linux-x86_64.tar.gz"
+        default: "585ae9e013107bc8e7c7c9ce872cbdcbdff569e675b07ef57aacfb88c886faac"
+      linux_aarch64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-linux-aarch64.tar.gz"
+        default: "391da1544ef50ac31300841caaf11db4de3976cdc4468643272e44b3f4644713"
+      macos_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-macos-universal.tar.gz"
+        default: "4e85de4daf1c3e82d7dc6b8ba5683972944b466343aeb9c327a742437bb3ce9a"
+      windows_x86_64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-windows-x86_64.zip"
+        default: "b59a31dfbfa376a4aaea9ff560ff2b29f78ee5f9fb15447fc71ae7bf9fea9379"
+      windows_arm64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-windows-arm64.zip"
+        default: "86ccd6485bbd4bb41a1a858db397be5bca5e0de96858bf8dbba7a64407bd6c00"
+      enable_linux_checks:
+        type: boolean
+        description: "Boolean to enable the Linux build. Defaults to true"
+        default: true
+      enable_macos_checks:
+        type: boolean
+        description: "Boolean to enable the macOS build (requires self-hosted runners). Defaults to false"
+        default: false
+      enable_windows_checks:
+        type: boolean
+        description: "Boolean to enable the Windows build. Defaults to true"
+        default: true
+      linux_container_image:
+        type: string
+        description: "Container image used for the Linux build"
+        default: "swift:6.2-jammy"
+      linux_prerequisites_command:
+        type: string
+        description: "Linux command to install prerequisites the install-cmake action needs (it shells out to curl)"
+        default: "apt-get update && apt-get install -y curl"
+      linux_pre_build_command:
+        type: string
+        description: "Linux command to execute before configuring the CMake project"
+        default: ""
+      linux_configure_command:
+        type: string
+        description: "Linux command to configure the CMake project"
+        default: "$CMAKE -G Ninja -B build -S ."
+      linux_build_command:
+        type: string
+        description: "Linux command to build the CMake project"
+        default: "$CMAKE --build build"
+      macos_pre_build_command:
+        type: string
+        description: "macOS command to execute before configuring the CMake project"
+        default: ""
+      macos_configure_command:
+        type: string
+        description: "macOS command to configure the CMake project"
+        default: "$CMAKE -G Ninja -B build -S ."
+      macos_build_command:
+        type: string
+        description: "macOS command to build the CMake project"
+        default: "$CMAKE --build build"
+      windows_pre_build_command:
+        type: string
+        description: |
+          Windows PowerShell command to execute before configuring the CMake project.
+          The Invoke-Program helper is available to propagate non-zero exit codes.
+        default: ""
+      windows_configure_command:
+        type: string
+        description: |
+          Windows PowerShell command to configure the CMake project.
+          The Invoke-Program helper is available to propagate non-zero exit codes.
+        default: "Invoke-Program cmake -G Ninja -B build -S ."
+      windows_build_command:
+        type: string
+        description: |
+          Windows PowerShell command to build the CMake project.
+          The Invoke-Program helper is available to propagate non-zero exit codes.
+        default: "Invoke-Program cmake --build build"
+  workflow_dispatch:
+
+jobs:
+  linux-build:
+    name: "Linux (${{ matrix.arch }})"
+    if: ${{ inputs.enable_linux_checks }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: X64
+            runner: ubuntu-24.04
+            hash: ${{ inputs.linux_x86_64_hash }}
+          - arch: ARM64
+            runner: ubuntu-24.04-arm
+            hash: ${{ inputs.linux_aarch64_hash }}
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ inputs.linux_container_image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install prerequisites
+        shell: bash
+        env:
+          PREREQUISITES_COMMAND: ${{ inputs.linux_prerequisites_command }}
+        run: |
+          set -euo pipefail
+          eval "${PREREQUISITES_COMMAND}"
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ matrix.hash }}
+      - name: Pre-build
+        if: ${{ inputs.linux_pre_build_command != '' }}
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.linux_pre_build_command }}
+      - name: Configure
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.linux_configure_command }}
+      - name: Build
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.linux_build_command }}
+
+  macos-build:
+    name: "macOS (ARM64)"
+    if: ${{ inputs.enable_macos_checks }}
+    runs-on: [self-hosted, macos, tahoe, ARM64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ inputs.macos_hash }}
+      - name: Pre-build
+        if: ${{ inputs.macos_pre_build_command != '' }}
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.macos_pre_build_command }}
+      - name: Configure
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.macos_configure_command }}
+      - name: Build
+        shell: bash
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.macos_build_command }}
+
+  windows-build:
+    name: "Windows (${{ matrix.runner }})"
+    if: ${{ inputs.enable_windows_checks }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            hash: ${{ inputs.windows_x86_64_hash }}
+          - runner: windows-11-arm
+            hash: ${{ inputs.windows_arm64_hash }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ matrix.hash }}
+      - name: Pre-build
+        if: ${{ inputs.windows_pre_build_command != '' }}
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Invoke-Program($Executable) { & $Executable @args; if ($LastExitCode -ne 0) { exit $LastExitCode } }
+          ${{ inputs.windows_pre_build_command }}
+      - name: Configure
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Invoke-Program($Executable) { & $Executable @args; if ($LastExitCode -ne 0) { exit $LastExitCode } }
+          ${{ inputs.windows_configure_command }}
+      - name: Build
+        env:
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+        # zizmor: ignore[template-injection]
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Invoke-Program($Executable) { & $Executable @args; if ($LastExitCode -ne 0) { exit $LastExitCode } }
+          ${{ inputs.windows_build_command }}
