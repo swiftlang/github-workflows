@@ -1,0 +1,178 @@
+name: Install CMake Test
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      cmake_version:
+        type: string
+        description: "CMake version to install and verify"
+        default: "4.0.3"
+      linux_x86_64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-linux-x86_64.tar.gz"
+        default: "585ae9e013107bc8e7c7c9ce872cbdcbdff569e675b07ef57aacfb88c886faac"
+      linux_aarch64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-linux-aarch64.tar.gz"
+        default: "391da1544ef50ac31300841caaf11db4de3976cdc4468643272e44b3f4644713"
+      macos_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-macos-universal.tar.gz"
+        default: "4e85de4daf1c3e82d7dc6b8ba5683972944b466343aeb9c327a742437bb3ce9a"
+      windows_x86_64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-windows-x86_64.zip"
+        default: "b59a31dfbfa376a4aaea9ff560ff2b29f78ee5f9fb15447fc71ae7bf9fea9379"
+      windows_arm64_hash:
+        type: string
+        description: "SHA-256 of cmake-<version>-windows-arm64.zip"
+        default: "86ccd6485bbd4bb41a1a858db397be5bca5e0de96858bf8dbba7a64407bd6c00"
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: "Linux (${{ matrix.arch }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: X64
+            runner: ubuntu-24.04
+            hash: ${{ inputs.linux_x86_64_hash }}
+          - arch: ARM64
+            runner: ubuntu-24.04-arm
+            hash: ${{ inputs.linux_aarch64_hash }}
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: swift:6.2-jammy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y curl
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ matrix.hash }}
+      - name: Verify CMake installation
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ inputs.cmake_version }}
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+          CMAKE_DIR: ${{ steps.install.outputs.cmake-dir }}
+        run: |
+          set -euo pipefail
+          # Outputs point at real, executable files
+          test -x "${CMAKE}"
+          test -x "${CTEST}"
+          test -d "${CMAKE_DIR}"
+          # Explicit output paths run and report the expected version
+          "${CMAKE}" --version | grep -q "${EXPECTED_VERSION}"
+          "${CTEST}" --version
+          # GITHUB_PATH was updated: bare `cmake` resolves in this later step
+          cmake --version | grep -q "${EXPECTED_VERSION}"
+
+  macos:
+    name: "macOS (ARM64)"
+    runs-on: [self-hosted, macos, tahoe, ARM64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ inputs.macos_hash }}
+      - name: Verify CMake installation
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ inputs.cmake_version }}
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+          CMAKE_DIR: ${{ steps.install.outputs.cmake-dir }}
+        run: |
+          set -euo pipefail
+          test -x "${CMAKE}"
+          test -x "${CTEST}"
+          test -d "${CMAKE_DIR}"
+          "${CMAKE}" --version | grep -q "${EXPECTED_VERSION}"
+          "${CTEST}" --version
+          cmake --version | grep -q "${EXPECTED_VERSION}"
+
+  windows:
+    name: "Windows (${{ matrix.runner }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            hash: ${{ inputs.windows_x86_64_hash }}
+          - runner: windows-11-arm
+            hash: ${{ inputs.windows_arm64_hash }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install CMake
+        id: install
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: ${{ matrix.hash }}
+      - name: Verify CMake installation
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ inputs.cmake_version }}
+          CMAKE: ${{ steps.install.outputs.cmake }}
+          CTEST: ${{ steps.install.outputs.ctest }}
+          CMAKE_DIR: ${{ steps.install.outputs.cmake-dir }}
+        run: |
+          set -euo pipefail
+          test -x "${CMAKE}"
+          test -x "${CTEST}"
+          test -d "${CMAKE_DIR}"
+          "${CMAKE}" --version | grep -q "${EXPECTED_VERSION}"
+          "${CTEST}" --version
+          cmake --version | grep -q "${EXPECTED_VERSION}"
+
+  bad_hash:
+    name: "Negative test (wrong hash)"
+    runs-on: ubuntu-24.04
+    container:
+      image: swift:6.2-jammy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y curl
+      - name: Install CMake with a wrong hash (expected to fail)
+        id: install
+        continue-on-error: true
+        uses: ./.github/actions/install-cmake
+        with:
+          cmake-version: ${{ inputs.cmake_version }}
+          hash: "0000000000000000000000000000000000000000000000000000000000000000"
+      - name: Assert the install failed
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${OUTCOME}" != "failure" ]; then
+            echo "::error::Expected install to fail on hash mismatch, but outcome was '${OUTCOME}'"
+            exit 1
+          fi
+          echo "Install correctly failed on SHA-256 mismatch."

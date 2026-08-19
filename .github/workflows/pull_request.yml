@@ -110,6 +110,10 @@ jobs:
       project: "swift"
       workflow_test_enabled: true
 
+  install_cmake:
+    name: Install CMake
+    uses: ./.github/workflows/install_cmake_test.yml
+
   soundness-docs:
     name: "Soundness - Docs (override_target_name: ${{ matrix.override_target_name }} ; post command: ${{ matrix.post_command }})"
     strategy:
