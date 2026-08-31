@@ -1,5 +1,6 @@
 .github/workflows/configs/.flake8
 **/*.yml
+**/*.java
 CODEOWNERS
 LICENSE.txt
 README.md
