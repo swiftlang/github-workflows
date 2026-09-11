@@ -195,6 +195,20 @@ func getCrossRepoPrs(repository: String, prNumber: String) async throws -> [Cros
   return result
 }
 
+/// The directory linked PRs are cloned into, for a checkout at `checkout` whose parent
+/// directory is `parent`.
+///
+/// A job that runs in a container has the checkout mounted at the root of the container's
+/// own filesystem. A clone in the parent directory is then outside the mount: the host
+/// never sees it and it does not outlive the container. Such a checkout takes its clones
+/// below itself, where the mount carries them.
+func linkedPullRequestsDirectory(checkout: URL, parent: URL) -> URL {
+  if parent.pathComponents.count > 1 {
+    return parent
+  }
+  return checkout.appendingPathComponent(".linked-pull-requests")
+}
+
 func main() async throws {
   guard ProcessInfo.processInfo.arguments.count >= 3 else {
     throw GenericError(
@@ -224,14 +238,18 @@ func main() async throws {
       prNumber: crossRepoPr.prNumber
     ).base.ref
 
-    let workspaceDir = URL(fileURLWithPath: "..").resolvingSymlinksInPath()
-    let repoDir = workspaceDir.appendingPathComponent(crossRepoPr.repositoryName)
+    let checkoutsDirectory = linkedPullRequestsDirectory(
+      checkout: URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+      parent: URL(fileURLWithPath: "..").resolvingSymlinksInPath()
+    )
+    try FileManager.default.createDirectory(at: checkoutsDirectory, withIntermediateDirectories: true)
+    let repoDir = checkoutsDirectory.appendingPathComponent(crossRepoPr.repositoryName)
     try run(
       git,
       "clone",
       "https://github.com/\(crossRepoPr.repositoryOwner)/\(crossRepoPr.repositoryName).git",
       "\(crossRepoPr.repositoryName)",
-      workingDirectory: workspaceDir
+      workingDirectory: checkoutsDirectory
     )
     try run(git, "fetch", "origin", "pull/\(crossRepoPr.prNumber)/merge:pr_merge", workingDirectory: repoDir)
     try run(git, "checkout", baseBranch, workingDirectory: repoDir)

@@ -94,7 +94,7 @@ jobs:
       enable_ios_checks: true
       ios_build_command: |
         cd tests/TestPackage
-        xcodebuild -quiet -scheme TestPackage-Package -destination "generic/platform=ios" build
+        xcodebuild -quiet -scheme TestPackage -destination "generic/platform=ios" build
 
   soundness:
     name: Soundness
@@ -102,6 +102,151 @@ jobs:
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"
+
+  matrix_generator_tests:
+    name: Matrix generator tests
+    # The runner image ships both Swift and yq, so nothing needs installing. It
+    # has to be mikefarah's yq, which is what the image carries: generate-matrix.swift
+    # invokes yq with no filter argument, and python-yq is a jq wrapper that
+    # requires one.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Run generator tests
+        working-directory: tests/MatrixGeneratorValidator
+        run: swift test
+
+  runner_exit_code_tests:
+    name: Runner exit-code tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            test: ./tests/runner-exit-code-tests.sh
+            shell: bash
+          - runner: macos-latest
+            test: ./tests/runner-exit-code-tests-macos.sh
+            shell: bash
+          - runner: windows-latest
+            test: ./tests/invoke-program-tests.ps1
+            shell: pwsh
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Assert failures are not reported as success
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.test }}
+
+  unified_package_test:
+    name: Unified package test
+    uses: ./.github/workflows/package_test.yml
+    with:
+      linux_swift_versions: '["6.3", "nightly-main"]'
+      linux_setup_command: cd tests/TestPackage
+      windows_swift_versions: '["6.3"]'
+      windows_setup_command: cd tests/TestPackage
+      windows_command: Invoke-Program swift build
+      enable_linux_static_sdk_build: true
+      linux_static_sdk_versions: '["6.3"]'
+      # The SDK script builds in the working directory, so the setup command is
+      # the only way to reach a package below the repository root.
+      linux_static_sdk_setup_command: cd tests/TestPackage
+      # The Cxx interop check takes linux_setup_command as its setup command, so
+      # it enters tests/TestPackage too.
+      enable_cxx_interop: true
+      # Two labeled commands, so a run exercises the label suffix.
+      linux_command: |
+        Debug-Build: swift build
+        Release-Build:
+          command: swift build -c release
+          versions: ["6.3"]
+
+  unified_package_test_container:
+    name: Unified package test (container)
+    uses: ./.github/workflows/package_test.yml
+    with:
+      # Named so this does not share a concurrency group with the native call.
+      name: unified-package-test-container
+      # A container runs as root, has no sudo, and carries neither jq nor the tools
+      # a hosted runner provides, none of which the native default exercises.
+      linux_use_docker: true
+      linux_swift_versions: '["6.3"]'
+      # Runs the privilege-agnostic form the migration guide documents, so the
+      # advice is checked rather than only written down.
+      linux_setup_command: |
+        if command -v sudo >/dev/null 2>&1; then
+          sudo apt-get update -y -q && sudo apt-get install -y -q jq
+        else
+          apt-get update -y -q && apt-get install -y -q jq
+        fi
+        cd tests/TestPackage
+      linux_command: swift build
+      # Windows containers too: this is the only coverage of that path, and an
+      # adopter testing a Swift release before 6.1 depends on it.
+      windows_swift_versions: '["6.3"]'
+      windows_use_docker: true
+      windows_setup_command: cd tests/TestPackage
+      windows_command: Invoke-Program swift build
+
+  unified_package_test_commands:
+    name: Unified package test (commands)
+    uses: ./.github/workflows/package_test.yml
+    with:
+      # Named so this does not share a concurrency group with the other calls.
+      name: unified-package-test-commands
+      enable_windows: false
+      linux_swift_versions: '["6.2", "6.3"]'
+      linux_setup_command: cd tests/TestPackage
+      # Two commands on one toolchain list, the second narrowed to one version, so
+      # a run proves the axis fans out and that the label's versions select from
+      # the list rather than being ignored. Three jobs, each carrying its label.
+      linux_command: |
+        Debug-Build: swift build
+        Release-Build:
+          command: swift build -c release
+          versions: ["6.3"]
+
+  unified_toolchain_matrix:
+    name: Unified toolchain matrix
+    uses: ./.github/workflows/toolchain_matrix.yml
+    with:
+      linux_swift_versions: '["6.3"]'
+
+  unified_toolchain_matrix_execute:
+    name: Unified toolchain matrix executor
+    needs: unified_toolchain_matrix
+    uses: ./.github/workflows/execute_matrix.yml
+    with:
+      name: toolchain-matrix-self-test
+      matrix_yaml_string: ${{ needs.unified_toolchain_matrix.outputs.matrix_yaml }}
+      setup_command: cd tests/TestPackage
+      command: swift build
+
+  unified_execute_matrix:
+    name: Unified matrix executor
+    uses: ./.github/workflows/execute_matrix.yml
+    with:
+      name: execute-matrix-self-test
+      matrix_yaml_string: |
+        config:
+          - platform: Linux
+            name: Hand-written matrix entry
+            runner:
+              - ubuntu-24.04
+            swift_build:
+              swift_version: "6.3"
+            command: |
+              cd tests/TestPackage
+              swift build
+            command_arguments: []
+            env: {}
 
   proposal_validation:
     name: Proposal Validation
