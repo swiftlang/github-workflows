@@ -133,11 +133,11 @@ struct DefaultAgreementTests {
     "benchmarks": [],
   ]
 
-  /// The entry point's environment with every job kind it forwards turned on, so
+  /// The entry point's environment with every job group it forwards turned on, so
   /// no knob is dead when its default is compared.
-  private func allKindsEnabled(_ entryPoint: EntryPoint) throws -> [String: String] {
+  private func allGroupsEnabled(_ entryPoint: EntryPoint) throws -> [String: String] {
     var environment = try entryPoint.environment()
-    for enable in EntryPoint.jobKindEnables where environment[enable] != nil {
+    for enable in EntryPoint.jobGroupEnables where environment[enable] != nil {
       environment[enable] = "true"
     }
     return environment
@@ -148,7 +148,7 @@ struct DefaultAgreementTests {
     arguments: EntryPoint.all
   )
   func declaredDefaultsMatchTheGenerator(entryPoint: EntryPoint) throws {
-    let baseline = try allKindsEnabled(entryPoint)
+    let baseline = try allGroupsEnabled(entryPoint)
     let documented = try #require(Self.deliberateDifferences[entryPoint.workflow])
 
     // Emptying a variable is how the generator is asked for its own default, so
@@ -157,7 +157,7 @@ struct DefaultAgreementTests {
     // say nothing about the defaults inside it.
     var askingTheGenerator = baseline
     for key in try entryPoint.inputBackedKeys()
-    where !EntryPoint.jobKindEnables.contains(key) && !documented.contains(key) {
+    where !EntryPoint.jobGroupEnables.contains(key) && !documented.contains(key) {
       askingTheGenerator[key] = ""
     }
     #expect(askingTheGenerator != baseline, "\(entryPoint) forwards no input to compare")

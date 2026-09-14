@@ -227,10 +227,9 @@ on:
         type: string
         description: >-
           Per-Linux-version overrides (JSON/YAML object). A string value adds arguments, which reach
-          every Linux job kind; an object with `arguments` and/or `command` can also replace the
-          command for that version. Replacing needs a single command configured for the kinds that
-          run it, and the release build and the Cxx interop check refuse it, since their command is
-          the check itself.
+          every Linux job group; an object with `arguments` and/or `command` can also replace the
+          command for that version. Replacing needs a single command configured for the groups that
+          run it, and the Cxx interop check refuses it, since its command is the check itself.
         default: "{}"
       windows_version_overrides:
         type: string

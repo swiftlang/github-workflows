@@ -13,9 +13,9 @@
 import MatrixTestSupport
 import Testing
 
-/// Every job kind at once, each on one version, so a name is the bare form with
+/// Every job group at once, each on one version, so a name is the bare form with
 /// nothing fanned out.
-private let everyKind = [
+private let everyGroup = [
   "ENABLE_LINUX": "true",
   "ENABLE_MACOS": "true",
   "ENABLE_MACOS_SWIFTLY": "true",
@@ -33,7 +33,7 @@ private let everyKind = [
   "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
 ]
 
-/// The names those kinds produce when each runs one command.
+/// The names those groups produce when each runs one command.
 private let bareNames = [
   "Linux Swift 6.3",
   "macOS Xcode latest-beta",
@@ -69,12 +69,12 @@ struct CommandAxisTests {
     #expect(generated.entry(named: "release Linux Swift 6.3")?.command == "swift test -c release")
   }
 
-  @Test("Every job kind takes a map of label to command")
-  func everyKindTakesLabels() throws {
-    // A kind reading only the scalar would drop every label but the value it read
+  @Test("Every job group takes a map of label to command")
+  func everyGroupTakesLabels() throws {
+    // A group reading only the scalar would drop every label but the value it read
     // as the whole command, leaving a job running something the caller did not ask
     // for under a name that says otherwise.
-    var environment = everyKind
+    var environment = everyGroup
     environment["LINUX_COMMAND"] = "test: swift test\nbuild: swift build"
     environment["MACOS_COMMAND"] = "test: xcrun swift test\nbuild: xcrun swift build"
     environment["MACOS_SWIFTLY_COMMAND"] =
@@ -86,7 +86,7 @@ struct CommandAxisTests {
 
     let generated = try Generator.run(environment)
     #expect(generated.exitCode == 0, "\(generated.standardError)")
-    // The kind whose command is the check itself takes no labels, so it keeps its
+    // The group whose command is the check itself takes no labels, so it keeps its
     // single entry.
     #expect(generated.count == 2 * 8 + 1, "got \(generated.names)")
     for name in bareNames where !name.hasPrefix("Cxx interop") {
@@ -171,11 +171,11 @@ struct CommandNameStabilityTests {
 
   @Test("One command leaves every job name alone, however it is written")
   func oneCommandDoesNotRenameJobs() throws {
-    let scalar = try Generator.run(everyKind)
+    let scalar = try Generator.run(everyGroup)
     #expect(scalar.exitCode == 0, "\(scalar.standardError)")
     #expect(scalar.names == bareNames)
 
-    var labeled = everyKind
+    var labeled = everyGroup
     labeled["LINUX_COMMAND"] = "test: swift test"
     labeled["MACOS_COMMAND"] = "test: xcrun swift test"
     labeled["MACOS_SWIFTLY_COMMAND"] = "test: swiftly run swift test"
@@ -192,7 +192,7 @@ struct CommandNameStabilityTests {
     #expect(single.entry(named: "Static Linux SDK Swift 6.3")?.command == "swift build")
 
     // A second command is what earns the suffix, so the bare names have to go.
-    var two = everyKind
+    var two = everyGroup
     two["LINUX_COMMAND"] = "test: swift test\nrelease: swift test -c release"
     let widened = try Generator.run(two)
     #expect(widened.exitCode == 0, "\(widened.standardError)")
@@ -201,9 +201,9 @@ struct CommandNameStabilityTests {
     #expect(widened.names.contains("release Linux Swift 6.3"))
   }
 
-  @Test("A job's name does not depend on another kind's command count")
-  func namesDoNotDependOnAnotherKind() throws {
-    // Each kind counts its own commands. Job names are the identity branch
+  @Test("A job's name does not depend on another group's command count")
+  func namesDoNotDependOnAnotherGroup() throws {
+    // Each group counts its own commands. Job names are the identity branch
     // protection matches on, so adding a Windows command must not rename a Linux
     // job.
     let generated = try Generator.run([
@@ -306,7 +306,7 @@ struct CommandClassificationTests {
   )
   func malformedCommandMapFails(command: String, reported: String) throws {
     // Each of these reads as no command for that label, so the job would run the
-    // kind's default under a name saying it ran the caller's - or not appear at
+    // group's default under a name saying it ran the caller's - or not appear at
     // all.
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
@@ -364,9 +364,9 @@ struct CommandClassificationTests {
     #expect(generated.standardError.contains("more than once"), "\(generated.standardError)")
   }
 
-  @Test("A label naming a version the kind does not run fails rather than doing nothing")
-  func labelVersionsMustNameTheKindsVersions() throws {
-    // The label selects from the kind's version list, so a name the list does not
+  @Test("A label naming a version the group does not run fails rather than doing nothing")
+  func labelVersionsMustNameTheGroupsVersions() throws {
+    // The label selects from the group's version list, so a name the list does not
     // hold produces no entry: the command is missing from a run that reports
     // success, which is how a version rename loses a job.
     let generated = try Generator.run([
@@ -401,10 +401,10 @@ struct CommandClassificationTests {
     #expect(generated.standardError.contains("macos_swiftly_toolchains"))
   }
 
-  @Test("A label's versions are not checked against a kind that is off")
-  func versionsForDisabledKindDoNotFailTheRun() throws {
-    // A kind that is off reads none of its commands, so a label naming a version
-    // its list does not hold loses nothing. Failing there takes down the kinds
+  @Test("A label's versions are not checked against a group that is off")
+  func versionsForDisabledGroupDoNotFailTheRun() throws {
+    // A group that is off reads none of its commands, so a label naming a version
+    // its list does not hold loses nothing. Failing there takes down the groups
     // that are on over a setting nothing reads.
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
@@ -423,7 +423,7 @@ struct CommandClassificationTests {
 @Suite("A per-version command override and the command axis")
 struct VersionOverrideCommandTests {
   @Test(
-    "The override reaches every kind that runs the caller's own command",
+    "The override reaches every group that runs the caller's own command",
     arguments: [
       ("ENABLE_LINUX", "LINUX_SWIFT_VERSIONS", "Linux Swift 6.3"),
       ("ENABLE_LINUX_STATIC_SDK_BUILD", "LINUX_STATIC_SDK_VERSIONS", "Static Linux SDK Swift 6.3"),
@@ -440,7 +440,7 @@ struct VersionOverrideCommandTests {
     versionsKey: String,
     expectedName: String
   ) throws {
-    // Every one of these honored `arguments:` already. A kind reading the base
+    // Every one of these honored `arguments:` already. A group reading the base
     // command instead ran what the caller replaced, and still passed.
     var environment = [
       "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
@@ -455,8 +455,8 @@ struct VersionOverrideCommandTests {
     #expect(generated.entry(named: expectedName)?.command == "swift test --filter Foo")
   }
 
-  @Test("The override fails on a kind whose command is the check itself")
-  func overrideFailsWhereTheCommandIsTheKind() throws {
+  @Test("The override fails on a group whose command is the check itself")
+  func overrideFailsWhereTheCommandIsTheGroup() throws {
     // Honoring it would leave a job named for a check it no longer runs; dropping
     // it silently is how a caller believes a command reached a job it did not.
     let generated = try Generator.run([
@@ -470,8 +470,8 @@ struct VersionOverrideCommandTests {
     #expect(generated.standardError.contains("linux_version_overrides"))
   }
 
-  @Test("Arguments still reach a kind whose command is the check itself")
-  func argumentsStillReachEveryKind() throws {
+  @Test("Arguments still reach a group whose command is the check itself")
+  func argumentsStillReachEveryGroup() throws {
     // Only `command:` is refused. A string override, which is the common case,
     // carries arguments and has to go on working.
     let generated = try Generator.run([
@@ -490,7 +490,7 @@ struct VersionOverrideCommandTests {
     )
   }
 
-  @Test("A version that kind does not run is not its business")
+  @Test("A version that group does not run is not its business")
   func overrideOnAnotherVersionIsFine() throws {
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
@@ -542,8 +542,8 @@ struct VersionOverrideCommandTests {
     #expect(generated.standardError.contains(reported), "\(generated.standardError)")
   }
 
-  @Test("A version a kind does not run leaves that kind's labels alone")
-  func overrideOnAnotherKindsVersionIsNotAmbiguous() throws {
+  @Test("A version a group does not run leaves that group's labels alone")
+  func overrideOnAnotherGroupsVersionIsNotAmbiguous() throws {
     // The override names a version only the Linux tests run, so it reaches no SDK
     // build entry and there is nothing there for it to be ambiguous about.
     let generated = try Generator.run([
@@ -560,8 +560,8 @@ struct VersionOverrideCommandTests {
     #expect(generated.names.contains("release Static Linux SDK Swift 6.3"))
   }
 
-  @Test("A version only another kind runs leaves the labeled tests alone")
-  func overrideForAnotherKindDoesNotReachTheTests() throws {
+  @Test("A version only another group runs leaves the labeled tests alone")
+  func overrideForAnotherGroupDoesNotReachTheTests() throws {
     // The mirror of the case above: here the override reaches only the SDK build,
     // and the labeled Linux tests never run that version.
     let generated = try Generator.run([

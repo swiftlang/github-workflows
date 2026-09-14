@@ -67,7 +67,7 @@ struct VersionListTests {
   }
 
   @Test(
-    "A list input that is not a list fails rather than dropping its job kind",
+    "A list input that is not a list fails rather than dropping its job group",
     arguments: [
       (["ENABLE_LINUX": "true", "LINUX_HOST_ARCHS": "x86_64"], "linux_host_archs"),
       (["ENABLE_LINUX": "true", "LINUX_SWIFT_VERSIONS": "6.3"], "linux_swift_versions"),
@@ -94,7 +94,7 @@ struct VersionListTests {
     // Every list input is a string carrying JSON, so a caller can write a bare
     // scalar. Reading one with `jq -r '.[]'` in a process substitution fails
     // invisibly: set -e does not see it, the loop body never runs, and Windows
-    // fills the matrix so the empty-matrix guard does not fire either. The job kind
+    // fills the matrix so the empty-matrix guard does not fire either. The job group
     // is then absent from a run that reports success.
     var variables = environment
     variables["ENABLE_WINDOWS"] = "true"
@@ -313,15 +313,15 @@ struct MinimumVersionTests {
   }
 }
 
-@Suite("A kind the minimum version empties")
+@Suite("A group the minimum version empties")
 struct EmptiedByTheMinimumTests {
-  // Dropping some of a kind's versions is what the filter is for. Dropping all of
-  // them leaves a kind the caller enabled contributing nothing, and the run still
-  // reports success: the whole-matrix guard fires only when no other kind produced
-  // anything, so any other enabled platform hides it.
+  // Dropping some of a group's versions is what the filter is for. Dropping all of
+  // them leaves a group the caller enabled contributing nothing, so it fails here
+  // rather than falling through to the guard that only knows the group produced
+  // nothing: this message names the minimum version and what to do about it.
 
   @Test(
-    "An enabled kind the filter empties fails, naming the kind",
+    "An enabled group the filter empties fails, naming the group",
     arguments: [
       ("ENABLE_CXX_INTEROP", "CXX_INTEROP_SWIFT_VERSIONS", "enable_cxx_interop"),
       (
@@ -339,8 +339,8 @@ struct EmptiedByTheMinimumTests {
       ("ENABLE_MACOS", "MACOS_SWIFT_VERSIONS", "enable_macos"),
     ]
   )
-  func emptiedKindFails(enableKey: String, versionsKey: String, reported: String) throws {
-    // A second kind runs alongside on a version that survives, so the matrix is
+  func emptiedGroupFails(enableKey: String, versionsKey: String, reported: String) throws {
+    // A second group runs alongside on a version that survives, so the matrix is
     // not empty and the guard at the end cannot be what fails the run.
     var environment = ["MINIMUM_SWIFT_VERSION": "6.2"]
     if enableKey == "ENABLE_LINUX" {
@@ -361,11 +361,11 @@ struct EmptiedByTheMinimumTests {
     #expect(generated.standardError.contains("6.1"), "\(generated.standardError)")
     #expect(generated.standardError.contains("6.2"), "\(generated.standardError)")
     #expect(generated.standardError.contains("minimum_swift_version"), "\(generated.standardError)")
-    // The companion kind means the whole-matrix guard has entries to see, so this
+    // The companion group means the whole-matrix guard has entries to see, so this
     // has to be the new check rather than the old one firing on an empty matrix.
     #expect(!generated.standardError.contains("No matrix entries"), "\(generated.standardError)")
 
-    // The same run with the kind's versions raised passes, so the failure above is
+    // The same run with the group's versions raised passes, so the failure above is
     // the filter and not something else the environment got wrong.
     var runnable = environment
     runnable[versionsKey] = #"["6.3"]"#
@@ -412,7 +412,7 @@ struct EmptiedByTheMinimumTests {
     reported: String,
     enables: [String: String]
   ) throws {
-    // The label's own versions are intersected with the kind's list before the
+    // The label's own versions are intersected with the group's list before the
     // filter runs, so the filter can empty one label while the others still run:
     // the command the caller named is absent from a matrix that is not empty.
     var environment = enables
@@ -446,7 +446,7 @@ struct EmptiedByTheMinimumTests {
     #expect(fixed.exitCode == 0, "\(fixed.standardError)")
     #expect(fixed.names.contains { $0.hasPrefix("legacy ") }, "\(fixed.names)")
 
-    // Without the enable the kind runs nothing, so the label loses nothing.
+    // Without the enable the group runs nothing, so the label loses nothing.
     var disabled = environment
     for key in enables.keys where key.hasPrefix("ENABLE_") {
       disabled[key] = "false"
@@ -496,10 +496,10 @@ struct EmptiedByTheMinimumTests {
     #expect(generated.names.contains("beta macOS Xcode latest-beta"))
   }
 
-  @Test("A kind that is off keeps a version list the filter would empty")
-  func disabledKindIsSilent() throws {
-    // A kind nobody enabled runs nothing, so a list below the minimum costs it
-    // nothing - and failing there would take down the kinds that are on.
+  @Test("A group that is off keeps a version list the filter would empty")
+  func disabledGroupIsSilent() throws {
+    // A group nobody enabled runs nothing, so a list below the minimum costs it
+    // nothing - and failing there would take down the groups that are on.
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
@@ -513,14 +513,14 @@ struct EmptiedByTheMinimumTests {
     #expect(generated.names == ["Linux Swift 6.3"])
   }
 
-  @Test("The fork guard is a skip rather than an emptied kind")
-  func forkGuardIsNotAnEmptiedKind() throws {
+  @Test("The fork guard is a skip rather than an emptied group")
+  func forkGuardIsNotAnEmptiedGroup() throws {
     // The guard withholds macOS because this repository cannot reach the pools, so
     // the caller did not ask for macOS here. Failing would take down every fork of
     // a repository whose macOS list happens to sit below its own minimum.
     //
     // Linux runs alongside on a version that survives, so the matrix is not empty
-    // either way: what the fork must not get is the emptied-kind failure.
+    // either way: what the fork must not get is the emptied-group failure.
     let fork = try Generator.run([
       "ENABLE_MACOS": "true",
       "ENABLE_MACOS_SWIFTLY": "true",
@@ -534,7 +534,7 @@ struct EmptiedByTheMinimumTests {
     #expect(fork.exitCode == 0, "\(fork.standardError)")
     #expect(fork.names == ["Linux Swift 6.3"])
 
-    // The same configuration on the owning repository is an emptied kind. The
+    // The same configuration on the owning repository is an emptied group. The
     // matrix is non-empty in both runs, so this is the new check rather than the
     // whole-matrix guard, and the pass above is the fork guard rather than the
     // check having been dropped.
@@ -552,8 +552,8 @@ struct EmptiedByTheMinimumTests {
     #expect(!owner.standardError.contains("No matrix entries"), "\(owner.standardError)")
   }
 
-  @Test("Toolchain mode suppresses the command-only kinds rather than failing them")
-  func toolchainsModeIsNotAnEmptiedKind() throws {
+  @Test("Toolchain mode suppresses the command-only groups rather than failing them")
+  func toolchainsModeIsNotAnEmptiedGroup() throws {
     // The mode clears those enables itself, so the caller did not ask for them
     // here either - even with version lists the filter would empty.
     let generated = try Generator.run([
@@ -573,7 +573,7 @@ struct EmptiedByTheMinimumTests {
   @Test("Nothing enabled is still an empty matrix rather than a failure")
   func nothingEnabledStaysLegitimate() throws {
     // Every version list here sits below the minimum, and none of them belongs to
-    // a kind that is on.
+    // a group that is on.
     let generated = try Generator.run([
       "ENABLE_LINUX": "false",
       "ENABLE_WINDOWS": "false",
@@ -667,9 +667,9 @@ struct LinuxTests {
     #expect(containerized.entries.first?.swiftBuild?.container?.image == "swift:6.3-noble")
   }
 
-  @Test("Every job kind runs on the architecture that was configured")
-  func architectureAppliesToEveryKind() throws {
-    // The single-entry kinds do not fan out, so nothing but this makes them
+  @Test("Every job group runs on the architecture that was configured")
+  func architectureAppliesToEveryGroup() throws {
+    // The single-entry groups do not fan out, so nothing but this makes them
     // follow linux_host_archs. An aarch64-only caller must not get x86_64 jobs
     // that pass without testing the architecture it ships.
     let generated = try Generator.run([

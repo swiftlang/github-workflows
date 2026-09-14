@@ -49,7 +49,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
   /// The enables that gate a whole block of the generator. A knob only one block
   /// reads is dead while that block is off, so a test comparing defaults turns
   /// these on first.
-  public static let jobKindEnables = [
+  public static let jobGroupEnables = [
     "ENABLE_LINUX",
     "ENABLE_MACOS",
     "ENABLE_MACOS_SWIFTLY",

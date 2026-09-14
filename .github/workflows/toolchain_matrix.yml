@@ -9,7 +9,7 @@ permissions:
 #
 # This is the middle ground: package_test.yml chooses the toolchains and the
 # work, a hand-written matrix leaves you both to do, and this chooses the
-# toolchains only. Use it for any job kind package_test.yml does not cover:
+# toolchains only. Use it for any job group package_test.yml does not cover:
 # integration tests, spec suites, custom scripts.
 #
 #   jobs:

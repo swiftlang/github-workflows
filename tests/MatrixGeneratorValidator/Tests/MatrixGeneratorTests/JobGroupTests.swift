@@ -118,11 +118,11 @@ struct SupplementaryCheckTests {
   }
 }
 
-@Suite("Job kinds")
-struct JobKindTests {
-  @Test("Every kind generates the entries it is enabled for")
-  func everyKindGeneratesEntries() throws {
-    // A kind whose version list no caller can reach, or whose enable nothing sets,
+@Suite("Job groups")
+struct JobGroupTests {
+  @Test("Every group generates the entries it is enabled for")
+  func everyGroupGeneratesEntries() throws {
+    // A group whose version list no caller can reach, or whose enable nothing sets,
     // would be unreachable while the generator still offers it.
     let enables = [
       "ENABLE_LINUX_STATIC_SDK_BUILD",
@@ -214,8 +214,8 @@ struct OutputModeTests {
     #expect(entry.runner == ["ubuntu-24.04"])
   }
 
-  @Test("Toolchain mode suppresses the job kinds that exist only to run a command")
-  func toolchainsModeSuppressesJobKinds() throws {
+  @Test("Toolchain mode suppresses the job groups that exist only to run a command")
+  func toolchainsModeSuppressesJobGroups() throws {
     let generated = try Generator.run([
       "MATRIX_MODE": "toolchains",
       "ENABLE_LINUX": "true",
@@ -387,9 +387,9 @@ struct InvariantTests {
     #expect(withoutWindows.allSatisfy { $0.hasSuffix("jammy") || $0.hasSuffix("noble") })
   }
 
-  @Test("Supplementary job kinds carry the flags for their version")
-  func supplementaryKindsCarryFlags() throws {
-    // Each of these kinds builds its own argument list, so each can drop
+  @Test("Supplementary job groups carry the flags for their version")
+  func supplementaryGroupsCarryFlags() throws {
+    // Each of these groups builds its own argument list, so each can drop
     // swift_flags independently - and a repository that loses warnings-as-errors
     // stays green.
     let generated = try Generator.run([
@@ -457,13 +457,13 @@ struct InvariantTests {
     }
   }
 
-  @Test("No Linux kind containerizes a version unless the caller asked for a container")
+  @Test("No Linux group containerizes a version unless the caller asked for a container")
   func containersOnlyWhenAskedFor() throws {
     // A container swaps the toolchain under test for the image's own and costs a
     // pull, so it is the caller's decision alone. swiftly installs every version the
-    // generator produces, nightly-release included, so no kind may reach for one on
+    // generator produces, nightly-release included, so no group may reach for one on
     // a version's behalf.
-    func kinds(_ extra: [String: String]) throws -> Generated {
+    func groups(_ extra: [String: String]) throws -> Generated {
       var environment = [
         "ENABLE_LINUX": "true",
         "ENABLE_CXX_INTEROP": "true",
@@ -478,20 +478,20 @@ struct InvariantTests {
       return try Generator.run(environment)
     }
 
-    let unasked = try kinds([:])
+    let unasked = try groups([:])
     #expect(unasked.count == 3)
     for entry in unasked.entries {
       #expect(entry.swiftBuild?.container == nil, "\(entry.name) containerized unasked")
       #expect(entry.swiftBuild?.swiftly == "6.4.x-snapshot", "\(entry.name) carries the wrong selector")
     }
 
-    // Each of the three ways to ask, so a kind that reads only one of them is caught.
+    // Each of the three ways to ask, so a group that reads only one of them is caught.
     for (ask, image) in [
       (["LINUX_USE_DOCKER": "true"], "swiftlang/swift:nightly-6.4.x-noble"),
       (["LINUX_DOCKERFILE": "docker/ci.Dockerfile"], "swiftlang/swift:nightly-6.4.x-noble"),
       (["LINUX_OS": "jammy"], "swiftlang/swift:nightly-6.4.x-jammy"),
     ] {
-      let asked = try kinds(ask)
+      let asked = try groups(ask)
       for name in ["Linux Swift nightly-release", "Cxx interop Swift nightly-release"] {
         #expect(
           asked.entry(named: name)?.swiftBuild?.container?.image == image,
