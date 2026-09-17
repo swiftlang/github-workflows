@@ -1,0 +1,24 @@
+name: PR Semver Label Check
+
+permissions:
+  contents: read
+  # `gh pr view --json labels` reads pull-request metadata, which is a scope of its
+  # own: without it the call 403s on a private repository.
+  pull-requests: read
+
+on:
+  workflow_call:
+
+jobs:
+  semver-label-check:
+    name: Semantic version label check
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Check for Semantic Version label
+        if: ${{ !env.ACT }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr view ${{ github.event.number }} --repo ${{ github.repository }} --json labels \
+          | jq -e '[.labels[].name] | any(. == "⚠️ semver/major" or . == "🆕 semver/minor" or . == "🔨 semver/patch" or . == "semver/none")'

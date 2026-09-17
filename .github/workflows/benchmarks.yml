@@ -1,0 +1,198 @@
+name: Benchmarks
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      benchmark_package_path:
+        type: string
+        description: "Path to the directory containing the benchmarking package. Used only when benchmark_package_paths is empty."
+        default: "."
+      benchmark_package_paths:
+        type: string
+        description: 'JSON array of benchmarking package paths to run in sequence on each runner, e.g. ''["Benchmarks/A", "Benchmarks/B"]''. Takes precedence over benchmark_package_path.'
+        default: "[]"
+      swift_package_arguments:
+        type: string
+        description: "Additional arguments passed to swift package (e.g. --disable-sandbox)."
+        default: ""
+      linux_swift_versions:
+        type: string
+        description: "Linux Swift version list (JSON array)."
+        default: '["6.1", "6.2", "6.3", "nightly-release", "nightly-main"]'
+      enable_linux:
+        type: boolean
+        description: "Run the benchmarks on Linux."
+        default: true
+      enable_macos:
+        type: boolean
+        description: "Run the benchmarks on macOS."
+        default: false
+      macos_swift_versions:
+        type: string
+        description: "macOS Swift version list (JSON array) for benchmarks. Resolved through the runners' Xcode symlinks. Empty, with macos_xcode_versions also empty, uses the generator's list of release versions."
+        default: ""
+      macos_xcode_versions:
+        type: string
+        description: "macOS Xcode version list (JSON array) for benchmarks. Combined with macos_swift_versions rather than replaced by it."
+        default: ""
+      macos_runner_pool:
+        type: string
+        description: "The self-hosted runner pool for macOS benchmark jobs."
+        default: "general"
+      macos_repository_owner:
+        type: string
+        description: "Owner whose self-hosted macOS runners these are. A repository under any other owner gets no macOS entries, since a fork's jobs would queue until they time out."
+        default: ""
+      linux_env_vars:
+        type: string
+        description: "Environment variables for Linux jobs as JSON."
+        default: "{}"
+      macos_env_vars:
+        type: string
+        description: "Environment variables for macOS jobs as JSON."
+        default: "{}"
+      minimum_swift_version:
+        type: string
+        description: "Minimum Swift version. Empty auto-detects from Package.swift, 'none' disables filtering, or name a version explicitly."
+        default: ""
+      name:
+        type: string
+        description: "Name used for the concurrency group. Set this when a workflow calls benchmarks.yml more than once, or the calls cancel each other."
+        default: "benchmarks"
+      job_timeout:
+        type: number
+        description: "Timeout in minutes for each job."
+        default: 60
+      needs_token:
+        type: boolean
+        description: "Whether to provide GITHUB_TOKEN to jobs."
+        default: false
+      enable_cross_pr_testing:
+        type: boolean
+        description: "Whether PRs can be tested together with linked PRs mentioned in the PR description."
+        default: false
+
+      workflows_repository:
+        type: string
+        description: "Repository to take the matrix scripts from. Point this at a fork to test a change to the workflows before it lands; it carries no version, so Dependabot has only the `uses:` line to bump."
+        default: "swiftlang/github-workflows"
+      workflows_ref:
+        type: string
+        description: "Ref to take the scripts from. Empty uses workflows_repository's default branch, which is correct for a released version; set it when workflows_repository is a fork whose default branch does not carry the change."
+        default: ""
+jobs:
+  generate-matrix:
+    name: Generate benchmark matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_yaml: ${{ steps.generate.outputs.matrix_yaml }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Resolve the workflows source
+        id: workflows_source
+        shell: bash
+        env:
+          WORKFLOWS_REPOSITORY: ${{ inputs.workflows_repository }}
+          WORKFLOWS_REF: ${{ inputs.workflows_ref }}
+        run: |
+          set -euo pipefail
+
+          # Empty uses the default branch.
+          echo "ref=$WORKFLOWS_REF" >> $GITHUB_OUTPUT
+
+          if [ "$GITHUB_REPOSITORY" = "$WORKFLOWS_REPOSITORY" ]; then
+            echo "needs_checkout=false" >> $GITHUB_OUTPUT
+            echo "root_directory=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "needs_checkout=true" >> $GITHUB_OUTPUT
+            echo "root_directory=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Checkout the workflows repository
+        if: ${{ steps.workflows_source.outputs.needs_checkout == 'true' }}
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.workflows_repository }}
+          ref: ${{ steps.workflows_source.outputs.ref }}
+          path: github-workflows
+          persist-credentials: false
+      - name: Generate matrix
+        id: generate
+        env:
+          WORKFLOWS_CHECKOUT: ${{ steps.workflows_source.outputs.root_directory }}
+          LINUX_USER_ENV_VARS: ${{ inputs.linux_env_vars }}
+          MACOS_USER_ENV_VARS: ${{ inputs.macos_env_vars }}
+          BENCHMARK_PACKAGE_PATH: ${{ inputs.benchmark_package_path }}
+          BENCHMARK_PACKAGE_PATHS: ${{ inputs.benchmark_package_paths }}
+          SWIFT_PACKAGE_ARGUMENTS: ${{ inputs.swift_package_arguments }}
+          ENABLE_LINUX: ${{ inputs.enable_linux }}
+          ENABLE_MACOS: ${{ inputs.enable_macos }}
+          ENABLE_WINDOWS: "false"
+          LINUX_SWIFT_VERSIONS: ${{ inputs.linux_swift_versions }}
+          MACOS_SWIFT_VERSIONS: ${{ inputs.macos_swift_versions }}
+          MACOS_XCODE_VERSIONS: ${{ inputs.macos_xcode_versions }}
+          MACOS_RUNNER_POOL: ${{ inputs.macos_runner_pool }}
+          MACOS_REPOSITORY_OWNER: ${{ inputs.macos_repository_owner }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
+          LINUX_SETUP_COMMAND: |
+            git config --global --add safe.directory "$(pwd)"
+            # The job runs unprivileged on the runner but as root in a container,
+            # where sudo is not installed.
+            if command -v sudo >/dev/null 2>&1; then
+              sudo apt-get update -y -q && sudo apt-get install -y -q libjemalloc-dev jq
+            else
+              apt-get update -y -q && apt-get install -y -q libjemalloc-dev jq
+            fi
+          MACOS_SETUP_COMMAND: |
+            git config --global --add safe.directory "$(pwd)"
+            brew install jemalloc
+        run: |
+          set -euo pipefail
+
+          # The threshold script reads the package paths from the environment, so
+          # they are added to the caller's own variables rather than replacing
+          # them.
+          with_benchmark_paths() {
+            jq -cn \
+              --argjson user "$(echo "${1:-}" | yq -o=json '. // {}')" \
+              --arg path "$BENCHMARK_PACKAGE_PATH" \
+              --arg paths "$BENCHMARK_PACKAGE_PATHS" \
+              '$user + {BENCHMARK_PACKAGE_PATH: $path, BENCHMARK_PACKAGE_PATHS: $paths}'
+          }
+          LINUX_ENV_VARS=$(with_benchmark_paths "$LINUX_USER_ENV_VARS")
+          MACOS_ENV_VARS=$(with_benchmark_paths "$MACOS_USER_ENV_VARS")
+          export LINUX_ENV_VARS MACOS_ENV_VARS
+
+          # Single-quoted so ${SCRIPTS_ROOT} survives into the matrix entry and is
+          # expanded on the runner, where the scripts directory is known.
+          threshold_command='${SCRIPTS_ROOT}/check-benchmark-thresholds.sh'
+          if [ -n "$SWIFT_PACKAGE_ARGUMENTS" ]; then
+            threshold_command="$threshold_command $SWIFT_PACKAGE_ARGUMENTS"
+          fi
+          LINUX_COMMAND="$threshold_command"
+          MACOS_COMMAND="$threshold_command"
+          export LINUX_COMMAND MACOS_COMMAND
+
+          matrix_yaml=$("${WORKFLOWS_CHECKOUT}/.github/workflows/scripts/matrix/generate-matrix.swift")
+          echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
+          echo "$matrix_yaml" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  benchmarks:
+    name: Benchmarks
+    needs: generate-matrix
+    uses: ./.github/workflows/execute_matrix.yml
+    with:
+      name: ${{ inputs.name }}
+      matrix_yaml_string: ${{ needs.generate-matrix.outputs.matrix_yaml }}
+      workflows_repository: ${{ inputs.workflows_repository }}
+      workflows_ref: ${{ inputs.workflows_ref }}
+      job_timeout: ${{ inputs.job_timeout }}
+      needs_token: ${{ inputs.needs_token }}
+      enable_cross_pr_testing: ${{ inputs.enable_cross_pr_testing }}
