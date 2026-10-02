@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
         collected+=("$1")
         shift
       done
-      docs_targets="${collected[*]}"
+      docs_targets="${collected[*]:-}"
       ;;
     --additional-docc-arguments)
       shift
@@ -65,7 +65,7 @@ while [[ $# -gt 0 ]]; do
         collected+=("$1")
         shift
       done
-      additional_docc_arguments="${collected[*]}"
+      additional_docc_arguments="${collected[*]:-}"
       ;;
     -h|--help)
       usage
