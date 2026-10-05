@@ -2,27 +2,19 @@ name: Pull request
 
 permissions:
   contents: read
-  issues: read
-  pull-requests: read
 
 on:
   pull_request:
-    types: [opened, edited, reopened, labeled, unlabeled, synchronize]
+    types: [opened, reopened, synchronize]
 
 jobs:
   shell_tests:
     name: Shell Tests
     uses: ./.github/workflows/shell_tests.yml
-    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
-
-  github_actiion_pr_dependency_check:
-    name: GitHub Action Dependency Check
-    uses: ./.github/workflows/github_actions_dependencies.yml
 
   tests_with_docker_embedded_swift:
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Wasm
       enable_linux_checks: false
@@ -35,10 +27,11 @@ jobs:
   tests_with_docker:
     name: Test with Docker
     uses: ./.github/workflows/swift_package_test.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Linux
-      linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2"]'
+      linux_os_versions: '["jammy", "rhel-ubi9", "amazonlinux2023"]'
+      # Amazon Linux 2023 images are only available for Swift 6.3 and later.
+      linux_exclude_swift_versions: '[{"swift_version": "5.9", "os_version": "amazonlinux2023"}, {"swift_version": "5.10", "os_version": "amazonlinux2023"}, {"swift_version": "6.0", "os_version": "amazonlinux2023"}, {"swift_version": "6.1", "os_version": "amazonlinux2023"}, {"swift_version": "6.2", "os_version": "amazonlinux2023"}]'
       linux_host_archs: '["x86_64", "aarch64"]'
       linux_build_command: |
         cd tests/TestPackage
@@ -59,7 +52,6 @@ jobs:
   tests_without_docker:
     name: Test without Docker
     uses: ./.github/workflows/swift_package_test.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       # Skip Linux which doesn't currently support docker-less workflow
       enable_linux_checks: false
@@ -77,11 +69,12 @@ jobs:
       windows_os_versions: '["windows-2022", "windows-11-arm"]'
       # FreeBSD
       enable_freebsd_checks: true
+      freebsd_pre_build_command: |
+        cd tests/TestPackage
 
   tests_macos:
     name: Test
     uses: ./.github/workflows/swift_package_test.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       enable_linux_checks: false
       enable_windows_checks: false
@@ -90,11 +83,14 @@ jobs:
       macos_build_command: |
         cd tests/TestPackage
         xcrun swift build
+      enable_macos_swiftly_checks: true
+      macos_swiftly_build_command: |
+        cd tests/TestPackage
+        swiftly run swift build
 
   build_tests_ios:
     name: Build iOS Tests
     uses: ./.github/workflows/swift_package_test.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       enable_linux_checks: false
       enable_windows_checks: false
@@ -107,7 +103,50 @@ jobs:
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml
-    if: ${{ github.event_name == 'opened' || github.event_name == 'reopened' || github.event_name == 'synchronize' }}
     with:
       api_breakage_check_enabled: false
       license_header_check_project_name: "Swift.org"
+
+  proposal_validation:
+    name: Proposal Validation
+    uses: ./.github/workflows/proposal_validation.yml
+    with:
+      project: "swift"
+      workflow_test_enabled: true
+
+  install_cmake:
+    name: Install CMake
+    uses: ./.github/workflows/install_cmake_test.yml
+
+  cmake_build:
+    name: CMake Build
+    uses: ./.github/workflows/cmake_build.yml
+    with:
+      # Linux uses the default Ninja generator; install Ninja first.
+      linux_pre_build_command: "apt-get install -y ninja-build"
+      linux_configure_command: "$CMAKE -G Ninja -B build -S tests/CMakeProject"
+      # Windows uses CMake's default generator (MSVC), so Ninja is not required.
+      windows_configure_command: "Invoke-Program cmake -B build -S tests/CMakeProject"
+
+  soundness-docs:
+    name: "Soundness - Docs (override_target_name: ${{ matrix.override_target_name }} ; post command: ${{ matrix.post_command }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        override_target_name: ["theDocs", ""]
+        post_command: ["cat .spi.yml", 'rm -rfv .spi.yml']
+    uses: ./.github/workflows/soundness.yml
+    with:
+      concurrency_group_suffix: "${{ matrix.override_target_name }}-${{ matrix.post_command }}"
+      linux_pre_build_command: "cd tests/TestPackage && ${{ matrix.post_command }}"
+      docs_check_enabled: true
+      docs_check_targets: ${{ matrix.override_target_name}}
+      docs_check_macos_enabled: false
+      api_breakage_check_enabled: false
+      unacceptable_language_check_enabled: false
+      license_header_check_enabled: false
+      broken_symlink_check_enabled: false
+      format_check_enabled: false
+      shell_check_enabled: false
+      yamllint_check_enabled: false
+      python_lint_check_enabled: false

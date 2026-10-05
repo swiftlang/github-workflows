@@ -1,6 +1,6 @@
 [flake8]
 
-ignore =
+extend-ignore =
     # These are needed to make our license headers pass the linting
     E265,
     E266,

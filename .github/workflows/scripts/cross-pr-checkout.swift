@@ -81,6 +81,7 @@ public func lookup(executable: String) throws -> URL {
 }
 
 func downloadData(from url: URL) async throws -> Data {
+  print("Retrieving data from \(url)...")
   return try await withCheckedThrowingContinuation { continuation in
     URLSession.shared.dataTask(with: url) { data, _, error in
       if let error {
@@ -117,11 +118,24 @@ func getPRInfo(repository: String, prNumber: String) async throws -> PRInfo {
     throw GenericError("Failed to form URL for GitHub API")
   }
 
-  do {
-    let data = try await downloadData(from: prInfoUrl)
-    return try JSONDecoder().decode(PRInfo.self, from: data)
-  } catch {
-    throw GenericError("Failed to load PR info from \(prInfoUrl): \(error)")
+  let maxAttempts = 5
+  var attempt = 1
+  while true {
+    do {
+      let data = try await downloadData(from: prInfoUrl)
+      return try JSONDecoder().decode(PRInfo.self, from: data)
+    } catch {
+      let messagePrefix = "[\(attempt) / \(maxAttempts)] Failed to load PR info from \(prInfoUrl)"
+      if attempt == maxAttempts {
+        throw GenericError("\(messagePrefix) after \(maxAttempts) attempts: \(error)")
+      }
+      let delaySeconds = UInt64(5 << (attempt - 1))
+      print(
+        "\(messagePrefix) with error\n\n\(error)\n\nRetrying in \(delaySeconds) seconds..."
+      )
+      try await Task.sleep(for: .seconds(delaySeconds))
+      attempt += 1
+    }
   }
 }
 
@@ -186,7 +200,7 @@ func main() async throws {
     throw GenericError(
       """
       Expected two arguments:
-      - Repository name, eg. `swiftlang/swift-syntax
+      - Repository name, eg. `swiftlang/swift-syntax`
       - PR number
       """
     )

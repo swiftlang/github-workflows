@@ -17,23 +17,25 @@ log() { printf -- "** %s\n" "$*" >&2; }
 error() { printf -- "** ERROR: %s\n" "$*" >&2; }
 fatal() { error "$@"; exit 1; }
 
+SWIFT_FORMAT_BIN="${SWIFT_FORMAT_BIN:-$(which swift-format 2> /dev/null)}"; test -n "$SWIFT_FORMAT_BIN" || fatal "SWIFT_FORMAT_BIN unset and no swift-format on PATH"
+
 
 if [[ -f .swiftformatignore ]]; then
     log "Found swiftformatignore file..."
 
     log "Running swift-format format..."
-    tr '\n' '\0' < .swiftformatignore| xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files -z '*.swift' | xargs -0 swift-format format --parallel --in-place
+    tr '\n' '\0' < .swiftformatignore| xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files -z '*.swift' | xargs -0 "$SWIFT_FORMAT_BIN" format --parallel --in-place
 
     log "Running swift-format lint..."
 
-    tr '\n' '\0' < .swiftformatignore | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files -z '*.swift' | xargs -0 swift-format lint --strict --parallel
+    tr '\n' '\0' < .swiftformatignore | xargs -0 -I% printf '":(exclude)%" '| xargs git ls-files -z '*.swift' | xargs -0 "$SWIFT_FORMAT_BIN" lint --strict --parallel
 else
     log "Running swift-format format..."
-    git ls-files -z '*.swift' | xargs -0 swift-format format --parallel --in-place
+    git ls-files -z '*.swift' | xargs -0 "$SWIFT_FORMAT_BIN" format --parallel --in-place
 
     log "Running swift-format lint..."
 
-    git ls-files -z '*.swift' | xargs -0 swift-format lint --strict --parallel
+    git ls-files -z '*.swift' | xargs -0 "$SWIFT_FORMAT_BIN" lint --strict --parallel
 fi
 
 

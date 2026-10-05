@@ -29,5 +29,5 @@ permissions:
 
 jobs:
   check_dependencies:
-     uses: swiftlang/github-workflows/.github/workflows/github_actions_dependencies.yml.yml@<to-be-updated>
+     uses: swiftlang/github-workflows/.github/workflows/github_actions_dependencies.yml@<to-be-updated>
 ```
