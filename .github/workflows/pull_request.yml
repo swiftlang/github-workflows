@@ -10,6 +10,11 @@ on:
     types: [opened, edited, reopened, labeled, unlabeled, synchronize]
 
 jobs:
+  shell_tests:
+    name: Shell Tests
+    uses: ./.github/workflows/shell_tests.yml
+    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
+
   github_actiion_pr_dependency_check:
     name: GitHub Action Dependency Check
     uses: ./.github/workflows/github_actions_dependencies.yml
