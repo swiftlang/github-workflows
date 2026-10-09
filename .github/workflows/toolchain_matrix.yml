@@ -1,0 +1,209 @@
+name: Toolchain matrix
+
+permissions:
+  contents: read
+
+# Emits the supported toolchain axis - platforms, runners, Swift versions and
+# container images - without a command, for a caller to pair with its own via
+# execute_matrix.yml's `command` input.
+#
+# This is the middle ground: package_test.yml chooses the toolchains and the
+# work, a hand-written matrix leaves you both to do, and this chooses the
+# toolchains only. Use it for any job kind package_test.yml does not cover:
+# integration tests, spec suites, custom scripts.
+#
+#   jobs:
+#     toolchains:
+#       uses: swiftlang/github-workflows/.github/workflows/toolchain_matrix.yml@<version>
+#       with:
+#         linux_swift_versions: '["6.3", "nightly-release"]'
+#     integration-tests:
+#       needs: toolchains
+#       uses: swiftlang/github-workflows/.github/workflows/execute_matrix.yml@<version>
+#       with:
+#         name: "Integration tests"
+#         matrix_yaml_string: ${{ needs.toolchains.outputs.matrix_yaml }}
+#         setup_command: "sudo apt-get update -yq && sudo apt-get install -yq lsof"
+#         command: "./scripts/integration_tests.sh"
+#
+# `sudo` suits the default, where Linux runs on the runner unprivileged. A
+# containerized entry runs as root and has no sudo, so a setup command that has
+# to serve both should test for it.
+#
+# The output is a plain YAML matrix, so it can also be filtered or extended with
+# `yq` before being executed - that is how non-rectangular matrices, private
+# registry images and mixed native/containerized runs are expressed.
+
+on:
+  workflow_call:
+    inputs:
+      enable_linux:
+        type: boolean
+        description: "Include the Linux toolchains."
+        default: true
+      enable_macos:
+        type: boolean
+        description: "Include the macOS toolchains."
+        default: false
+      # execute_matrix.yml runs one command on every entry, and a caller pairing a
+      # toolchain axis with its own command usually has a POSIX shell script. Ask
+      # for Windows when the command runs there too.
+      enable_windows:
+        type: boolean
+        description: "Include the Windows toolchains."
+        default: false
+      linux_swift_versions:
+        type: string
+        description: "Linux Swift version list (JSON/YAML array)."
+        default: '["6.1", "6.2", "6.3", "nightly-release", "nightly-main"]'
+      linux_host_archs:
+        type: string
+        description: "Linux host architecture list (JSON/YAML array)."
+        default: '["x86_64"]'
+      linux_use_docker:
+        type: boolean
+        description: "Emit container images instead of native swiftly toolchains."
+        default: false
+      linux_os:
+        type: string
+        description: "Linux distribution the container image is tagged for, or a list of them (JSON/YAML array). A distribution other than the default, or more than one, implies linux_use_docker."
+        default: "noble"
+      macos_swift_versions:
+        type: string
+        description: "macOS Swift version list (JSON/YAML array). Empty, with macos_xcode_versions also empty, uses the generator's list of release versions."
+        default: ""
+      macos_xcode_versions:
+        type: string
+        description: "macOS Xcode version list (JSON/YAML array). Combined with macos_swift_versions rather than replaced by it."
+        default: ""
+      macos_os:
+        type: string
+        description: "macOS runner label, or a list of them (JSON/YAML array) to include one entry per label."
+        default: "tahoe"
+      macos_arch:
+        type: string
+        description: "macOS runner architecture label."
+        default: "ARM64"
+      macos_runner_pool:
+        type: string
+        description: "macOS self-hosted runner pool label."
+        default: "general"
+      macos_repository_owner:
+        type: string
+        description: "Owner whose self-hosted macOS runners these are. A repository under any other owner gets no macOS entries, since a fork's jobs would queue until they time out."
+        default: ""
+      windows_swift_versions:
+        type: string
+        description: "Windows Swift version list (JSON/YAML array)."
+        default: '["6.1", "6.2", "6.3", "nightly-release", "nightly-main"]'
+      windows_os:
+        type: string
+        description: "Windows runner label, or a list of them (JSON/YAML array) to include one entry per label."
+        default: "windows-2022"
+      windows_use_docker:
+        type: boolean
+        description: "Emit container images for Windows entries. A container carries a Windows SDK matched to its toolchain, which the runner image does not carry for Swift releases before 6.1."
+        default: false
+      linux_env_vars:
+        type: string
+        description: "Environment variables for Linux entries (JSON/YAML object)."
+        default: "{}"
+      macos_env_vars:
+        type: string
+        description: "Environment variables for macOS entries (JSON/YAML object)."
+        default: "{}"
+      windows_env_vars:
+        type: string
+        description: "Environment variables for Windows entries (JSON/YAML object)."
+        default: "{}"
+      minimum_swift_version:
+        type: string
+        description: "Minimum Swift version. Empty auto-detects from Package.swift, 'none' disables filtering, or name a version explicitly."
+        default: ""
+      find_subdirectory_manifests:
+        type: boolean
+        description: "Check subdirectory Package.swift files when detecting the minimum version."
+        default: false
+      workflows_repository:
+        type: string
+        description: "Repository to take the matrix scripts from. Point this at a fork to test a change to the workflows before it lands; it carries no version, so Dependabot has only the `uses:` line to bump."
+        default: "swiftlang/github-workflows"
+      workflows_ref:
+        type: string
+        description: "Ref to take the scripts from. Empty uses workflows_repository's default branch, which is correct for a released version; set it when workflows_repository is a fork whose default branch does not carry the change."
+        default: ""
+    outputs:
+      matrix_yaml:
+        description: "The toolchain matrix, as a YAML string to pass to execute_matrix.yml."
+        value: ${{ jobs.generate-toolchain-matrix.outputs.matrix_yaml }}
+
+jobs:
+  generate-toolchain-matrix:
+    name: Generate toolchain matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_yaml: ${{ steps.generate.outputs.matrix_yaml }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Resolve the workflows source
+        id: workflows_source
+        shell: bash
+        env:
+          WORKFLOWS_REPOSITORY: ${{ inputs.workflows_repository }}
+          WORKFLOWS_REF: ${{ inputs.workflows_ref }}
+        run: |
+          set -euo pipefail
+
+          # Empty uses the default branch.
+          echo "ref=$WORKFLOWS_REF" >> $GITHUB_OUTPUT
+
+          if [ "$GITHUB_REPOSITORY" = "$WORKFLOWS_REPOSITORY" ]; then
+            echo "needs_checkout=false" >> $GITHUB_OUTPUT
+            echo "root_directory=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+          else
+            echo "needs_checkout=true" >> $GITHUB_OUTPUT
+            echo "root_directory=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
+          fi
+      - name: Checkout the workflows repository
+        if: ${{ steps.workflows_source.outputs.needs_checkout == 'true' }}
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.workflows_repository }}
+          ref: ${{ steps.workflows_source.outputs.ref }}
+          path: github-workflows
+          persist-credentials: false
+      - name: Generate matrix
+        id: generate
+        env:
+          WORKFLOWS_CHECKOUT: ${{ steps.workflows_source.outputs.root_directory }}
+          MATRIX_MODE: toolchains
+          ENABLE_LINUX: ${{ inputs.enable_linux }}
+          ENABLE_MACOS: ${{ inputs.enable_macos }}
+          ENABLE_WINDOWS: ${{ inputs.enable_windows }}
+          LINUX_SWIFT_VERSIONS: ${{ inputs.linux_swift_versions }}
+          LINUX_HOST_ARCHS: ${{ inputs.linux_host_archs }}
+          LINUX_USE_DOCKER: ${{ inputs.linux_use_docker }}
+          LINUX_OS: ${{ inputs.linux_os }}
+          MACOS_SWIFT_VERSIONS: ${{ inputs.macos_swift_versions }}
+          MACOS_XCODE_VERSIONS: ${{ inputs.macos_xcode_versions }}
+          MACOS_OS: ${{ inputs.macos_os }}
+          MACOS_ARCH: ${{ inputs.macos_arch }}
+          MACOS_RUNNER_POOL: ${{ inputs.macos_runner_pool }}
+          MACOS_REPOSITORY_OWNER: ${{ inputs.macos_repository_owner }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          WINDOWS_SWIFT_VERSIONS: ${{ inputs.windows_swift_versions }}
+          WINDOWS_OS: ${{ inputs.windows_os }}
+          WINDOWS_USE_DOCKER: ${{ inputs.windows_use_docker }}
+          LINUX_ENV_VARS: ${{ inputs.linux_env_vars }}
+          MACOS_ENV_VARS: ${{ inputs.macos_env_vars }}
+          WINDOWS_ENV_VARS: ${{ inputs.windows_env_vars }}
+          MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
+          ENABLE_SUBDIRECTORY_MANIFEST_SEARCH: ${{ inputs.find_subdirectory_manifests }}
+        run: |
+          matrix_yaml=$("${WORKFLOWS_CHECKOUT}/.github/workflows/scripts/matrix/generate-matrix.swift")
+          echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
+          echo "$matrix_yaml" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
