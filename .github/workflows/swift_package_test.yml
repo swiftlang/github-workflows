@@ -167,18 +167,34 @@ on:
         type: string
         description: "Linux command to build and test the package"
         default: "swift test"
+      linux_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 90
       linux_static_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Static Linux Swift SDK"
         default: "swift build"
+      linux_static_sdk_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 90
       wasm_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Wasm"
         default: "swift build"
+      wasm_sdk_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 90
       android_sdk_build_command:
         type: string
         description: "Command to use when building the package with the Swift SDK for Android"
         default: "swift build"
+      android_sdk_build_timeout:
+        type: number
+        description: "The default step timeout in minutes"
+        default: 90
       android_sdk_triples:
         type: string
         description: "The triples to use when building with the Swift SDK for Android. The final triple in the list will be used for the emulator testing and should match the host architecture."
@@ -494,6 +510,7 @@ jobs:
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
+        timeout-minutes: ${{ inputs.linux_build_timeout }}
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
 
@@ -573,6 +590,7 @@ jobs:
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Static Linux Swift SDK and build
+        timeout-minutes: ${{ inputs.linux_static_sdk_build_timeout }}
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         # zizmor: ignore[template-injection]
@@ -642,6 +660,7 @@ jobs:
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Wasm and build
+        timeout-minutes: ${{ inputs.wasm_sdk_build_timeout }}
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         # zizmor: ignore[template-injection]
@@ -711,6 +730,7 @@ jobs:
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Wasm and build
+        timeout-minutes: ${{ inputs.wasm_sdk_build_timeout }}
         env:
           BUILD_FLAGS: ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         # zizmor: ignore[template-injection]
@@ -769,6 +789,7 @@ jobs:
         # zizmor: ignore[template-injection]
         run: ${{ inputs.linux_pre_build_command }}
       - name: Install Swift SDK for Android and build
+        timeout-minutes: ${{ inputs.android_sdk_build_timeout }}
         env:
           BUILD_FLAGS: ${{ inputs.enable_android_sdk_checks && '--build-tests' || '' }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
         shell: bash
@@ -789,6 +810,7 @@ jobs:
           sudo rm -rf /opt/microsoft /opt/google /opt/az /opt/ghc /usr/share/dotnet /usr/local/share/boost /opt/hostedtoolcache /usr/local/share/chromium
           df -h
       - name: Install Android Emulator and run tests
+        timeout-minutes: ${{ inputs.android_sdk_build_timeout }}
         if: ${{ inputs.enable_android_sdk_checks }}
         shell: bash
         # zizmor: ignore[template-injection]
