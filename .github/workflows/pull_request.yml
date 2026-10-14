@@ -181,6 +181,7 @@ jobs:
       # A container runs as root, has no sudo, and carries neither jq nor the tools
       # a hosted runner provides, none of which the native default exercises.
       linux_use_docker: true
+      package_path: tests/TestPackage
       linux_swift_versions: '["6.3"]'
       # Runs the privilege-agnostic form the migration guide documents, so the
       # advice is checked rather than only written down.
@@ -190,13 +191,11 @@ jobs:
         else
           apt-get update -y -q && apt-get install -y -q jq
         fi
-        cd tests/TestPackage
       linux_command: swift build
       # Windows containers too: this is the only coverage of that path, and an
       # adopter testing a Swift release before 6.1 depends on it.
       windows_swift_versions: '["6.3"]'
       windows_use_docker: true
-      windows_setup_command: cd tests/TestPackage
       windows_command: Invoke-Program swift build
 
   unified_package_test_commands:
@@ -206,8 +205,8 @@ jobs:
       # Named so this does not share a concurrency group with the other calls.
       name: unified-package-test-commands
       enable_windows: false
+      package_path: tests/TestPackage
       linux_swift_versions: '["6.2", "6.3"]'
-      linux_setup_command: cd tests/TestPackage
       # Two commands on one toolchain list, the second narrowed to one version, so
       # a run proves the axis fans out and that the label's versions select from
       # the list rather than being ignored. Three jobs, each carrying its label.

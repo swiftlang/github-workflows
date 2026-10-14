@@ -312,6 +312,10 @@ on:
         type: string
         description: "Minimum Swift version. Empty auto-detects from Package.swift, 'none' disables filtering, or name a version explicitly."
         default: ""
+      package_path:
+        type: string
+        description: "Directory containing the package, when it is not the repository root. Each job runs its setup command from the root, then enters this directory for the command, and minimum Swift version detection reads its manifest."
+        default: ""
       find_subdirectory_manifests:
         type: boolean
         description: "Check subdirectory Package.swift files for minimum version detection."
@@ -514,6 +518,7 @@ jobs:
           LINUX_DOCKER_CAPABILITIES: ${{ inputs.linux_docker_capabilities }}
           LINUX_DOCKER_SECURITY_OPTIONS: ${{ inputs.linux_docker_security_options }}
           MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
+          PACKAGE_PATH: ${{ inputs.package_path }}
           ENABLE_SUBDIRECTORY_MANIFEST_SEARCH: ${{ inputs.find_subdirectory_manifests }}
           MACOS_OS: ${{ inputs.macos_os }}
           MACOS_ARCH: ${{ inputs.macos_arch }}

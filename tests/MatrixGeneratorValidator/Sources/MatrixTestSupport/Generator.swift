@@ -92,11 +92,12 @@ public struct Generator: Sendable {
     defer { try? FileManager.default.removeItem(at: workDirectory) }
 
     for (name, contents) in manifests {
-      try contents.write(
-        to: workDirectory.appendingPathComponent(name),
-        atomically: true,
-        encoding: .utf8
+      let file = workDirectory.appendingPathComponent(name)
+      try FileManager.default.createDirectory(
+        at: file.deletingLastPathComponent(),
+        withIntermediateDirectories: true
       )
+      try contents.write(to: file, atomically: true, encoding: .utf8)
     }
 
     var variables = ProcessInfo.processInfo.environment

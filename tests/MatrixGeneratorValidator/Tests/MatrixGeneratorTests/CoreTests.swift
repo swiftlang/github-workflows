@@ -277,6 +277,57 @@ struct MinimumVersionTests {
     #expect(generated.versions == ["6.1", "6.2"])
   }
 
+  @Test("A package below the root is detected there, not at the root")
+  func packagePathManifestIsRead() throws {
+    let generated = try Generator.run(
+      [
+        "ENABLE_LINUX": "true",
+        "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
+        "PACKAGE_PATH": "tests/TestPackage",
+      ],
+      manifests: [
+        "Package.swift": Generator.manifest(toolsVersion: "6.1"),
+        "tests/TestPackage/Package.swift": Generator.manifest(toolsVersion: "6.3"),
+      ]
+    )
+    #expect(generated.versions == ["6.3"])
+  }
+
+  @Test("The package path is entered after the caller's own setup, on every platform")
+  func packagePathIsEnteredAfterSetup() throws {
+    let generated = try Generator.run(
+      [
+        "ENABLE_LINUX": "true",
+        "ENABLE_WINDOWS": "true",
+        "ENABLE_WASM_SDK_BUILD": "true",
+        "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
+        "WINDOWS_SWIFT_VERSIONS": #"["6.3"]"#,
+        "WASM_SDK_VERSIONS": #"["6.3"]"#,
+        "LINUX_SETUP_COMMAND": "./.github/scripts/prebuild.sh",
+        "PACKAGE_PATH": "tests/TestPackage",
+        "MINIMUM_SWIFT_VERSION": "none",
+      ]
+    )
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(
+      generated.entry(named: "Linux Swift 6.3")?.setupCommand
+        == "./.github/scripts/prebuild.sh\ncd \"tests/TestPackage\""
+    )
+    #expect(generated.entry(named: "Windows Swift 6.3")?.setupCommand == "cd \"tests/TestPackage\"")
+    #expect(generated.entry(named: "Wasm SDK Swift 6.3")?.setupCommand == "cd \"tests/TestPackage\"")
+  }
+
+  @Test("A package path that would need escaping fails the run")
+  func packagePathMustBePlain() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "PACKAGE_PATH": #"a"; rm -rf /; echo ""#,
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("package_path"), "\(generated.standardError)")
+  }
+
   @Test("An explicit minimum overrides the manifest")
   func explicitMinimum() throws {
     let generated = try Generator.run(

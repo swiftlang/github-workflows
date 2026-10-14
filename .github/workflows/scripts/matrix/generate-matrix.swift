@@ -54,6 +54,7 @@ struct Configuration {
     @Input("SWIFT_FLAGS") var swiftFlags = ""
     @Input("SWIFT_NIGHTLY_FLAGS") var swiftNightlyFlags = ""
     @Input("MINIMUM_SWIFT_VERSION") var minimumSwiftVersion = ""
+    @Input("PACKAGE_PATH") var packagePath = ""
     @Input("ENABLE_SUBDIRECTORY_MANIFEST_SEARCH") var searchSubdirectories = false
     @Input("MATRIX_MODE") var matrixMode = "jobs"
     @Input("MATRIX_FORMAT") var matrixFormat = "yaml"
@@ -248,6 +249,19 @@ extension Configuration {
         return true
     }
 
+    /// The setup command with a `cd` into the package appended. The setup command and the command
+    /// run in one shell on every platform, so the caller's own setup runs from the repository
+    /// root, where its relative paths are written, and the command runs in the package.
+    func enteringPackage(after setupCommand: String) -> String {
+        if self.packagePath.isEmpty || self.packagePath == "." { return setupCommand }
+        let forbidden = CharacterSet(charactersIn: "\"$`\\\n\r")
+        if self.packagePath.rangeOfCharacter(from: forbidden) != nil {
+            fatal("package_path must be a plain directory, without quotes, $, backticks or backslashes, but got: \(self.packagePath)")
+        }
+        let enter = "cd \"\(self.packagePath)\""
+        return setupCommand.isEmpty ? enter : "\(setupCommand.trimmingTrailingNewlines)\n\(enter)"
+    }
+
     /// The flags an entry's command runs with, and what a version's override adds to them.
     func flags(with overrides: VersionOverrides = VersionOverrides()) -> SwiftFlags {
         SwiftFlags(release: self.swiftFlags, nightly: self.swiftNightlyFlags, overrides: overrides)
@@ -298,7 +312,7 @@ extension Generator {
             minimum: self.minimum,
             releaseToken: self.configuration.nightlyReleaseToken,
             flags: self.configuration.flags(with: self.configuration.linuxOverrides),
-            setupCommand: self.configuration.linuxSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.linuxSetupCommand),
             environment: self.configuration.linuxEnvironment,
             runners: self.configuration.linuxRunners,
             images: self.linuxImages
@@ -319,7 +333,7 @@ extension Generator {
             ),
             minimum: self.minimum,
             flags: self.configuration.flags(with: self.configuration.macOSOverrides),
-            setupCommand: self.configuration.macOSSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.macOSSetupCommand),
             environment: self.configuration.macOSEnvironment,
             machines: self.configuration.macOSMachines,
             targets: self.xcodeTargets,
@@ -338,7 +352,7 @@ extension Generator {
                 namePrefix: "macOS Swiftly"
             ),
             flags: self.configuration.flags(),
-            setupCommand: self.configuration.macOSSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.macOSSetupCommand),
             environment: self.configuration.macOSEnvironment,
             machines: self.configuration.macOSMachines,
             toolchains: self.configuration.swiftlyToolchains
@@ -360,7 +374,7 @@ extension Generator {
             minimum: self.minimum,
             releaseToken: self.configuration.nightlyReleaseToken,
             flags: self.configuration.flags(with: self.configuration.windowsOverrides),
-            setupCommand: self.configuration.windowsSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.windowsSetupCommand),
             environment: self.configuration.windowsEnvironment,
             runners: self.configuration.windowsOS.names.map(Runner.windows(label:)),
             images: self.configuration.windowsUsesDocker ? [.windows] : [nil]
@@ -384,7 +398,7 @@ extension Generator {
             minimum: self.minimum,
             releaseToken: self.configuration.nightlyReleaseToken,
             flags: self.configuration.flags(with: self.configuration.linuxOverrides),
-            setupCommand: self.configuration.linuxSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.linuxSetupCommand),
             environment: self.configuration.linuxEnvironment,
             runners: [self.configuration.primaryLinuxRunner],
             images: self.linuxImages
@@ -401,7 +415,7 @@ extension Generator {
                 commands: self.configuration.freeBSDCommands,
                 namePrefix: "FreeBSD"
             ),
-            setupCommand: self.configuration.freeBSDSetupCommand,
+            setupCommand: self.configuration.enteringPackage(after: self.configuration.freeBSDSetupCommand),
             osVersions: self.configuration.freeBSDOSVersions,
             buildFlags: self.configuration.swiftNightlyFlags,
             environmentVariables: self.configuration.freeBSDEnvironmentVariables
@@ -429,7 +443,7 @@ extension Generator {
             minimum: self.minimum,
             releaseToken: self.configuration.nightlyReleaseToken,
             flags: self.configuration.flags(with: overrides),
-            setupCommand: build.setupCommand,
+            setupCommand: self.configuration.enteringPackage(after: build.setupCommand),
             environment: self.configuration.linuxEnvironment,
             runners: [self.configuration.primaryLinuxRunner],
             sdk: MatrixEntry.SwiftBuild.SDK(kind: build.kind)
@@ -1521,14 +1535,17 @@ extension MinimumVersion {
             self.init(configuration.minimumSwiftVersion)
             return
         }
-        let detected = MinimumVersion.detected(includingSubdirectories: configuration.searchSubdirectories)
+        let detected = MinimumVersion.detected(
+            in: configuration.packagePath.isEmpty ? "." : configuration.packagePath,
+            includingSubdirectories: configuration.searchSubdirectories
+        )
         if !detected.isEmpty { log("Auto-detected minimum Swift tools version: \(detected)") }
         self.init(detected)
     }
 
-    /// The lowest tools version the manifests declare, which is the oldest toolchain the package
-    /// claims to build on.
-    static func detected(includingSubdirectories: Bool) -> String {
+    /// The lowest tools version the manifests in `root` declare, which is the oldest toolchain the
+    /// package claims to build on.
+    static func detected(in root: String, includingSubdirectories: Bool) -> String {
         let fileManager = FileManager.default
 
         func manifests(in directory: String) -> [String] {
@@ -1537,13 +1554,14 @@ extension MinimumVersion {
             return (["Package.swift"] + versioned).map { directory == "." ? $0 : "\(directory)/\($0)" }
         }
 
-        var directories = ["."]
+        var directories = [root]
         if includingSubdirectories {
-            let contents = (try? fileManager.contentsOfDirectory(atPath: ".")) ?? []
+            let contents = (try? fileManager.contentsOfDirectory(atPath: root)) ?? []
             directories += contents.filter { entry in
                 var isDirectory: ObjCBool = false
-                return fileManager.fileExists(atPath: entry, isDirectory: &isDirectory) && isDirectory.boolValue
-            }.sorted().map { "./\($0)" }
+                let path = root == "." ? entry : "\(root)/\(entry)"
+                return fileManager.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
+            }.sorted().map { "\(root)/\($0)" }
         }
 
         var minimum: (version: SwiftVersion, text: String)?
