@@ -245,6 +245,31 @@ on:
           value adds arguments; an object with `arguments` and/or `command` can also replace the
           command for that version, which needs macos_command holding a single command.
         default: "{}"
+      linux_static_sdk_version_overrides:
+        type: string
+        description: >-
+          Per-version overrides (JSON/YAML object) for the Static Linux SDK build, in the form
+          linux_version_overrides takes. Empty uses linux_version_overrides.
+        default: ""
+      wasm_sdk_version_overrides:
+        type: string
+        description: >-
+          Per-version overrides (JSON/YAML object) for the Wasm SDK build, in the form
+          linux_version_overrides takes. Empty uses linux_version_overrides.
+        default: ""
+      embedded_wasm_sdk_version_overrides:
+        type: string
+        description: >-
+          Per-version overrides (JSON/YAML object) for the Embedded Wasm SDK build, in the form
+          linux_version_overrides takes. Empty uses linux_version_overrides.
+        default: ""
+      android_sdk_version_overrides:
+        type: string
+        description: >-
+          Per-version overrides (JSON/YAML object) for the Android SDK build, in the form
+          linux_version_overrides takes. Empty uses linux_version_overrides. The Android build
+          takes the command from an override but not its arguments.
+        default: ""
 
       # ----- Environment variables (JSON objects) -----
       linux_env_vars:
@@ -476,6 +501,10 @@ jobs:
           LINUX_VERSION_OVERRIDES: ${{ inputs.linux_version_overrides }}
           WINDOWS_VERSION_OVERRIDES: ${{ inputs.windows_version_overrides }}
           MACOS_VERSION_OVERRIDES: ${{ inputs.macos_version_overrides }}
+          LINUX_STATIC_SDK_VERSION_OVERRIDES: ${{ inputs.linux_static_sdk_version_overrides }}
+          WASM_SDK_VERSION_OVERRIDES: ${{ inputs.wasm_sdk_version_overrides }}
+          EMBEDDED_WASM_SDK_VERSION_OVERRIDES: ${{ inputs.embedded_wasm_sdk_version_overrides }}
+          ANDROID_SDK_VERSION_OVERRIDES: ${{ inputs.android_sdk_version_overrides }}
           LINUX_ENV_VARS: ${{ inputs.linux_env_vars }}
           MACOS_ENV_VARS: ${{ inputs.macos_env_vars }}
           WINDOWS_ENV_VARS: ${{ inputs.windows_env_vars }}

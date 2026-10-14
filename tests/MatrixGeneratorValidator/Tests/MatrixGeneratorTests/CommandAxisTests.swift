@@ -581,6 +581,39 @@ struct VersionOverrideCommandTests {
     #expect(generated.names.contains("release Linux Swift 6.3"))
   }
 
+  @Test("An SDK build's own overrides win over the Linux ones, and an absent set falls back")
+  func sdkBuildTakesItsOwnOverrides() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "false",
+      "ENABLE_WINDOWS": "false",
+      "ENABLE_LINUX_STATIC_SDK_BUILD": "true",
+      "ENABLE_WASM_SDK_BUILD": "true",
+      "LINUX_STATIC_SDK_VERSIONS": #"["6.3"]"#,
+      "WASM_SDK_VERSIONS": #"["6.3"]"#,
+      "LINUX_VERSION_OVERRIDES": #"{"6.3": "-Xswiftc -warnings-as-errors"}"#,
+      "WASM_SDK_VERSION_OVERRIDES": #"{"6.3": {"command": "swift build --target Core"}}"#,
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    let wasm = try #require(generated.entry(named: "Wasm SDK Swift 6.3"))
+    #expect(wasm.command == "swift build --target Core")
+    #expect(wasm.commandArguments?.contains("-warnings-as-errors") != true)
+    let staticLinux = try #require(generated.entry(named: "Static Linux SDK Swift 6.3"))
+    #expect(staticLinux.commandArguments == ["-Xswiftc", "-warnings-as-errors"])
+  }
+
+  @Test("An SDK build's overrides naming a version it does not run fail the run")
+  func sdkOverridesAreKeyChecked() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "false",
+      "ENABLE_WINDOWS": "false",
+      "ENABLE_WASM_SDK_BUILD": "true",
+      "WASM_SDK_VERSIONS": #"["6.3"]"#,
+      "WASM_SDK_VERSION_OVERRIDES": #"{"6.2": "-Xswiftc -warnings-as-errors"}"#,
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("wasm_sdk_version_overrides"), "\(generated.standardError)")
+  }
+
   @Test("Arguments reach every label, since they are keyed on the version alone")
   func argumentsReachEveryLabel() throws {
     let generated = try Generator.run([

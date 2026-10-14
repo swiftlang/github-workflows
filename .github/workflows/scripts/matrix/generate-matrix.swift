@@ -122,7 +122,9 @@ struct Configuration {
 
     /// Every per-version overrides input, so that an input no enabled group reads is still
     /// reported.
-    var allOverrides: [VersionOverrides] { [self.linuxOverrides, self.macOSOverrides, self.windowsOverrides] }
+    var allOverrides: [VersionOverrides] {
+        [self.linuxOverrides, self.macOSOverrides, self.windowsOverrides] + self.sdkBuilds.map(\.overrides)
+    }
 
     /// The Android SDK build, whose output the emulator tests run.
     var androidSDKBuild: SDKBuild {
@@ -411,6 +413,8 @@ extension Generator {
     /// fetches a toolchain matched to the SDK, and job-runner-linux.sh refuses an entry
     /// carrying both an sdk and a container.
     private func sdkJobs(_ build: SDKBuild) -> SwiftBuildJobs {
+        // A build with no overrides of its own takes the Linux ones.
+        let overrides = build.overrides.isEmpty ? self.configuration.linuxOverrides : build.overrides
         var jobs = SwiftBuildJobs(
             settings: JobGroupSettings(
                 enableInput: build.enableInput,
@@ -418,13 +422,13 @@ extension Generator {
                 versions: build.versions,
                 commandSource: .input(name: build.commandInput),
                 commands: build.commands,
-                overrides: self.configuration.linuxOverrides,
+                overrides: overrides,
                 namePrefix: build.name
             ),
             platform: .linux,
             minimum: self.minimum,
             releaseToken: self.configuration.nightlyReleaseToken,
-            flags: self.configuration.flags(with: self.configuration.linuxOverrides),
+            flags: self.configuration.flags(with: overrides),
             setupCommand: build.setupCommand,
             environment: self.configuration.linuxEnvironment,
             runners: [self.configuration.primaryLinuxRunner],
@@ -1933,6 +1937,7 @@ struct SDKBuild {
     let versions: [String]
     let commands: Commands
     let setupCommand: String
+    let overrides: VersionOverrides
 
     init(prefix: String, kind: MatrixEntry.SwiftBuild.SDK.Kind, name: String) {
         self.prefix = prefix
@@ -1943,6 +1948,7 @@ struct SDKBuild {
         self.versions = Input.read("\(variable)_VERSIONS", default: Configuration.defaultSDKVersions)
         self.commands = Input.read("\(variable)_COMMAND", default: "swift build")
         self.setupCommand = Input.read("\(variable)_SETUP_COMMAND", default: "")
+        self.overrides = Input.read("\(variable)_VERSION_OVERRIDES", default: VersionOverrides())
     }
 
     /// The input that turns this build on.
