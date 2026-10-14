@@ -56,7 +56,7 @@ on:
       linux_swift_versions:
         type: string
         description: "Linux Swift version list (JSON array)."
-        default: '["6.1", "6.2", "6.3", "nightly-release", "nightly-main"]'
+        default: '["6.1", "6.2", "6.3", "6.4", "nightly-release", "nightly-main"]'
       linux_host_archs:
         type: string
         description: "Linux host architecture list (JSON array, e.g. '[\"x86_64\", \"aarch64\"]')."
@@ -72,7 +72,7 @@ on:
       windows_swift_versions:
         type: string
         description: "Windows Swift version list (JSON array)."
-        default: '["6.1", "6.2", "6.3", "nightly-release", "nightly-main"]'
+        default: '["6.1", "6.2", "6.3", "6.4", "nightly-release", "nightly-main"]'
       windows_os:
         type: string
         description: "Windows runner label, or a list of them (JSON/YAML array) to run one job per label."
@@ -88,19 +88,19 @@ on:
       linux_static_sdk_versions:
         type: string
         description: "Static Linux Swift SDK version list (JSON array)."
-        default: '["6.3", "nightly-release", "nightly-main"]'
+        default: '["6.4", "nightly-release", "nightly-main"]'
       wasm_sdk_versions:
         type: string
         description: "Wasm Swift SDK version list (JSON array)."
-        default: '["6.3", "nightly-release", "nightly-main"]'
+        default: '["6.4", "nightly-release", "nightly-main"]'
       embedded_wasm_sdk_versions:
         type: string
         description: "Embedded Wasm Swift SDK version list (JSON array)."
-        default: '["6.3", "nightly-release", "nightly-main"]'
+        default: '["6.4", "nightly-release", "nightly-main"]'
       android_sdk_versions:
         type: string
         description: "Android Swift SDK version list (JSON array)."
-        default: '["6.3", "nightly-release", "nightly-main"]'
+        default: '["6.4", "nightly-release", "nightly-main"]'
       android_ndk_versions:
         type: string
         description: "Android NDK version list (JSON array)."

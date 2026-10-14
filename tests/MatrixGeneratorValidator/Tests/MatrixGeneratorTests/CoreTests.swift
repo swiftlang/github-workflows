@@ -382,12 +382,12 @@ struct EmptiedByTheMinimumTests {
     // Linux and Windows nightlies survive to keep the matrix non-empty.
     let generated = try Generator.run(
       ["ENABLE_CXX_INTEROP": "true"],
-      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.4")],
+      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.5")],
       includePlatformDefaults: true
     )
     #expect(generated.exitCode != 0)
     #expect(generated.standardError.contains("enable_cxx_interop"), "\(generated.standardError)")
-    #expect(generated.standardError.contains("6.3"), "\(generated.standardError)")
+    #expect(generated.standardError.contains("6.4"), "\(generated.standardError)")
   }
 
   @Test(
