@@ -127,7 +127,7 @@ jobs:
             exit 1
           fi
 
-          # Reject unexpected platforms early.
+          # Reject unexpected host platforms early.
           unsupported=$(echo "$matrix" | jq -r '
             [.config[]
              | select((.platform // "") as $p
@@ -212,6 +212,9 @@ jobs:
           path: github-workflows
           persist-credentials: false
 
+      # Linux and Windows check out linked PRs inside their job runners, because
+      # the checkout has to happen inside the container when there is one. macOS
+      # runs directly on the host, so it is done here.
       - name: Check out linked PRs (macOS)
         if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' && matrix.config.platform == 'macOS' }}
         shell: bash
