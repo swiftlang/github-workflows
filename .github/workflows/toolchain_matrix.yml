@@ -54,8 +54,8 @@ on:
         default: false
       linux_swift_versions:
         type: string
-        description: "Linux Swift version list (JSON/YAML array)."
-        default: '["6.1", "6.2", "6.3", "6.4", "nightly-release", "nightly-main"]'
+        description: "Linux Swift version list (JSON/YAML array). Empty uses every supported release plus nightly-release and nightly-main."
+        default: ""
       linux_host_archs:
         type: string
         description: "Linux host architecture list (JSON/YAML array)."
@@ -94,8 +94,8 @@ on:
         default: ""
       windows_swift_versions:
         type: string
-        description: "Windows Swift version list (JSON/YAML array)."
-        default: '["6.1", "6.2", "6.3", "6.4", "nightly-release", "nightly-main"]'
+        description: "Windows Swift version list (JSON/YAML array). Empty uses every supported release plus nightly-release and nightly-main."
+        default: ""
       windows_os:
         type: string
         description: "Windows runner label, or a list of them (JSON/YAML array) to include one entry per label."

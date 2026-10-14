@@ -175,19 +175,24 @@ struct DefaultAgreementTests {
   }
 
   @Test(
-    "No entry point carries its own copy of the macOS release list",
+    "No entry point carries its own copy of a default version list",
     arguments: EntryPoint.all
   )
-  func macOSListHasOneSource(entryPoint: EntryPoint) throws {
-    // Empty means the generator's own list of release versions. A workflow
-    // spelling that list out instead states a default that agrees until one of
-    // the two copies is edited, and the macOS list has no nightly to fan out
-    // over, so no entry point has a reason of its own to name versions.
-    let declared = try #require(
-      try entryPoint.environment()["MACOS_SWIFT_VERSIONS"],
-      "\(entryPoint) no longer forwards the macOS version list"
-    )
-    #expect(declared == "", "\(entryPoint)")
+  func versionListsHaveOneSource(entryPoint: EntryPoint) throws {
+    // Empty means the generator's own list. A workflow spelling that list out
+    // instead states a default that agrees until one of the two copies is edited,
+    // and a new release then has to be added in every place.
+    let environment = try entryPoint.environment()
+    let versionLists = [
+      "LINUX_SWIFT_VERSIONS", "WINDOWS_SWIFT_VERSIONS", "MACOS_SWIFT_VERSIONS",
+      "LINUX_STATIC_SDK_VERSIONS", "WASM_SDK_VERSIONS", "EMBEDDED_WASM_SDK_VERSIONS",
+      "ANDROID_SDK_VERSIONS", "MACOS_SWIFTLY_TOOLCHAINS",
+    ]
+    let forwarded = versionLists.filter { environment[$0] != nil }
+    #expect(!forwarded.isEmpty, "\(entryPoint) no longer forwards any version list")
+    for key in forwarded {
+      #expect(environment[key] == "", "\(entryPoint) \(key)")
+    }
   }
 
   @Test("Windows is off by default outside the test sweep, and one input away")
