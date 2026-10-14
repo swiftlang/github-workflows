@@ -8,6 +8,10 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  shell_tests:
+    name: Shell Tests
+    uses: ./.github/workflows/shell_tests.yml
+
   tests_with_docker_embedded_swift:
     name: Test Embedded Swift SDKs
     uses: ./.github/workflows/swift_package_test.yml
