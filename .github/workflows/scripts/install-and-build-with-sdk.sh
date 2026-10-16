@@ -170,6 +170,22 @@ if [[ "$INSTALL_ANDROID" == false && "$INSTALL_STATIC_LINUX" == false && "$INSTA
     fatal "At least one of --android or --static or --wasm must be specified"
 fi
 
+# The Android build loops over the triples, so an empty list installs the Swift SDK and
+# the NDK, builds nothing and still exits 0. An empty entry is worse: it reaches the
+# compiler as a --swift-sdk with nothing after it. A caller joining a JSON array into
+# the argument writes one whenever the array is empty.
+if [[ "$INSTALL_ANDROID" == true ]]; then
+    if [[ ${#ANDROID_SDK_TRIPLES[@]} -eq 0 ]]; then
+        fatal "At least one --android-sdk-triple=<triple> must be specified with --android"
+    fi
+
+    for android_sdk_triple in "${ANDROID_SDK_TRIPLES[@]}"; do
+        if [[ -z "${android_sdk_triple//[[:space:]]/}" ]]; then
+            fatal "--android-sdk-triple was given a blank value; each one must name a triple, e.g. aarch64-unknown-linux-android24"
+        fi
+    done
+fi
+
 log "Requested Swift version: $SWIFT_VERSION_INPUT"
 log "Install Android Swift SDK: $INSTALL_ANDROID"
 log "Install Static Linux Swift SDK: $INSTALL_STATIC_LINUX"
@@ -296,9 +312,87 @@ find_latest_swift_version() {
     echo "${latest_version}|${android_sdk_checksum}|${static_linux_sdk_checksum}|${static_linux_sdk_version}|${wasm_sdk_checksum}"
 }
 
-# Finds the latest Android or Static Linux or Wasm
-# Swift SDK development snapshot for the inputted
-# Swift version and its checksum.
+SWIFT_DOWNLOAD_ROOT="https://download.swift.org"
+
+OS_NAME=""
+OS_NAME_NO_DOT=""
+OS_ARCH_SUFFIX=""
+
+# Detects OS from /etc/os-release and sets global variables
+#
+# OS_NAME: Lowercased OS name with the version dot included, e.g. ubuntu22.04
+# OS_NAME_NO_DOT: Version dot excluded, e.g. ubuntu2204
+# OS_ARCH_SUFFIX: "-aarch64" for aarch64 platforms, otherwise ""
+initialize_os_info() {
+    if [[ -n "$OS_NAME" ]]; then
+        log "Already detected OS: $OS_NAME"
+        return 0
+    fi
+
+    if [[ ! -f /etc/os-release ]]; then
+        fatal "Cannot detect OS: /etc/os-release not found"
+    fi
+
+    local os_id
+    os_id=$(grep '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"' | tr '[:upper:]' '[:lower:]')
+    local version_id
+    version_id=$(grep '^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
+
+    if [[ -z "$os_id" || -z "$version_id" ]]; then
+        fatal "Could not parse OS information from /etc/os-release"
+    fi
+
+    log "✅ Detected OS from /etc/os-release: ${os_id}${version_id}"
+    if [[ "$os_id" == "rhel" && "$version_id" == 9* ]]; then
+        OS_NAME="ubi9"
+        OS_NAME_NO_DOT="ubi9"
+    elif [[ "$os_id" == "amzn" && "$version_id" == "2" ]]; then
+        OS_NAME="amazonlinux2"
+        OS_NAME_NO_DOT="amazonlinux2"
+    elif [[ "$os_id" == "amzn" && "$version_id" == "2023" ]]; then
+        OS_NAME="amazonlinux2023"
+        OS_NAME_NO_DOT="amazonlinux2023"
+    else
+        # Ubuntu, Debian, Fedora
+        OS_NAME="${os_id}${version_id}"
+        OS_NAME_NO_DOT="${os_id}$(echo "$version_id" | tr -d '.')"
+    fi
+    log "Using OS name: $OS_NAME"
+
+    local arch
+    arch=$(uname -m)
+    if [[ "$arch" == "aarch64" ]]; then
+        OS_ARCH_SUFFIX="-aarch64"
+        log "Detected aarch64 architecture, using suffix: $OS_ARCH_SUFFIX"
+    else
+        OS_ARCH_SUFFIX=""
+        log "Detected $arch architecture, using no suffix"
+    fi
+}
+
+# Whether the toolchain tarball for a snapshot tag has been published.
+#
+# $1 (string): A snapshot tag, e.g. "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a"
+toolchain_is_published() {
+    local snapshot_tag="$1"
+
+    initialize_os_info
+
+    local toolchain_url="${SWIFT_DOWNLOAD_ROOT}/${SWIFT_VERSION_BRANCH}/${OS_NAME_NO_DOT}${OS_ARCH_SUFFIX}/${snapshot_tag}/${snapshot_tag}-${OS_NAME}${OS_ARCH_SUFFIX}.tar.gz"
+
+    local http_code
+    http_code=$(curl_with_retry -sSL --head -w "%{http_code}" -o /dev/null "$toolchain_url")
+    [[ "$http_code" != "404" ]]
+}
+
+# Finds the newest Android, Static Linux or Wasm Swift SDK development snapshot
+# whose matching toolchain has also been published. Echoes the snapshot tag, its
+# checksum and its download filename, separated by "|".
+#
+# An SDK has to be built by the toolchain it is used with, so both halves of a
+# snapshot are needed. They are published separately and a snapshot can carry one
+# without the other, so this walks the snapshots newest-first and takes the first
+# complete pair rather than assuming the newest SDK has a toolchain.
 #
 # $1 (string): Nightly Swift version, e.g. "6.2" or "main"
 # $2 (string): "android" or "static" or "wasm"
@@ -308,43 +402,45 @@ find_latest_sdk_snapshot() {
     local version="$1"
     local sdk_name="$2"
 
-    log "Finding latest ${sdk_name}-sdk for Swift nightly-${version}"
+    log "Finding newest ${sdk_name}-sdk for Swift nightly-${version} with a matching toolchain"
     log "Fetching development snapshots from swift.org API..."
 
     local sdk_json
     sdk_json=$(curl_with_retry -fsSL "${SWIFT_API_INSTALL_ROOT}/dev/${version}/${sdk_name}-sdk.json") || fatal "Failed to fetch ${sdk_name}-sdk development snapshots"
 
-    # Extract the snapshot tag from the "dir" field of the first (newest) element
-    local snapshot_tag
-    snapshot_tag=$(echo "$sdk_json" | jq -r '.[0].dir')
-
-    if [[ -z "$snapshot_tag" || "$snapshot_tag" == "null" ]]; then
-        fatal "No ${version} snapshot tag found for ${sdk_name}-sdk"
+    local snapshot_count
+    snapshot_count=$(echo "$sdk_json" | jq 'length')
+    if [[ "$snapshot_count" == "0" ]]; then
+        fatal "No ${version} snapshots listed for ${sdk_name}-sdk"
     fi
 
-    log "Found latest ${version} ${sdk_name}-sdk snapshot: $snapshot_tag"
+    local index=0
+    while [[ "$index" -lt "$snapshot_count" ]]; do
+        local entry snapshot_tag checksum download
+        entry=$(echo "$sdk_json" | jq -c ".[$index]")
+        snapshot_tag=$(echo "$entry" | jq -r '.dir // empty')
+        checksum=$(echo "$entry" | jq -r '.checksum // empty')
+        download=$(echo "$entry" | jq -r '.download // empty')
+        index=$((index + 1))
 
-    # Extract the checksum
-    local checksum
-    checksum=$(echo "$sdk_json" | jq -r '.[0].checksum')
+        if [[ -z "$snapshot_tag" || -z "$checksum" || -z "$download" ]]; then
+            log "Skipping ${sdk_name}-sdk entry with incomplete metadata"
+            continue
+        fi
 
-    if [[ -z "$checksum" || "$checksum" == "null" ]]; then
-        fatal "No checksum found for ${sdk_name}-sdk snapshot"
-    fi
+        if ! toolchain_is_published "$snapshot_tag"; then
+            log "Skipping ${snapshot_tag}: the SDK is published but the matching toolchain is not"
+            continue
+        fi
 
-    log "Found ${sdk_name}-sdk checksum: ${checksum:0:12}..."
+        log "Using ${sdk_name}-sdk snapshot: $snapshot_tag"
+        log "Found ${sdk_name}-sdk checksum: ${checksum:0:12}..."
+        log "Found ${sdk_name}-sdk download filename: $download"
+        echo "${snapshot_tag}|${checksum}|${download}"
+        return 0
+    done
 
-    # Extract the download filename
-    local download
-    download=$(echo "$sdk_json" | jq -r '.[0].download')
-
-    if [[ -z "$download" || "$download" == "null" ]]; then
-        fatal "No download filename found for ${sdk_name}-sdk snapshot"
-    fi
-
-    log "Found ${sdk_name}-sdk download filename: $download"
-
-    echo "${snapshot_tag}|${checksum}|${download}"
+    fatal "No ${version} ${sdk_name}-sdk snapshot has a matching toolchain for ${OS_NAME}${OS_ARCH_SUFFIX}. Checked $snapshot_count snapshot(s)."
 }
 
 SWIFT_VERSION_BRANCH=""
@@ -450,65 +546,9 @@ get_installed_swift_tag() {
     echo "none"
 }
 
-OS_NAME=""
-OS_NAME_NO_DOT=""
-OS_ARCH_SUFFIX=""
-
-# Detects OS from /etc/os-release and sets global variables
-#
-# OS_NAME: Lowercased OS name with the version dot included, e.g. ubuntu22.04
-# OS_NAME_NO_DOT: Version dot excluded, e.g. ubuntu2204
-# OS_ARCH_SUFFIX: "-aarch64" for aarch64 platforms, otherwise ""
-initialize_os_info() {
-    if [[ -n "$OS_NAME" ]]; then
-        log "Already detected OS: $OS_NAME"
-        return 0
-    fi
-
-    if [[ ! -f /etc/os-release ]]; then
-        fatal "Cannot detect OS: /etc/os-release not found"
-    fi
-
-    local os_id
-    os_id=$(grep '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"' | tr '[:upper:]' '[:lower:]')
-    local version_id
-    version_id=$(grep '^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
-
-    if [[ -z "$os_id" || -z "$version_id" ]]; then
-        fatal "Could not parse OS information from /etc/os-release"
-    fi
-
-    log "✅ Detected OS from /etc/os-release: ${os_id}${version_id}"
-    if [[ "$os_id" == "rhel" && "$version_id" == 9* ]]; then
-        OS_NAME="ubi9"
-        OS_NAME_NO_DOT="ubi9"
-    elif [[ "$os_id" == "amzn" && "$version_id" == "2" ]]; then
-        OS_NAME="amazonlinux2"
-        OS_NAME_NO_DOT="amazonlinux2"
-    elif [[ "$os_id" == "amzn" && "$version_id" == "2023" ]]; then
-        OS_NAME="amazonlinux2023"
-        OS_NAME_NO_DOT="amazonlinux2023"
-    else
-        # Ubuntu, Debian, Fedora
-        OS_NAME="${os_id}${version_id}"
-        OS_NAME_NO_DOT="${os_id}$(echo "$version_id" | tr -d '.')"
-    fi
-    log "Using OS name: $OS_NAME"
-
-    local arch
-    arch=$(uname -m)
-    if [[ "$arch" == "aarch64" ]]; then
-        OS_ARCH_SUFFIX="-aarch64"
-        log "Detected aarch64 architecture, using suffix: $OS_ARCH_SUFFIX"
-    else
-        OS_ARCH_SUFFIX=""
-        log "Detected $arch architecture, using no suffix"
-    fi
-}
 
 # Directory for extracted toolchains (if needed to match the SDKs)
 TOOLCHAIN_DIR="${HOME}/.swift-toolchains"
-SWIFT_DOWNLOAD_ROOT="https://download.swift.org"
 
 download_and_verify() {
     local url="$1"
@@ -538,8 +578,6 @@ download_and_verify() {
     rm -rf "$GNUPGHOME" "$temp_sig"
 }
 
-readonly EXIT_TOOLCHAIN_NOT_FOUND=44
-
 # Downloads and extracts the Swift toolchain for the given snapshot tag
 #
 # $1 (string): A snapshot tag, e.g. "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-07-29-a"
@@ -560,14 +598,12 @@ download_and_extract_toolchain() {
     local toolchain_url="${snapshot_root}/${toolchain_filename}"
     local toolchain_sig_url="${snapshot_root}/${toolchain_sig_filename}"
 
-    # Check if toolchain is available
+    # A 404 means no toolchain to fetch: a nightly withdrawn since the snapshot
+    # search, or a release whose derived tag was never published for this OS.
     local http_code
     http_code=$(curl_with_retry -sSL --head -w "%{http_code}" -o /dev/null "$toolchain_url")
     if [[ "$http_code" == "404" ]]; then
-        log "Toolchain not found: ${toolchain_filename}"
-        log "Exiting workflow..."
-        # Don't fail the workflow if we can't find the right toolchain
-        exit $EXIT_TOOLCHAIN_NOT_FOUND
+        fatal "Toolchain not found: ${toolchain_filename}"
     fi
 
     # Create toolchain directory
@@ -618,10 +654,6 @@ if [[ "$INSTALL_ANDROID" == true ]]; then
         log "Installing Swift toolchain to match Android Swift SDK snapshot: $ANDROID_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_ANDROID_SDK=$(download_and_extract_toolchain "$ANDROID_SDK_TAG")
-        if [[ $? -eq $EXIT_TOOLCHAIN_NOT_FOUND ]]; then
-            # Don't fail the workflow if we can't find the right toolchain
-            exit 0
-        fi
     fi
 
     # Export the resolved Android SDK tag so subsequent workflow steps
@@ -644,10 +676,6 @@ if [[ "$INSTALL_STATIC_LINUX" == true ]]; then
         log "Installing Swift toolchain to match Static Linux Swift SDK snapshot: $STATIC_LINUX_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK=$(download_and_extract_toolchain "$STATIC_LINUX_SDK_TAG")
-        if [[ $? -eq $EXIT_TOOLCHAIN_NOT_FOUND ]]; then
-            # Don't fail the workflow if we can't find the right toolchain
-            exit 0
-        fi
     fi
 fi
 
@@ -659,10 +687,6 @@ if [[ "$INSTALL_WASM" == true ]]; then
         log "Installing Swift toolchain to match Wasm Swift SDK snapshot: $WASM_SDK_TAG"
         initialize_os_info
         SWIFT_EXECUTABLE_FOR_WASM_SDK=$(download_and_extract_toolchain "$WASM_SDK_TAG")
-        if [[ $? -eq $EXIT_TOOLCHAIN_NOT_FOUND ]]; then
-            # Don't fail the workflow if we can't find the right toolchain
-            exit 0
-        fi
     fi
 fi
 
@@ -714,7 +738,7 @@ install_android_sdk() {
 
     # permit the "--android-ndk" flag to override the default
     local android_ndk_version="${ANDROID_NDK_VERSION:-r27d}"
-    log "Checking for Android NDK $android_ndk_version at $ANDROID_NDK_HOME"
+    log "Checking for Android NDK $android_ndk_version at ${ANDROID_NDK_HOME:-(unset)}"
 
     # Download and install the Android NDK.
     # Note that we could use the system package manager, but it is
@@ -805,6 +829,30 @@ install_sdks() {
     fi
 }
 
+# Appends the SDK selector to a build command, unless the command already names
+# one.
+#
+# A caller building for several triples in a loop names its own SDK. A second
+# --swift-sdk would override the caller's. Worse, a YAML block scalar keeps its
+# trailing newline, so the appended flag lands on a line of its own and the
+# shell runs it as a command.
+#
+# $1 (string): The caller's build command
+# $2 (string): The selector arguments to append
+build_command_with_sdk() {
+    local command="$1"
+    local selector="$2"
+
+    if [[ "$command" == *--swift-sdk* ]]; then
+        log "Build command names its own Swift SDK; not appending: $selector"
+        printf '%s' "$command"
+        return 0
+    fi
+
+    printf '%s %s' "$command" "$selector"
+}
+
+
 build() {
     # Enable alias expansion to use a 'swift' alias for the executable path
     shopt -s expand_aliases
@@ -818,15 +866,22 @@ build() {
 
         alias swift='$SWIFT_EXECUTABLE_FOR_ANDROID_SDK'
 
-        log "Using NDK at $ANDROID_NDK_HOME"
+        log "Using NDK at ${ANDROID_NDK_HOME:-(unset)}"
 
         # This can become a single invocation in the future when `swift build` supports multiple Android triples at once
         for android_sdk_triple in "${ANDROID_SDK_TRIPLES[@]}" ; do
             if [[ "$SWIFT_VERSION_INPUT" == "6.3" || "$SWIFT_VERSION_INPUT" == "nightly-6.3" ]]; then
-                local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${android_sdk_triple}"
+                local build_command
+                build_command=$(build_command_with_sdk "$SWIFT_BUILD_COMMAND" "--swift-sdk ${android_sdk_triple}")
             else
-                local build_command="$SWIFT_BUILD_COMMAND --swift-sdk ${sdk_name} --triple ${android_sdk_triple}"
-                # Work around swift-build issue with ANDROID_NDK_ROOT overriding ANDROID_NDK_HOME
+                local build_command
+                build_command=$(build_command_with_sdk "$SWIFT_BUILD_COMMAND" "--swift-sdk ${sdk_name} --triple ${android_sdk_triple}")
+                # Work around swift-build issue with ANDROID_NDK_ROOT overriding ANDROID_NDK_HOME.
+                # Exporting an empty value would point the compiler at a nonexistent NDK, so an
+                # unset one is a precondition failure rather than something to default.
+                if [[ -z "${ANDROID_NDK_HOME:-}" ]]; then
+                    fatal "ANDROID_NDK_HOME is not set, and Swift $SWIFT_VERSION_INPUT locates the NDK through it"
+                fi
                 export ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}"
             fi
             if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
@@ -860,7 +915,8 @@ build() {
         fi
 
         alias swift='$SWIFT_EXECUTABLE_FOR_STATIC_LINUX_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_triple"
+        local build_command
+        build_command=$(build_command_with_sdk "$SWIFT_BUILD_COMMAND" "--swift-sdk $sdk_triple")
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
@@ -884,7 +940,8 @@ build() {
         fi
 
         alias swift='$SWIFT_EXECUTABLE_FOR_WASM_SDK'
-        local build_command="$SWIFT_BUILD_COMMAND --swift-sdk $sdk_name"
+        local build_command
+        build_command=$(build_command_with_sdk "$SWIFT_BUILD_COMMAND" "--swift-sdk $sdk_name")
         if [[ -n "$SWIFT_BUILD_FLAGS" ]]; then
             build_command="$build_command $SWIFT_BUILD_FLAGS"
         fi
