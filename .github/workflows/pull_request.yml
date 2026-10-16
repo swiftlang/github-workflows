@@ -109,10 +109,6 @@ jobs:
 
   matrix_generator_tests:
     name: Matrix generator tests
-    # The runner image ships both Swift and yq, so nothing needs installing. It
-    # has to be mikefarah's yq, which is what the image carries: generate-matrix.swift
-    # invokes yq with no filter argument, and python-yq is a jq wrapper that
-    # requires one.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
