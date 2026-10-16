@@ -271,7 +271,7 @@ jobs:
   unacceptable-language-check:
     name: Unacceptable language check
     if: ${{ inputs.unacceptable_language_check_enabled }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 1
     steps:
       - name: Checkout repository
@@ -302,7 +302,7 @@ jobs:
   license-header-check:
     name: License headers check
     if: ${{ inputs.license_header_check_enabled }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 1
     steps:
       - name: Checkout repository
@@ -333,7 +333,7 @@ jobs:
   broken-symlink-check:
     name: Broken symlinks check
     if: ${{ inputs.broken_symlink_check_enabled }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 1
     steps:
       - name: Checkout repository
@@ -398,7 +398,7 @@ jobs:
   shell-check:
     name: Shell check
     if: ${{ inputs.shell_check_enabled }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     container:
       image: ${{ inputs.shell_check_container_image }}
     timeout-minutes: 5
@@ -421,7 +421,7 @@ jobs:
   yaml-lint-check:
     name: YAML lint check
     if: ${{ inputs.yamllint_check_enabled }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     steps:
       - name: Checkout repository
