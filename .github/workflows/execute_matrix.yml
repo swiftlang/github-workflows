@@ -212,9 +212,11 @@ jobs:
           path: github-workflows
           persist-credentials: false
 
-      # Linux and Windows check out linked PRs inside their job runners, because
-      # the checkout has to happen inside the container when there is one. macOS
-      # runs directly on the host, so it is done here.
+      # Linux and Windows install their toolchain inside the job runner, so they
+      # check out linked PRs there afterwards, to compile the checkout script with
+      # the toolchain under test (and inside the container when there is one).
+      # macOS uses the host's Xcode, which is there before the job starts, so
+      # there is nothing to wait for and the checkout is done here.
       - name: Check out linked PRs (macOS)
         if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' && matrix.config.platform == 'macOS' }}
         shell: bash
