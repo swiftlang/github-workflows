@@ -80,9 +80,6 @@ struct Configuration {
     @Input("MACOS_SETUP_COMMAND") var macOSSetupCommand = ""
     @Input("MACOS_ENV_VARS") var macOSEnvironment = JSONValue.object([:])
     @Input("MACOS_VERSION_OVERRIDES") var macOSOverrides = VersionOverrides()
-    /// The owner whose self-hosted macOS pools these entries need. Empty means no check.
-    @Input("MACOS_REPOSITORY_OWNER") var macOSRepositoryOwner = ""
-    @Input("GITHUB_REPOSITORY_OWNER") var repositoryOwner = ""
     @Input("XCODE_SCHEME") var xcodeScheme = ""
     @Input("XCODE_TARGETS") var xcodeTargets = ""
     @Input("XCODE_DEBUG_OUTPUT") var xcodeDebugOutput = false
@@ -235,20 +232,6 @@ extension Configuration {
         return self.cxxInteropVersions
     }
 
-    /// Whether the macOS entries are withheld from this repository, saying so when they are.
-    ///
-    /// They run on self-hosted pools a fork cannot reach, where its jobs would queue until they
-    /// time out. Withholding them produces no jobs rather than jobs that cannot start, and the
-    /// checks then treat macOS as a group this repository did not ask for.
-    func withholdsMacOS() -> Bool {
-        let owner = self.macOSRepositoryOwner
-        if owner.isEmpty || self.repositoryOwner.isEmpty || owner == self.repositoryOwner {
-            return false
-        }
-        log("Skipping macOS entries: this repository's owner (\(self.repositoryOwner)) is not \(owner)")
-        return true
-    }
-
     /// The setup command with a `cd` into the package appended. The setup command and the command
     /// run in one shell on every platform, so the caller's own setup runs from the repository
     /// root, where its relative paths are written, and the command runs in the package.
@@ -278,9 +261,7 @@ struct Generator {
     /// logs what it resolved to, and reading it twice would log it twice.
     private let linuxImages: [ContainerImage?]
     private let minimum: MinimumVersion
-    private let macOSIsWithheld: Bool
-    /// Derived before the owner check, so a fork - which gets no macOS entries at all - still
-    /// reports a target the caller got wrong.
+    /// Derived once for the same reason.
     private let xcodeTargets: [XcodeTarget]
 
     /// Everything else a group needs is read from the configuration as that group is built.
@@ -290,7 +271,6 @@ struct Generator {
         self.linuxImages = configuration.linuxImages()
         self.minimum = MinimumVersion(for: configuration)
         self.xcodeTargets = XcodeTarget.list(in: configuration)
-        self.macOSIsWithheld = configuration.withholdsMacOS()
     }
 }
 
@@ -465,9 +445,8 @@ extension Generator {
     private var jobGroups: [any JobGroup] {
         var groups: [any JobGroup] = []
         if self.configuration.linuxEnabled { groups.append(self.linuxJobs) }
-        // The macOS pools are self-hosted, and a fork cannot reach them.
-        if self.configuration.macOSEnabled && !self.macOSIsWithheld { groups.append(self.macOSJobs) }
-        if self.configuration.swiftlyEnabled && !self.macOSIsWithheld { groups.append(self.macOSSwiftlyJobs) }
+        if self.configuration.macOSEnabled { groups.append(self.macOSJobs) }
+        if self.configuration.swiftlyEnabled { groups.append(self.macOSSwiftlyJobs) }
         if self.configuration.windowsEnabled { groups.append(self.windowsJobs) }
         // A group that exists only to run a particular command has no meaning where the caller
         // supplies the command instead, so toolchains mode does not emit those.
@@ -498,8 +477,8 @@ extension Generator {
         for group in groups { group.validate(against: self.minimum) }
 
         // A group the caller asked for that produces nothing is a job missing from a run that
-        // still reports success, whatever the other groups produced. A deliberate skip - the
-        // fork guard, or toolchains mode - leaves the group unbuilt, so it is not such a group.
+        // still reports success, whatever the other groups produced. A deliberate skip - toolchains
+        // mode - leaves the group unbuilt, so it is not such a group.
         var entries: [MatrixEntry] = []
         for group in groups {
             let produced = group.entries

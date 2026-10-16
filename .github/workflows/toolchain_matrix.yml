@@ -88,10 +88,6 @@ on:
         type: string
         description: "macOS self-hosted runner pool label."
         default: "general"
-      macos_repository_owner:
-        type: string
-        description: "Owner whose self-hosted macOS runners these are. A repository under any other owner gets no macOS entries, since a fork's jobs would queue until they time out."
-        default: ""
       windows_swift_versions:
         type: string
         description: "Windows Swift version list (JSON/YAML array). Empty uses every supported release plus nightly-release and nightly-main."
@@ -192,8 +188,6 @@ jobs:
           MACOS_OS: ${{ inputs.macos_os }}
           MACOS_ARCH: ${{ inputs.macos_arch }}
           MACOS_RUNNER_POOL: ${{ inputs.macos_runner_pool }}
-          MACOS_REPOSITORY_OWNER: ${{ inputs.macos_repository_owner }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           WINDOWS_SWIFT_VERSIONS: ${{ inputs.windows_swift_versions }}
           WINDOWS_OS: ${{ inputs.windows_os }}
           WINDOWS_USE_DOCKER: ${{ inputs.windows_use_docker }}

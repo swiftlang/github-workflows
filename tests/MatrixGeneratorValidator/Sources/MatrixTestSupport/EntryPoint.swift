@@ -69,7 +69,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
   /// A value assembled in the step's script rather than its `env` block is not
   /// here, so `benchmarks.yml`'s composed commands and environment variables are
   /// absent - they are the workflow's own work, not a default a caller sees.
-  public func environment(repositoryOwner: String = "swiftlang") throws -> [String: String] {
+  public func environment() throws -> [String: String] {
     let defaults = try inputDefaults()
     var resolved: [String: String] = [:]
     for (key, value) in try stepEnvironment() {
@@ -78,8 +78,6 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
           throw WorkflowError.unknownInput(workflow: workflow, key: key, input: input)
         }
         resolved[key] = declared
-      } else if value.contains("${{ github.repository_owner }}") {
-        resolved[key] = repositoryOwner
       } else if value.contains("${{ steps.") {
         // Where the scripts were checked out, which the test supplies itself.
         continue

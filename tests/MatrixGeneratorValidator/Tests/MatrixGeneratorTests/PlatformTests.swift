@@ -219,8 +219,7 @@ struct MacOSTests {
   @Test("A swiftly entry's runner follows macos_os")
   func swiftlyRunnerFollowsOSList() throws {
     // The pools are self-hosted, so an entry naming an OS the caller did not ask
-    // for queues until it times out - the failure macos_repository_owner exists to
-    // prevent.
+    // for queues until it times out.
     let generated = try Generator.run([
       "ENABLE_MACOS": "true",
       "ENABLE_MACOS_SWIFTLY": "true",
@@ -306,34 +305,6 @@ struct MacOSTests {
     #expect(try names(#"["sequoia"]"#) == bare)
     // Without this the names above would be stable because nothing fans out.
     #expect(try names(#"["sequoia","tahoe"]"#).count == 2)
-  }
-
-  @Test("Self-hosted entries are withheld from other owners")
-  func ownerGuard() throws {
-    let matching = try Generator.run([
-      "ENABLE_MACOS": "true",
-      "ENABLE_MACOS_SWIFTLY": "true",
-      "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
-      "MACOS_REPOSITORY_OWNER": "apple",
-      "GITHUB_REPOSITORY_OWNER": "apple",
-    ])
-    #expect(matching.count == 2)
-
-    let fork = try Generator.run([
-      "ENABLE_MACOS": "true",
-      "ENABLE_MACOS_SWIFTLY": "true",
-      "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
-      "MACOS_REPOSITORY_OWNER": "apple",
-      "GITHUB_REPOSITORY_OWNER": "a-fork",
-    ])
-    #expect(fork.count == 0, "a fork cannot reach the pools, so it should get no jobs at all")
-
-    let unguarded = try Generator.run([
-      "ENABLE_MACOS": "true",
-      "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
-      "GITHUB_REPOSITORY_OWNER": "a-fork",
-    ])
-    #expect(unguarded.count == 1)
   }
 }
 

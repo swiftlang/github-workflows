@@ -334,10 +334,6 @@ on:
         type: string
         description: "macOS self-hosted runner pool label."
         default: "general"
-      macos_repository_owner:
-        type: string
-        description: "Owner whose self-hosted macOS pools the macOS entries need. When set and the running repository has a different owner, those entries are not generated, so a fork gets no jobs it cannot start rather than jobs that queue forever."
-        default: ""
       xcode_debug_output:
         type: boolean
         description: "Drop -quiet from the xcodebuild target invocations."
@@ -523,8 +519,6 @@ jobs:
           MACOS_OS: ${{ inputs.macos_os }}
           MACOS_ARCH: ${{ inputs.macos_arch }}
           MACOS_RUNNER_POOL: ${{ inputs.macos_runner_pool }}
-          MACOS_REPOSITORY_OWNER: ${{ inputs.macos_repository_owner }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           XCODE_DEBUG_OUTPUT: ${{ inputs.xcode_debug_output }}
 
   test:

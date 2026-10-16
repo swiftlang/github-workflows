@@ -42,10 +42,6 @@ on:
         type: string
         description: "The self-hosted runner pool for macOS benchmark jobs."
         default: "general"
-      macos_repository_owner:
-        type: string
-        description: "Owner whose self-hosted macOS runners these are. A repository under any other owner gets no macOS entries, since a fork's jobs would queue until they time out."
-        default: ""
       linux_env_vars:
         type: string
         description: "Environment variables for Linux jobs as JSON."
@@ -137,8 +133,6 @@ jobs:
           MACOS_SWIFT_VERSIONS: ${{ inputs.macos_swift_versions }}
           MACOS_XCODE_VERSIONS: ${{ inputs.macos_xcode_versions }}
           MACOS_RUNNER_POOL: ${{ inputs.macos_runner_pool }}
-          MACOS_REPOSITORY_OWNER: ${{ inputs.macos_repository_owner }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
           LINUX_SETUP_COMMAND: |
             git config --global --add safe.directory "$(pwd)"

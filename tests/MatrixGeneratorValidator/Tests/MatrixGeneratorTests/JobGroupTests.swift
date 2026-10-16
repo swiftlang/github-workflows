@@ -248,17 +248,6 @@ struct OutputModeTests {
     )
     #expect(filteredAway.exitCode != 0)
     #expect(filteredAway.standardError.contains("enable_linux"))
-
-    // A deliberate skip is not a mistake: the fork guard clears macOS, leaving
-    // nothing enabled rather than something enabled that produced nothing.
-    let forkSkipped = try Generator.run([
-      "ENABLE_MACOS": "true",
-      "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
-      "MACOS_REPOSITORY_OWNER": "apple",
-      "GITHUB_REPOSITORY_OWNER": "somefork",
-    ])
-    #expect(forkSkipped.exitCode == 0)
-    #expect(forkSkipped.count == 0)
   }
 
   @Test("An unknown mode fails rather than guessing")

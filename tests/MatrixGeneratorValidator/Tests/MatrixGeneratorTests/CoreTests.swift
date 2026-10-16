@@ -564,43 +564,20 @@ struct EmptiedByTheMinimumTests {
     #expect(generated.names == ["Linux Swift 6.3"])
   }
 
-  @Test("The fork guard is a skip rather than an emptied group")
-  func forkGuardIsNotAnEmptiedGroup() throws {
-    // The guard withholds macOS because this repository cannot reach the pools, so
-    // the caller did not ask for macOS here. Failing would take down every fork of
-    // a repository whose macOS list happens to sit below its own minimum.
-    //
-    // Linux runs alongside on a version that survives, so the matrix is not empty
-    // either way: what the fork must not get is the emptied-group failure.
-    let fork = try Generator.run([
-      "ENABLE_MACOS": "true",
-      "ENABLE_MACOS_SWIFTLY": "true",
-      "MACOS_SWIFT_VERSIONS": #"["6.1"]"#,
-      "ENABLE_LINUX": "true",
-      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
-      "MINIMUM_SWIFT_VERSION": "6.3",
-      "MACOS_REPOSITORY_OWNER": "apple",
-      "GITHUB_REPOSITORY_OWNER": "a-fork",
-    ])
-    #expect(fork.exitCode == 0, "\(fork.standardError)")
-    #expect(fork.names == ["Linux Swift 6.3"])
-
-    // The same configuration on the owning repository is an emptied group. The
-    // matrix is non-empty in both runs, so this is the new check rather than the
-    // whole-matrix guard, and the pass above is the fork guard rather than the
-    // check having been dropped.
-    let owner = try Generator.run([
+  @Test("A macOS group the filter empties fails, however the other platforms fare")
+  func emptiedMacOSGroupFails() throws {
+    // Linux runs alongside on a version that survives, so the matrix is not empty:
+    // this is the emptied-group check rather than the whole-matrix guard.
+    let generated = try Generator.run([
       "ENABLE_MACOS": "true",
       "MACOS_SWIFT_VERSIONS": #"["6.1"]"#,
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
       "MINIMUM_SWIFT_VERSION": "6.3",
-      "MACOS_REPOSITORY_OWNER": "apple",
-      "GITHUB_REPOSITORY_OWNER": "apple",
     ])
-    #expect(owner.exitCode != 0)
-    #expect(owner.standardError.contains("enable_macos"), "\(owner.standardError)")
-    #expect(!owner.standardError.contains("No matrix entries"), "\(owner.standardError)")
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("enable_macos"), "\(generated.standardError)")
+    #expect(!generated.standardError.contains("No matrix entries"), "\(generated.standardError)")
   }
 
   @Test("Toolchain mode suppresses the command-only groups rather than failing them")
