@@ -19,6 +19,10 @@ on:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.3-noble"
+      api_breakage_check_additional_tool_arguments:
+        type: string
+        description: "Additional arguments to pass directory to the `swift package diagnose-api-breaking-changes` invocation."
+        default: ""
       docs_check_enabled:
         type: boolean
         description: "Boolean to enable the docs check job. Defaults to true."
@@ -155,6 +159,7 @@ jobs:
         env:
           API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
           API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
+          API_BREAKAGE_CHECK_ADDITIONAL_TOOL_ARGUMENTS: ${{ inputs.api_breakage_check_additional_tool_arguments }}
         # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.linux_pre_build_command }}
@@ -166,9 +171,9 @@ jobs:
           fi
           echo "Using baseline: $BASELINE_REF"
           if [[ -z "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ]]; then
-            swift package diagnose-api-breaking-changes "$BASELINE_REF"
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" ${API_BREAKAGE_CHECK_ADDITIONAL_TOOL_ARGUMENTS}
           else
-            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}"
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ${API_BREAKAGE_CHECK_ADDITIONAL_TOOL_ARGUMENTS}
           fi
 
   docs-check:
