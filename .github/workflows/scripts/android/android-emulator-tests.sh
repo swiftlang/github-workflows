@@ -160,19 +160,25 @@ log "Copy Swift test package to emulator"
 ANDROID_TMP_FOLDER="/data/local/tmp/${STAGING_DIR}"
 adb push "${STAGING_DIR}" "${ANDROID_TMP_FOLDER}"
 
-TEST_CMD="./*-test-runner"
-if ! find "${STAGING_DIR}" -name '*-test-runner' -maxdepth 1 | grep -q .; then
-    TEST_CMD="./*.xctest"
+# Each test target has its own test runner, so run them one at a time:
+# with a glob, the shell would pass the other runners as arguments to the first one.
+TEST_RUNNERS=$(cd "${STAGING_DIR}" && find . -maxdepth 1 -name '*-test-runner' | sort)
+if [[ -z "${TEST_RUNNERS}" ]]; then
+    TEST_RUNNERS=$(cd "${STAGING_DIR}" && find . -maxdepth 1 -name '*.xctest' | sort)
 fi
-TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
-TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library xctest"
 
-# Run test cases a second time with the Swift Testing library
-# We additionally need to handle the special exit code
-# EXIT_NO_TESTS_FOUND (69 on Android), which can happen
-# when the tests link to Testing, but no tests are executed
-# see: https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Commands/SwiftTestCommand.swift#L1571
-TEST_SHELL="${TEST_SHELL} && ${TEST_CMD} --testing-library swift-testing && [ \$? -eq 0 ] || [ \$? -eq 69 ]"
+TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
+for TEST_RUNNER in ${TEST_RUNNERS}; do
+    TEST_SHELL="${TEST_SHELL} && echo 'Running ${TEST_RUNNER}'"
+    TEST_SHELL="${TEST_SHELL} && ${TEST_RUNNER} --testing-library xctest"
+
+    # Run test cases a second time with the Swift Testing library
+    # We additionally need to handle the special exit code
+    # EXIT_NO_TESTS_FOUND (69 on Android), which can happen
+    # when the tests link to Testing, but no tests are executed
+    # see: https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Commands/SwiftTestCommand.swift#L1571
+    TEST_SHELL="${TEST_SHELL} && { ${TEST_RUNNER} --testing-library swift-testing; status=\$?; [ \$status -eq 0 ] || [ \$status -eq 69 ]; }"
+done
 
 log "Run Swift package tests"
 
