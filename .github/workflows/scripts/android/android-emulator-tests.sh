@@ -167,18 +167,20 @@ if [[ -z "${TEST_RUNNERS}" ]]; then
     TEST_RUNNERS=$(cd "${STAGING_DIR}" && find . -maxdepth 1 -name '*.xctest' | sort)
 fi
 
-TEST_SHELL="cd ${ANDROID_TMP_FOLDER}"
+# Run every runner even if an earlier one fails, and fail at the end if any of them failed.
+TEST_SHELL="cd ${ANDROID_TMP_FOLDER} || exit 1; failed=0"
 for TEST_RUNNER in ${TEST_RUNNERS}; do
-    TEST_SHELL="${TEST_SHELL} && echo 'Running ${TEST_RUNNER}'"
-    TEST_SHELL="${TEST_SHELL} && ${TEST_RUNNER} --testing-library xctest"
+    TEST_SHELL="${TEST_SHELL}; echo 'Running ${TEST_RUNNER}'"
+    TEST_SHELL="${TEST_SHELL}; ${TEST_RUNNER} --testing-library xctest || failed=1"
 
     # Run test cases a second time with the Swift Testing library
     # We additionally need to handle the special exit code
     # EXIT_NO_TESTS_FOUND (69 on Android), which can happen
     # when the tests link to Testing, but no tests are executed
     # see: https://github.com/swiftlang/swift-package-manager/blob/main/Sources/Commands/SwiftTestCommand.swift#L1571
-    TEST_SHELL="${TEST_SHELL} && { ${TEST_RUNNER} --testing-library swift-testing; status=\$?; [ \$status -eq 0 ] || [ \$status -eq 69 ]; }"
+    TEST_SHELL="${TEST_SHELL}; ${TEST_RUNNER} --testing-library swift-testing; status=\$?; [ \$status -eq 0 ] || [ \$status -eq 69 ] || failed=1"
 done
+TEST_SHELL="${TEST_SHELL}; [ \$failed -eq 0 ]"
 
 log "Run Swift package tests"
 
