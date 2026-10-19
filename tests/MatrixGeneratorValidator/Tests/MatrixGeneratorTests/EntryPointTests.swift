@@ -31,13 +31,11 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.packageTest,
         [
-          "Linux Swift 6.1",
           "Linux Swift 6.2",
           "Linux Swift 6.3",
           "Linux Swift 6.4",
           "Linux Swift nightly-release",
           "Linux Swift nightly-main",
-          "Windows Swift 6.1",
           "Windows Swift 6.2",
           "Windows Swift 6.3",
           "Windows Swift 6.4",
@@ -48,7 +46,6 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.toolchainMatrix,
         [
-          "Linux Swift 6.1",
           "Linux Swift 6.2",
           "Linux Swift 6.3",
           "Linux Swift 6.4",
@@ -59,7 +56,6 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.benchmarks,
         [
-          "Linux Swift 6.1",
           "Linux Swift 6.2",
           "Linux Swift 6.3",
           "Linux Swift 6.4",
@@ -79,7 +75,7 @@ struct EntryPointDefaultTests {
     "A caller who asks for macOS and nothing else gets the same jobs from every entry point"
   )
   func macOSJobNamesAgree() throws {
-    let expected = ["macOS Swift 6.1", "macOS Swift 6.2", "macOS Swift 6.3", "macOS Swift 6.4"]
+    let expected = ["macOS Swift 6.2", "macOS Swift 6.3", "macOS Swift 6.4"]
     for entryPoint in EntryPoint.all {
       var environment = try entryPoint.environment()
       environment["ENABLE_LINUX"] = "false"
@@ -211,7 +207,6 @@ struct DefaultAgreementTests {
     #expect(gained.exitCode == 0, "\(entryPoint): \(gained.standardError)")
     #expect(
       Set(gained.names).subtracting(off.names) == [
-        "Windows Swift 6.1",
         "Windows Swift 6.2",
         "Windows Swift 6.3",
         "Windows Swift 6.4",

@@ -25,7 +25,7 @@ import Foundation
 /// What the run was configured with, as the caller wrote it.
 struct Configuration {
     /// The releases a platform tests by default, oldest first.
-    static let releases = ["6.1", "6.2", "6.3", "6.4"]
+    static let releases = ["6.2", "6.3", "6.4"]
     /// The nightlies every platform runs: the next release's branch, and main.
     static let nightlies = ["nightly-release", "nightly-main"]
     /// The most recent release, which the SDK builds run on rather than every version:
