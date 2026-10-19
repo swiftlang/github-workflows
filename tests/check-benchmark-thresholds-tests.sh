@@ -75,12 +75,12 @@ chmod +x "$STUB_DIR/swift"
 
 CHECK_LOG="$WORKDIR/check.log"
 
-# run_check <check_status> <update_status> <paths_json> <path> [argument ...] - echoes the
+# run_check <check_status> <update_status> <paths> [argument ...] - echoes the
 # exit status; the log is left in $CHECK_LOG and the stub's invocations in
 # $STUB_INVOCATIONS.
 run_check() {
-    local check_status="$1" update_status="$2" paths_json="$3" path="$4"
-    shift 4
+    local check_status="$1" update_status="$2" paths="$3"
+    shift 3
     : >"$STUB_INVOCATIONS"
     git -C "$REPOSITORY" checkout --quiet -- . 2>/dev/null
     git -C "$REPOSITORY" clean --quiet -fd
@@ -90,8 +90,7 @@ run_check() {
         SWIFT_VERSION="6.3" \
         STUB_CHECK_STATUS="$check_status" \
         STUB_UPDATE_STATUS="$update_status" \
-        BENCHMARK_PACKAGE_PATHS="$paths_json" \
-        BENCHMARK_PACKAGE_PATH="$path" \
+        BENCHMARK_PACKAGE_PATHS="$paths" \
             "$SCRIPT" "$@" >"$CHECK_LOG" 2>&1
     )
     echo "$?"
@@ -131,7 +130,7 @@ assert_lacks() {
 # a directory that does not exist.
 missing_version_status=$(
     cd "$REPOSITORY" \
-        && PATH="$STUB_DIR:$PATH" BENCHMARK_PACKAGE_PATH="one" "$SCRIPT" >"$CHECK_LOG" 2>&1
+        && PATH="$STUB_DIR:$PATH" BENCHMARK_PACKAGE_PATHS="one" "$SCRIPT" >"$CHECK_LOG" 2>&1
     echo "$?"
 )
 assert_status "a run without SWIFT_VERSION is refused" "1" "$missing_version_status"
@@ -140,18 +139,18 @@ assert_contains "the refusal names SWIFT_VERSION" "SWIFT_VERSION must be specifi
 
 echo "== Package paths"
 
-assert_status "measurements within their thresholds pass" "0" "$(run_check 0 0 "" "one")"
+assert_status "measurements within their thresholds pass" "0" "$(run_check 0 0 "one")"
 assert_contains "the named package is checked" "--package-path one" "$(cat "$STUB_INVOCATIONS")"
 assert_lacks "nothing is recalculated" "thresholds update" "$(cat "$STUB_INVOCATIONS")"
 
-assert_status "a JSON list of paths is accepted" "0" "$(run_check 0 0 '["one","two"]' ".")"
+assert_status "a JSON list of paths is accepted" "0" "$(run_check 0 0 '["one","two"]')"
 assert_contains "the first path is checked" "--package-path one" "$(cat "$STUB_INVOCATIONS")"
 assert_contains "the second path is checked" "--package-path two" "$(cat "$STUB_INVOCATIONS")"
-assert_lacks "the singular path is not also checked" "--package-path ." \
+assert_lacks "the current directory is not also checked" "--package-path ." \
     "$(cat "$STUB_INVOCATIONS")"
 
 assert_status "a newline-separated list of paths is accepted" "0" \
-    "$(run_check 0 0 $'one\ntwo' ".")"
+    "$(run_check 0 0 $'one\ntwo')"
 assert_contains "both paths are checked" "--package-path two" "$(cat "$STUB_INVOCATIONS")"
 
 # The workflow passes "[]" when a caller named no paths. The container images carry no
@@ -161,35 +160,35 @@ assert_contains "both paths are checked" "--package-path two" "$(cat "$STUB_INVO
 empty_list_status=$(
     cd "$REPOSITORY" \
         && PATH="$STUB_DIR" SWIFT_VERSION="6.3" \
-            BENCHMARK_PACKAGE_PATHS="[]" BENCHMARK_PACKAGE_PATH="one" \
+            BENCHMARK_PACKAGE_PATHS="[]" \
             "$SCRIPT" >"$CHECK_LOG" 2>&1
     echo "$?"
 )
-assert_status "an empty JSON list falls back to the singular path, without jq" "0" \
+assert_status "an empty JSON list falls back to the current directory, without jq" "0" \
     "$empty_list_status"
-assert_contains "the singular path is checked" "--package-path one" "$(cat "$STUB_INVOCATIONS")"
+assert_contains "the current directory is checked" "--package-path ." "$(cat "$STUB_INVOCATIONS")"
 
 assert_status "a JSON list that is not a list of strings is refused" "1" \
-    "$(run_check 0 0 '[1,2]' ".")"
+    "$(run_check 0 0 '[1,2]')"
 assert_contains "the refusal says what is wrong" "must be a JSON array of strings" \
     "$(cat "$CHECK_LOG")"
 
 echo "== Swift package arguments"
 
-assert_status "arguments are accepted" "0" "$(run_check 0 0 "" "one" --disable-sandbox)"
+assert_status "arguments are accepted" "0" "$(run_check 0 0 "one" --disable-sandbox)"
 assert_contains "arguments reach the plugin" "--package-path one --disable-sandbox" \
     "$(cat "$STUB_INVOCATIONS")"
 
 echo "== Regression and build error"
 
 # A regression: the check fails, the update succeeds, and the diff says what moved.
-assert_status "a regression fails the job" "1" "$(run_check 1 0 "" "one")"
+assert_status "a regression fails the job" "1" "$(run_check 1 0 "one")"
 assert_contains "the regression is recalculated" "thresholds update" "$(cat "$STUB_INVOCATIONS")"
 assert_contains "the diff is printed" "=== BEGIN DIFF (one) ===" "$(cat "$CHECK_LOG")"
 assert_contains "the diff holds the new threshold" "Benchmark.p90.json" "$(cat "$CHECK_LOG")"
 
 # A build error: neither the check nor the update can run, so there is nothing to diff.
-assert_status "a build error fails the job" "2" "$(run_check 1 2 "" "one")"
+assert_status "a build error fails the job" "2" "$(run_check 1 2 "one")"
 assert_contains "the build error is called one" "failed to run due to build error" \
     "$(cat "$CHECK_LOG")"
 assert_lacks "no diff is printed for a build error" "BEGIN DIFF" "$(cat "$CHECK_LOG")"
@@ -199,7 +198,7 @@ echo "== Several packages"
 # One package's regression must not stop the others being measured, and the summary has
 # to name the one that failed.
 assert_status "a regression in one of several packages fails the job" "1" \
-    "$(run_check 1 0 '["one","two"]' ".")"
+    "$(run_check 1 0 '["one","two"]')"
 assert_contains "the other package is still checked" "--package-path two" \
     "$(cat "$STUB_INVOCATIONS")"
 assert_contains "the summary names both failures" "Benchmark failures in: one two" \

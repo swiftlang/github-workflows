@@ -36,10 +36,8 @@ swift_package() {
 }
 
 # BENCHMARK_PACKAGE_PATHS is a JSON array of strings or a newline-separated
-# list. It takes precedence over the singular BENCHMARK_PACKAGE_PATH, which
-# remains supported so a caller naming one path needs nothing else.
+# list. Empty means the current directory.
 plural_paths="${BENCHMARK_PACKAGE_PATHS:-}"
-singular_path="${BENCHMARK_PACKAGE_PATH:-.}"
 
 # Recognize an empty array without jq: the workflow passes "[]" when a caller
 # named no paths, and the container images do not carry jq.
@@ -51,19 +49,19 @@ if [[ "$trimmed" == "[]" ]]; then
 fi
 
 if [[ "$trimmed" == \[* ]]; then
-  command -v jq >/dev/null 2>&1 || fatal "BENCHMARK_PACKAGE_PATHS is a JSON array but jq is not installed. Install it in the pre-build command, or pass BENCHMARK_PACKAGE_PATH instead."
+  command -v jq >/dev/null 2>&1 || fatal "BENCHMARK_PACKAGE_PATHS is a JSON array but jq is not installed. Install it in the pre-build command, or pass a newline-separated list instead."
   jq empty <<< "$plural_paths" 2>/dev/null || fatal "BENCHMARK_PACKAGE_PATHS is not valid JSON."
   jq -e 'type == "array" and all(.[]; type == "string")' >/dev/null <<< "$plural_paths" \
     || fatal "BENCHMARK_PACKAGE_PATHS must be a JSON array of strings."
   if [[ "$(jq 'length' <<< "$plural_paths")" == "0" ]]; then
-    benchmark_package_paths="$singular_path"
+    benchmark_package_paths="."
   else
     benchmark_package_paths=$(jq -r '.[]' <<< "$plural_paths")
   fi
 elif [[ -n "$plural_paths" ]]; then
   benchmark_package_paths="$plural_paths"
 else
-  benchmark_package_paths="$singular_path"
+  benchmark_package_paths="."
 fi
 
 run_one() {

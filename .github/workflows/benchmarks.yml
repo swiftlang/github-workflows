@@ -6,13 +6,9 @@ permissions:
 on:
   workflow_call:
     inputs:
-      benchmark_package_path:
-        type: string
-        description: "Path to the directory containing the benchmarking package. Used only when benchmark_package_paths is empty."
-        default: "."
       benchmark_package_paths:
         type: string
-        description: 'JSON array of benchmarking package paths to run in sequence on each runner, e.g. ''["Benchmarks/A", "Benchmarks/B"]''. Takes precedence over benchmark_package_path.'
+        description: 'JSON array of benchmarking package paths to run in sequence on each runner, e.g. ''["Benchmarks/A", "Benchmarks/B"]''. Empty or [] runs the package in the repository root.'
         default: "[]"
       swift_package_arguments:
         type: string
@@ -123,7 +119,6 @@ jobs:
           WORKFLOWS_CHECKOUT: ${{ steps.workflows_source.outputs.root_directory }}
           LINUX_USER_ENV_VARS: ${{ inputs.linux_env_vars }}
           MACOS_USER_ENV_VARS: ${{ inputs.macos_env_vars }}
-          BENCHMARK_PACKAGE_PATH: ${{ inputs.benchmark_package_path }}
           BENCHMARK_PACKAGE_PATHS: ${{ inputs.benchmark_package_paths }}
           SWIFT_PACKAGE_ARGUMENTS: ${{ inputs.swift_package_arguments }}
           ENABLE_LINUX: ${{ inputs.enable_linux }}
@@ -155,9 +150,8 @@ jobs:
           with_benchmark_paths() {
             jq -cn \
               --argjson user "$(echo "${1:-}" | yq -o=json '. // {}')" \
-              --arg path "$BENCHMARK_PACKAGE_PATH" \
               --arg paths "$BENCHMARK_PACKAGE_PATHS" \
-              '$user + {BENCHMARK_PACKAGE_PATH: $path, BENCHMARK_PACKAGE_PATHS: $paths}'
+              '$user + {BENCHMARK_PACKAGE_PATHS: $paths}'
           }
           LINUX_ENV_VARS=$(with_benchmark_paths "$LINUX_USER_ENV_VARS")
           MACOS_ENV_VARS=$(with_benchmark_paths "$MACOS_USER_ENV_VARS")
