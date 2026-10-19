@@ -32,16 +32,8 @@ on:
         default: "{}"
       job_timeout:
         type: number
-        description: "Timeout in minutes for each job (default: 60)"
+        description: "Timeout in minutes for each job, for entries that do not carry their own timeout_minutes."
         default: 60
-      windows_job_timeout:
-        type: number
-        description: "Timeout in minutes for Windows jobs. 0 uses job_timeout. Windows installs a toolchain and Visual Studio Build Tools before building, so it often needs longer."
-        default: 0
-      freebsd_job_timeout:
-        type: number
-        description: "Timeout in minutes for FreeBSD jobs. 0 uses job_timeout. FreeBSD provisions a virtual machine and installs a toolchain into it before building, so it often needs longer."
-        default: 0
       needs_token:
         type: boolean
         description: "Whether to provide GITHUB_TOKEN to jobs"
@@ -230,7 +222,7 @@ jobs:
 
       - name: Run matrix job (Linux)
         if: ${{ matrix.config.platform == 'Linux' }}
-        timeout-minutes: ${{ inputs.job_timeout }}
+        timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
@@ -270,7 +262,7 @@ jobs:
 
       - name: Run Android emulator tests
         if: ${{ matrix.config.android_emulator == true && matrix.config.platform == 'Linux' }}
-        timeout-minutes: ${{ inputs.job_timeout }}
+        timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         shell: bash
         env:
           SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory }}/.github/workflows/scripts
@@ -285,7 +277,7 @@ jobs:
 
       - name: Run matrix job (Windows)
         if: ${{ matrix.config.platform == 'Windows' }}
-        timeout-minutes: ${{ inputs.windows_job_timeout > 0 && inputs.windows_job_timeout || inputs.job_timeout }}
+        timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
           SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory_windows }}\.github\workflows\scripts
@@ -312,7 +304,7 @@ jobs:
 
       - name: Run matrix job (macOS)
         if: ${{ matrix.config.platform == 'macOS' }}
-        timeout-minutes: ${{ inputs.job_timeout }}
+        timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
@@ -397,7 +389,7 @@ jobs:
 
       - name: Run matrix job (FreeBSD)
         if: ${{ matrix.config.platform == 'FreeBSD' }}
-        timeout-minutes: ${{ inputs.freebsd_job_timeout > 0 && inputs.freebsd_job_timeout || inputs.job_timeout }}
+        timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         uses: vmactions/freebsd-vm@v1
         env:
           SWIFT_WEB_URL: ${{ matrix.config.freebsd.swift_url }}

@@ -308,6 +308,51 @@ struct MacOSTests {
   }
 }
 
+@Suite("Job timeouts")
+struct JobTimeoutTests {
+  @Test("Windows and FreeBSD entries carry their configured timeout and the others carry none")
+  func timeoutsAreCarriedByPlatform() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "ENABLE_WINDOWS": "true",
+      "ENABLE_FREEBSD": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
+      "WINDOWS_SWIFT_VERSIONS": #"["6.3"]"#,
+      "WINDOWS_JOB_TIMEOUT": "120",
+      "FREEBSD_JOB_TIMEOUT": "90",
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(generated.entry(named: "Windows Swift 6.3")?.timeoutMinutes == 120)
+    #expect(generated.entries.first { $0.platform == "FreeBSD" }?.timeoutMinutes == 90)
+    #expect(generated.entry(named: "Linux Swift 6.3")?.timeoutMinutes == nil)
+  }
+
+  @Test("A timeout of zero leaves the executor's own")
+  func zeroIsNoTimeout() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "false",
+      "ENABLE_WINDOWS": "true",
+      "WINDOWS_SWIFT_VERSIONS": #"["6.3"]"#,
+      "WINDOWS_JOB_TIMEOUT": "0",
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(generated.entry(named: "Windows Swift 6.3")?.timeoutMinutes == nil)
+  }
+
+  @Test("A timeout that is not a whole number fails the run")
+  func malformedTimeoutFails() throws {
+    let generated = try Generator.run([
+      "ENABLE_WINDOWS": "true",
+      "WINDOWS_JOB_TIMEOUT": "soon",
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("windows_job_timeout"), "\(generated.standardError)")
+  }
+}
+
 @Suite("Apple platform targets")
 struct ApplePlatformTargetTests {
   /// Every platform NIO builds and tests, and the destinations each uses.

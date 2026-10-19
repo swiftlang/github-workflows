@@ -59,6 +59,7 @@ Fields every entry carries:
 | `command` | string | The command to run. An entry that omits it takes `execute_matrix.yml`'s `command` input. |
 | `setup_command` | string | Run before the command. Defaults to the `setup_command` input. |
 | `command_arguments` | list of strings | Appended to the command. Defaults to the `command_arguments` input. |
+| `timeout_minutes` | number | The job's timeout. An entry that omits it takes `execute_matrix.yml`'s `job_timeout` input. |
 | `env` | map | Environment variables for the job. The `env` input supplies defaults and an entry's own keys win. |
 
 The toolchain is described by one further key, by platform:

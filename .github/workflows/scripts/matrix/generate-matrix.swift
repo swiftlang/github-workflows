@@ -95,6 +95,9 @@ struct Configuration {
     @Input("WINDOWS_ENV_VARS") var windowsEnvironment = JSONValue.object([:])
     @Input("WINDOWS_VERSION_OVERRIDES") var windowsOverrides = VersionOverrides()
     @Input("WINDOWS_USE_DOCKER") var windowsUsesDocker = false
+    /// Minutes for a Windows job, which installs a toolchain and the Visual Studio Build Tools
+    /// before building. Zero leaves the executor's timeout.
+    @Input("WINDOWS_JOB_TIMEOUT") var windowsTimeoutMinutes = 0
 
     @Input("ANDROID_NDK_VERSIONS") var androidNDKVersions = ["r27d", "r28c"]
     @Input("ANDROID_SDK_TRIPLES") var androidTriples = [
@@ -106,6 +109,9 @@ struct Configuration {
     @Input("FREEBSD_SWIFT_VERSIONS") var freeBSDVersions = ["nightly-main"]
     @Input("FREEBSD_OS_VERSIONS") var freeBSDOSVersions = ["14.3"]
     @Input("FREEBSD_COMMAND") var freeBSDCommands: Commands = "swift test"
+    /// Minutes for a FreeBSD job, which boots a virtual machine and installs a toolchain into it
+    /// before building. Zero leaves the executor's timeout.
+    @Input("FREEBSD_JOB_TIMEOUT") var freeBSDTimeoutMinutes = 0
     @Input("FREEBSD_SETUP_COMMAND") var freeBSDSetupCommand = ""
     @Input("FREEBSD_ENV_VARS") var freeBSDEnvironmentVariables = ""
 
@@ -230,6 +236,17 @@ extension Configuration {
             return [SwiftVersion.newestRelease(in: self.linuxVersions)]
         }
         return self.cxxInteropVersions
+    }
+
+    /// The timeout an entry on this platform carries, or nil to leave the executor's own.
+    func timeoutMinutes(for platform: MatrixEntry.Platform) -> Int? {
+        let minutes: Int
+        switch platform {
+        case .windows: minutes = self.windowsTimeoutMinutes
+        case .freeBSD: minutes = self.freeBSDTimeoutMinutes
+        case .linux, .macOS: minutes = 0
+        }
+        return minutes > 0 ? minutes : nil
     }
 
     /// The setup command with a `cd` into the package appended. The setup command and the command
@@ -490,7 +507,11 @@ extension Generator {
                     """
                 )
             }
-            entries += produced
+            entries += produced.map { entry in
+                var timed = entry
+                timed.timeoutMinutes = self.configuration.timeoutMinutes(for: entry.platform)
+                return timed
+            }
         }
 
         if groups.isEmpty {
@@ -1261,9 +1282,12 @@ struct MatrixEntry: Encodable {
     var commandArguments: [String]?
     var env: JSONValue
     var androidEmulator: Bool?
+    /// Absent where the executor's own timeout applies.
+    var timeoutMinutes: Int?
 
     enum CodingKeys: String, CodingKey {
         case platform, name, runner, command, env
+        case timeoutMinutes = "timeout_minutes"
         case swiftBuild = "swift_build"
         case xcodeBuild = "xcode_build"
         case freeBSDBuild = "freebsd"
@@ -1887,6 +1911,16 @@ protocol InputElement {
 extension String: InputDecodable, InputElement {
     init(input text: String, name: String) { self = text }
     init(element: JSONValue, text: String) { self = text }
+}
+
+extension Int: InputDecodable {
+    /// A count that is not a whole number would be dropped to a default the caller did not choose.
+    init(input text: String, name: String) {
+        guard let value = Int(text.trimmingCharacters(in: .whitespaces)), value >= 0 else {
+            fatal("\(name) must be a whole number, but got: \(text)")
+        }
+        self = value
+    }
 }
 
 extension Bool: InputDecodable {

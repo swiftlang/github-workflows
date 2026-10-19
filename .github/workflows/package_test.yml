@@ -515,6 +515,8 @@ jobs:
           LINUX_DOCKER_SECURITY_OPTIONS: ${{ inputs.linux_docker_security_options }}
           MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
           PACKAGE_PATH: ${{ inputs.package_path }}
+          WINDOWS_JOB_TIMEOUT: ${{ inputs.windows_job_timeout }}
+          FREEBSD_JOB_TIMEOUT: ${{ inputs.freebsd_job_timeout }}
           ENABLE_SUBDIRECTORY_MANIFEST_SEARCH: ${{ inputs.find_subdirectory_manifests }}
           MACOS_OS: ${{ inputs.macos_os }}
           MACOS_ARCH: ${{ inputs.macos_arch }}
@@ -531,7 +533,5 @@ jobs:
       workflows_repository: ${{ inputs.workflows_repository }}
       workflows_ref: ${{ inputs.workflows_ref }}
       job_timeout: ${{ inputs.job_timeout }}
-      windows_job_timeout: ${{ inputs.windows_job_timeout }}
-      freebsd_job_timeout: ${{ inputs.freebsd_job_timeout }}
       needs_token: ${{ inputs.needs_token }}
       enable_cross_pr_testing: ${{ inputs.enable_cross_pr_testing }}

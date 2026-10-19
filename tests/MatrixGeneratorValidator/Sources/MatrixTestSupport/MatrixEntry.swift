@@ -38,6 +38,8 @@ public struct MatrixEntry: Decodable, Sendable {
 
   public var env: [String: String]
   public var androidEmulator: Bool?
+  /// Absent where the executor's own timeout applies.
+  public var timeoutMinutes: Int?
 
   public struct SwiftBuild: Decodable, Sendable {
     /// The version label a caller wrote, such as `6.3` or `nightly-release`.
@@ -118,6 +120,7 @@ extension MatrixEntry {
     case commandArguments = "command_arguments"
     case env
     case androidEmulator = "android_emulator"
+    case timeoutMinutes = "timeout_minutes"
   }
 }
 
