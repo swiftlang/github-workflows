@@ -17,7 +17,7 @@ jobs:
     name: Validate proposals with swift-evolution-metadata-extractor
     runs-on: ubuntu-latest
     container:
-      image: "swift:6.2-noble"
+      image: "swift:6.4-noble"
     timeout-minutes: 10
     env:
       RESOLVED_PR_NUMBER: ${{ case(inputs.workflow_test_enabled, '3331', github.event.number) }}
