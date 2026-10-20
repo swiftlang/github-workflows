@@ -207,9 +207,10 @@ struct DefaultAgreementTests {
         "SWIFT_NIGHTLY_RELEASE": try #require(environment["SWIFT_NIGHTLY_RELEASE"], "\(entryPoint)"),
       ]
     }
-    for values in declared {
-      #expect(!values["SWIFT_CURRENT_RELEASE", default: ""].isEmpty)
-      #expect(!values["SWIFT_NIGHTLY_RELEASE", default: ""].isEmpty)
+    for (key, value) in declared[0] {
+      #expect(!value.isEmpty, "\(key) is declared empty")
+    }
+    for values in declared.dropFirst() {
       #expect(values == declared[0], "\(values) differs from \(declared[0])")
     }
   }

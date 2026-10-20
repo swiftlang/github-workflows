@@ -1419,6 +1419,37 @@ extension MatrixEntry.SwiftBuild {
 
 // MARK: - Toolchains
 
+/// What a version list entry names.
+enum VersionLabel {
+    /// `current`, `current-1` or `current-2`: a release counted back from the current one.
+    case release(offset: Int)
+    /// A nightly such as `nightly-main`.
+    case nightly(String)
+    /// A version written out, such as `6.0`.
+    case explicit(String)
+
+    init(_ text: String) {
+        if text.hasPrefix("nightly-") {
+            self = .nightly(text)
+            return
+        }
+        guard text == "current" || text.hasPrefix("current-") else {
+            self = .explicit(text)
+            return
+        }
+        let offset = text == "current" ? 0 : Int(text.dropFirst("current-".count))
+        guard let offset, (0...2).contains(offset) else {
+            fatal(
+                """
+                '\(text)' is not a Swift version label. Relative labels are current, current-1 and current-2; \
+                write the version to name an older one.
+                """
+            )
+        }
+        self = .release(offset: offset)
+    }
+}
+
 /// The releases a run was given, which the labels that name one by position resolve against.
 struct SwiftReleases {
     /// The release `current` names, such as `6.4`. Empty when the caller gave none.
@@ -1430,27 +1461,26 @@ struct SwiftReleases {
     /// The version a label names: `current`, `current-1` and `current-2` count back from the
     /// current release, and anything else is already a version.
     func version(for label: String) -> String {
-        guard label == "current" || label.hasPrefix("current-") else { return label }
-        let offset = label == "current" ? 0 : Int(label.dropFirst("current-".count))
-        guard let offset, (0...2).contains(offset) else {
-            fatal(
-                """
-                '\(label)' is not a Swift version label. Relative labels are current, current-1 and current-2; \
-                write the version to name an older one.
-                """
-            )
+        switch VersionLabel(label) {
+        case .nightly, .explicit:
+            return label
+        case .release(let offset):
+            if self.current.isEmpty {
+                fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
+            }
+            guard let release = SwiftVersion(majorMinor: self.current) else {
+                fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.current)'")
+            }
+            guard release.minor >= offset else {
+                fatal("'\(label)' counts back past the first minor release of Swift \(release.major).")
+            }
+            return "\(release.major).\(release.minor - offset)"
         }
-        if self.current.isEmpty {
-            fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
-        }
-        guard let release = SwiftVersion(self.current), self.current.split(separator: ".").count == 2 else {
-            fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.current)'")
-        }
-        let minor = release.components[1] - offset
-        guard minor >= 0 else {
-            fatal("'\(label)' counts back past the first minor release of Swift \(release.components[0]).")
-        }
-        return "\(release.components[0]).\(minor)"
+    }
+
+    /// Where a label falls among the released versions, for ordering it.
+    func ordered(_ label: String) -> SwiftVersion {
+        SwiftVersion.inVersionList(self.version(for: label))
     }
 }
 
@@ -1499,7 +1529,7 @@ struct Toolchain {
 
 /// A released Swift version, ordered by its components.
 struct SwiftVersion: Comparable {
-    fileprivate let components: [Int]
+    private let components: [Int]
 
     init?(_ text: String) {
         let parts = text.split(separator: ".", omittingEmptySubsequences: false)
@@ -1508,6 +1538,15 @@ struct SwiftVersion: Comparable {
         guard numbers.count == parts.count else { return nil }
         self.components = numbers + Array(repeating: 0, count: 3 - numbers.count)
     }
+
+    /// A `major.minor` version, which a release is named by.
+    init?(majorMinor text: String) {
+        guard text.split(separator: ".", omittingEmptySubsequences: false).count == 2 else { return nil }
+        self.init(text)
+    }
+
+    var major: Int { self.components[0] }
+    var minor: Int { self.components[1] }
 
     static func < (first: SwiftVersion, second: SwiftVersion) -> Bool {
         first.components.lexicographicallyPrecedes(second.components)
@@ -1531,9 +1570,7 @@ struct SwiftVersion: Comparable {
     /// all nightlies.
     static func newestRelease(in versions: [String], releases: SwiftReleases) -> String {
         let released = versions.filter { !$0.hasPrefix("nightly-") }
-        let newest = released.max {
-            SwiftVersion.inVersionList(releases.version(for: $0)) < SwiftVersion.inVersionList(releases.version(for: $1))
-        }
+        let newest = released.max { releases.ordered($0) < releases.ordered($1) }
         return newest ?? versions.last ?? ""
     }
 }
@@ -1568,7 +1605,7 @@ struct MinimumVersion {
     func admits(_ label: String) -> Bool {
         guard let floor = self.floor else { return true }
         if label.hasPrefix("nightly-") { return true }
-        return SwiftVersion.inVersionList(self.releases.version(for: label)) >= floor
+        return self.releases.ordered(label) >= floor
     }
 
     /// What a caller does about a version the filter dropped. The filter is not an input of its
