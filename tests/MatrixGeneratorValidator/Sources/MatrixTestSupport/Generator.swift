@@ -54,6 +54,14 @@ public enum GeneratorError: Error, CustomStringConvertible {
   }
 }
 
+/// The values every workflow passes that the generator has no default for: it holds no list of
+/// releases, so a run that reads none of these fails rather than guessing.
+private let workflowSuppliedValues = [
+  "SWIFT_CURRENT_RELEASE": "6.4",
+  "SWIFT_NIGHTLY_RELEASE": "6.4.x",
+  "MACOS_SWIFTLY_TOOLCHAINS": #"[{"xcode_version": "swift_6.3", "swiftly_toolchain": "main-snapshot"}]"#,
+]
+
 /// Runs `generate-matrix.swift` and decodes what it emitted.
 ///
 /// This needs no runner, no Swift toolchain for the package under test and no
@@ -104,6 +112,10 @@ public struct Generator: Sendable {
     if !includePlatformDefaults {
       variables["ENABLE_LINUX"] = "false"
       variables["ENABLE_WINDOWS"] = "false"
+    }
+    // What the workflows supply, since the generator has no releases of its own.
+    for (key, value) in workflowSuppliedValues {
+      variables[key] = value
     }
     for (key, value) in environment {
       variables[key] = value

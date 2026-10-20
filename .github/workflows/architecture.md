@@ -45,6 +45,12 @@ The design is intended to be layered, so that adopters may use the whole stack o
 * `generate-matrix.swift`: produces the canonical work definition YAML or JSON. It reads the workflow's inputs from the environment and fails the run rather than emitting a matrix that would silently drop a job the caller asked for
 * `job-runner-linux.sh`, `job-runner-macos.sh`, `job-runner-windows.ps1`: helper scripts which execute the defined work. They handle the complexity of running inside/outside Docker and installing Swift if required.
 
+## Swift version labels
+
+A version list names toolchains with labels: a version such as `6.3`, `nightly-release`, `nightly-main`, or a position counted back from the current release, `current`, `current-1` and `current-2`. A job's name carries the label the caller wrote. Job names are required status checks, so the default lists use the relative labels: a new Swift release changes which versions they name and leaves the checks alone. A caller who writes versions out gets those names, and the two spellings can be mixed in one list.
+
+The workflow supplies what the relative labels resolve against, in `swift_current_release` and `swift_nightly_release`. They are inputs with defaults in the workflow files rather than values in the generator, so a workflow pinned to a release tag keeps the versions it was released with. Setting `swift_current_release` holds a repository at an earlier release without changing its check names.
+
 ## The matrix definition
 
 `execute_matrix.yml` takes the work definition as a YAML string (JSON is valid YAML, so a JSON document works too) in `matrix_yaml_string`. `generate-matrix.swift` writes it, and a caller can write it by hand or generate it some other way. It is a map with one key, `config`, holding a list of entries. Each entry becomes one job, named by its `name`. An empty list is valid and runs no jobs. A missing or non-list `config`, an unknown `platform`, or an entry left with no `command` fails before any job starts.

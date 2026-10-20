@@ -42,7 +42,7 @@ public struct MatrixEntry: Decodable, Sendable {
   public var timeoutMinutes: Int?
 
   public struct SwiftBuild: Decodable, Sendable {
-    /// The version label a caller wrote, such as `6.3` or `nightly-release`.
+    /// The version the label names, such as `6.3` or `nightly-release`.
     public var swiftVersion: String
     /// The concrete toolchain upstream publishes under. Emitted only when it
     /// differs from `swift_version`.

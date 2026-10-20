@@ -438,7 +438,7 @@ struct EmptiedByTheMinimumTests {
     )
     #expect(generated.exitCode != 0)
     #expect(generated.standardError.contains("enable_cxx_interop"), "\(generated.standardError)")
-    #expect(generated.standardError.contains("6.4"), "\(generated.standardError)")
+    #expect(generated.standardError.contains("current"), "\(generated.standardError)")
   }
 
   @Test(
@@ -642,7 +642,7 @@ struct ToolchainResolutionTests {
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["nightly-release"]"#,
-      "NIGHTLY_RELEASE_TOKEN": "6.5",
+      "SWIFT_NIGHTLY_RELEASE": "6.5",
     ])
     let build = try #require(generated.entries.first?.swiftBuild)
     #expect(build.toolchain == "nightly-6.5")
@@ -980,5 +980,95 @@ struct CommandTests {
   func environmentVariables(environment: [String: String], expected: String) throws {
     let generated = try Generator.run(environment)
     #expect(generated.entries.first?.env["FOO"] == expected)
+  }
+}
+
+@Suite("Relative version labels")
+struct RelativeVersionLabelTests {
+  @Test("A label names the entry and its position, and the entry carries the version it resolves to")
+  func entriesCarryTheResolvedVersion() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "ENABLE_MACOS": "true",
+      "LINUX_SWIFT_VERSIONS": #"["current-2","current"]"#,
+      "MACOS_SWIFT_VERSIONS": #"["current-1"]"#,
+      "SWIFT_CURRENT_RELEASE": "6.4",
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(generated.entry(named: "Linux Swift current-2")?.swiftBuild?.swiftVersion == "6.2")
+    #expect(generated.entry(named: "Linux Swift current")?.swiftBuild?.swiftVersion == "6.4")
+    #expect(generated.entry(named: "macOS Swift current-1")?.xcodeBuild?.swiftVersion == "6.3")
+  }
+
+  @Test("A new release moves the versions under the same names")
+  func releaseMovesTheVersions() throws {
+    func versions(_ release: String) throws -> (names: [String], versions: [String?]) {
+      let generated = try Generator.run([
+        "ENABLE_LINUX": "true",
+        "SWIFT_CURRENT_RELEASE": release,
+        "MINIMUM_SWIFT_VERSION": "none",
+      ])
+      #expect(generated.exitCode == 0, "\(generated.standardError)")
+      return (generated.names, generated.entries.map { $0.swiftBuild?.swiftVersion })
+    }
+    let before = try versions("6.4")
+    let after = try versions("6.5")
+    #expect(before.names == after.names)
+    #expect(before.versions == ["6.2", "6.3", "6.4", "nightly-release", "nightly-main"])
+    #expect(after.versions == ["6.3", "6.4", "6.5", "nightly-release", "nightly-main"])
+  }
+
+  @Test("A version written out keeps its own name beside a relative label")
+  func explicitVersionsKeepTheirNames() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.0","current"]"#,
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.names == ["Linux Swift 6.0", "Linux Swift current"])
+  }
+
+  @Test("The minimum version filters a label by the version it names")
+  func minimumFiltersByResolvedVersion() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["current-2","current-1","current"]"#,
+      "MINIMUM_SWIFT_VERSION": "6.3",
+    ])
+    #expect(generated.names == ["Linux Swift current-1", "Linux Swift current"])
+  }
+
+  @Test("Overrides and per-label versions use the spelling the list does")
+  func overridesTakeRelativeLabels() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["current-1","current"]"#,
+      "LINUX_VERSION_OVERRIDES": #"{"current": "-Xswiftc -warnings-as-errors"}"#,
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(generated.entry(named: "Linux Swift current")?.commandArguments == ["-Xswiftc", "-warnings-as-errors"])
+    #expect(generated.entry(named: "Linux Swift current-1")?.commandArguments?.isEmpty == true)
+  }
+
+  @Test("A label that counts back too far names the way out")
+  func tooFarBackFails() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["current-3"]"#,
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("write the version"), "\(generated.standardError)")
+  }
+
+  @Test("A relative label with no release to count from fails rather than guessing")
+  func missingReleaseFails() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["current"]"#,
+      "SWIFT_CURRENT_RELEASE": "",
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("swift_current_release is not set"), "\(generated.standardError)")
   }
 }

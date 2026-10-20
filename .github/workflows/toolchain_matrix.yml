@@ -52,9 +52,17 @@ on:
         type: boolean
         description: "Include the Windows toolchains."
         default: false
+      swift_current_release:
+        type: string
+        description: "The Swift release that `current` names in a version list, and that `current-1` and `current-2` count back from. Job names use the relative label, so a new release moves the versions under the same checks. Changing it holds a repository's versions at a release; changing a version list names versions explicitly."
+        default: "6.4"
+      swift_nightly_release:
+        type: string
+        description: "The branch that `nightly-release` names, in the spelling upstream publishes its nightlies under."
+        default: "6.4.x"
       linux_swift_versions:
         type: string
-        description: "Linux Swift version list (JSON/YAML array). Empty uses every supported release plus nightly-release and nightly-main."
+        description: "Linux Swift version list (JSON/YAML array). Empty uses current-2, current-1, current, nightly-release and nightly-main."
         default: ""
       linux_host_archs:
         type: string
@@ -90,7 +98,7 @@ on:
         default: "general"
       windows_swift_versions:
         type: string
-        description: "Windows Swift version list (JSON/YAML array). Empty uses every supported release plus nightly-release and nightly-main."
+        description: "Windows Swift version list (JSON/YAML array). Empty uses current-2, current-1, current, nightly-release and nightly-main."
         default: ""
       windows_os:
         type: string
@@ -195,6 +203,8 @@ jobs:
           MACOS_ENV_VARS: ${{ inputs.macos_env_vars }}
           WINDOWS_ENV_VARS: ${{ inputs.windows_env_vars }}
           MINIMUM_SWIFT_VERSION: ${{ inputs.minimum_swift_version }}
+          SWIFT_CURRENT_RELEASE: ${{ inputs.swift_current_release }}
+          SWIFT_NIGHTLY_RELEASE: ${{ inputs.swift_nightly_release }}
           ENABLE_SUBDIRECTORY_MANIFEST_SEARCH: ${{ inputs.find_subdirectory_manifests }}
         run: |
           matrix_yaml=$("${WORKFLOWS_CHECKOUT}/.github/workflows/scripts/matrix/generate-matrix.swift")

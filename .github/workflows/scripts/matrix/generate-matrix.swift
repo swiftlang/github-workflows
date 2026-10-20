@@ -24,23 +24,16 @@ import Foundation
 
 /// What the run was configured with, as the caller wrote it.
 struct Configuration {
-    /// The releases a platform tests by default, oldest first.
-    static let releases = ["6.2", "6.3", "6.4"]
+    /// The releases a platform tests by default, oldest first, named relative to the current
+    /// release so that a job's name, which is a required status check, survives a new release.
+    static let releaseLabels = ["current-2", "current-1", "current"]
     /// The nightlies every platform runs: the next release's branch, and main.
     static let nightlies = ["nightly-release", "nightly-main"]
-    /// The most recent release, which the SDK builds run on rather than every version:
-    /// bumping a release means adding to `releases` and nothing else.
-    static var latestRelease: String {
-        guard let latest = releases.last else {
-            fatal("Configuration.releases is empty, so no release is left for the supplementary checks to run on.")
-        }
-        return latest
-    }
     /// The Swift versions a platform runs by default: every release, plus both nightlies.
-    static let defaultVersions = releases + nightlies
+    static let defaultVersions = releaseLabels + nightlies
     /// The Swift versions an SDK build runs by default. An SDK ships from the release it was
     /// cut for onward, so an older release would build against one never published for it.
-    static let defaultSDKVersions = [latestRelease] + nightlies
+    static let defaultSDKVersions = ["current"] + nightlies
 
     @Input("ENABLE_LINUX") var linuxEnabled = true
     @Input("ENABLE_MACOS") var macOSEnabled = false
@@ -50,7 +43,11 @@ struct Configuration {
     @Input("ENABLE_ANDROID_EMULATOR_TESTS") var androidEmulatorEnabled = false
     @Input("ENABLE_CXX_INTEROP") var cxxInteropEnabled = false
 
-    @Input("NIGHTLY_RELEASE_TOKEN") var nightlyReleaseToken = "6.4.x"
+    /// The release `current` names, such as `6.4`. The workflow supplies it, so that a pinned
+    /// workflow version keeps the versions it was released with.
+    @Input("SWIFT_CURRENT_RELEASE") var currentRelease = ""
+    /// The branch spelling `nightly-release` names, such as `6.4.x`.
+    @Input("SWIFT_NIGHTLY_RELEASE") var nightlyRelease = ""
     @Input("SWIFT_FLAGS") var swiftFlags = ""
     @Input("SWIFT_NIGHTLY_FLAGS") var swiftNightlyFlags = ""
     @Input("MINIMUM_SWIFT_VERSION") var minimumSwiftVersion = ""
@@ -83,9 +80,7 @@ struct Configuration {
     @Input("XCODE_SCHEME") var xcodeScheme = ""
     @Input("XCODE_TARGETS") var xcodeTargets = ""
     @Input("XCODE_DEBUG_OUTPUT") var xcodeDebugOutput = false
-    @Input("MACOS_SWIFTLY_TOOLCHAINS") var swiftlyToolchains = [
-        SwiftlyToolchain(xcodeVersion: "swift_6.3", swiftlyToolchain: "main-snapshot")
-    ]
+    @Input("MACOS_SWIFTLY_TOOLCHAINS") var swiftlyToolchains: [SwiftlyToolchain] = []
     @Input("MACOS_SWIFTLY_COMMAND") var swiftlyCommands: Commands = "swiftly run swift test"
 
     @Input("WINDOWS_SWIFT_VERSIONS") var windowsVersions = Configuration.defaultVersions
@@ -216,13 +211,18 @@ extension Configuration {
         )
     }
 
+    /// What the relative and alias labels resolve to.
+    var releases: SwiftReleases {
+        SwiftReleases(current: self.currentRelease, nightlyBranch: self.nightlyRelease)
+    }
+
     /// The Swift versions the macOS entries run.
     ///
     /// The two macOS lists are different ways of naming a toolchain, not competing spellings
     /// of one, so they combine; the release list is the default only when neither is set.
     var macOSSwiftVersions: [String] {
         if self.macOSVersions.isEmpty && self.macOSXcodeVersions.isEmpty {
-            return Configuration.releases
+            return Configuration.releaseLabels
         }
         return self.macOSVersions
     }
@@ -233,7 +233,7 @@ extension Configuration {
     /// newest release in the Linux list unless a caller names more.
     var cxxInteropSwiftVersions: [String] {
         if self.cxxInteropVersions.isEmpty {
-            return [SwiftVersion.newestRelease(in: self.linuxVersions)]
+            return [SwiftVersion.newestRelease(in: self.linuxVersions, releases: self.releases)]
         }
         return self.cxxInteropVersions
     }
@@ -307,7 +307,7 @@ extension Generator {
             ),
             platform: .linux,
             minimum: self.minimum,
-            releaseToken: self.configuration.nightlyReleaseToken,
+            releases: self.configuration.releases,
             flags: self.configuration.flags(with: self.configuration.linuxOverrides),
             setupCommand: self.configuration.enteringPackage(after: self.configuration.linuxSetupCommand),
             environment: self.configuration.linuxEnvironment,
@@ -329,6 +329,7 @@ extension Generator {
                 namePrefix: "macOS Swift"
             ),
             minimum: self.minimum,
+            releases: self.configuration.releases,
             flags: self.configuration.flags(with: self.configuration.macOSOverrides),
             setupCommand: self.configuration.enteringPackage(after: self.configuration.macOSSetupCommand),
             environment: self.configuration.macOSEnvironment,
@@ -369,7 +370,7 @@ extension Generator {
             ),
             platform: .windows,
             minimum: self.minimum,
-            releaseToken: self.configuration.nightlyReleaseToken,
+            releases: self.configuration.releases,
             flags: self.configuration.flags(with: self.configuration.windowsOverrides),
             setupCommand: self.configuration.enteringPackage(after: self.configuration.windowsSetupCommand),
             environment: self.configuration.windowsEnvironment,
@@ -393,7 +394,7 @@ extension Generator {
             ),
             platform: .linux,
             minimum: self.minimum,
-            releaseToken: self.configuration.nightlyReleaseToken,
+            releases: self.configuration.releases,
             flags: self.configuration.flags(with: self.configuration.linuxOverrides),
             setupCommand: self.configuration.enteringPackage(after: self.configuration.linuxSetupCommand),
             environment: self.configuration.linuxEnvironment,
@@ -438,7 +439,7 @@ extension Generator {
             ),
             platform: .linux,
             minimum: self.minimum,
-            releaseToken: self.configuration.nightlyReleaseToken,
+            releases: self.configuration.releases,
             flags: self.configuration.flags(with: overrides),
             setupCommand: self.configuration.enteringPackage(after: build.setupCommand),
             environment: self.configuration.linuxEnvironment,
@@ -960,7 +961,7 @@ struct SwiftBuildJobs: JobGroup {
     var settings: JobGroupSettings
     var platform: MatrixEntry.Platform
     var minimum: MinimumVersion
-    var releaseToken: String
+    var releases: SwiftReleases
     var flags: SwiftFlags
     var setupCommand: String
     var environment: JSONValue
@@ -1012,7 +1013,7 @@ struct SwiftBuildJobs: JobGroup {
 
     var entries: [MatrixEntry] {
         self.combinations.map { combination in
-            let toolchain = Toolchain(version: combination.version, releaseToken: self.releaseToken)
+            let toolchain = Toolchain(label: combination.version, releases: self.releases)
             var sdk = self.sdk
             sdk?.ndkVersion = combination.ndkVersion
             return MatrixEntry(
@@ -1057,6 +1058,7 @@ struct SwiftBuildJobs: JobGroup {
 struct MacOSJobs: JobGroup {
     var settings: JobGroupSettings
     var minimum: MinimumVersion
+    var releases: SwiftReleases
     var flags: SwiftFlags
     var setupCommand: String
     var environment: JSONValue
@@ -1101,7 +1103,7 @@ struct MacOSJobs: JobGroup {
                     ),
                     runner: runner.labels,
                     xcodeBuild: MatrixEntry.XcodeBuild(
-                        swiftVersion: namesXcode ? nil : version,
+                        swiftVersion: namesXcode ? nil : self.releases.version(for: version),
                         xcodeVersion: namesXcode ? version : nil,
                         targets: self.targets,
                         debugOutput: self.debugOutput
@@ -1417,17 +1419,61 @@ extension MatrixEntry.SwiftBuild {
 
 // MARK: - Toolchains
 
+/// The releases a run was given, which the labels that name one by position resolve against.
+struct SwiftReleases {
+    /// The release `current` names, such as `6.4`. Empty when the caller gave none.
+    let current: String
+    /// The branch spelling upstream publishes the next release's nightly under, such as `6.4.x`,
+    /// which `nightly-release` is an alias for. Empty when the caller gave none.
+    let nightlyBranch: String
+
+    /// The version a label names: `current`, `current-1` and `current-2` count back from the
+    /// current release, and anything else is already a version.
+    func version(for label: String) -> String {
+        guard label == "current" || label.hasPrefix("current-") else { return label }
+        let offset = label == "current" ? 0 : Int(label.dropFirst("current-".count))
+        guard let offset, (0...2).contains(offset) else {
+            fatal(
+                """
+                '\(label)' is not a Swift version label. Relative labels are current, current-1 and current-2; \
+                write the version to name an older one.
+                """
+            )
+        }
+        if self.current.isEmpty {
+            fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
+        }
+        guard let release = SwiftVersion(self.current), self.current.split(separator: ".").count == 2 else {
+            fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.current)'")
+        }
+        let minor = release.components[1] - offset
+        guard minor >= 0 else {
+            fatal("'\(label)' counts back past the first minor release of Swift \(release.components[0]).")
+        }
+        return "\(release.components[0]).\(minor)"
+    }
+}
+
 /// A version label and the forms upstream publishes it under.
 struct Toolchain {
-    /// The label a caller wrote, such as `6.3` or `nightly-release`.
+    /// The version the caller's label names, such as `6.3`, or the `nightly-release` or
+    /// `nightly-main` label itself.
     let version: String
     /// The branch spelling upstream publishes the next release's nightly under, which
-    /// `nightly-release` is an alias for: 6.0 through 6.3 were "6.<n>", 6.4 is "6.4.x".
+    /// `nightly-release` is an alias for.
     let releaseToken: String
+
+    init(label: String, releases: SwiftReleases) {
+        self.version = releases.version(for: label)
+        self.releaseToken = releases.nightlyBranch
+    }
 
     /// The Docker tag infix, the Windows installer script suffix, and the argument
     /// install-and-build-with-sdk.sh takes.
     var resolved: String {
+        if self.version == "nightly-release" && self.releaseToken.isEmpty {
+            fatal("swift_nightly_release is not set, so 'nightly-release' has no branch to name.")
+        }
         let alias = "nightly-\(self.releaseToken)"
         return self.version == "nightly-release" || self.version == alias ? alias : self.version
     }
@@ -1453,7 +1499,7 @@ struct Toolchain {
 
 /// A released Swift version, ordered by its components.
 struct SwiftVersion: Comparable {
-    private let components: [Int]
+    fileprivate let components: [Int]
 
     init?(_ text: String) {
         let parts = text.split(separator: ".", omittingEmptySubsequences: false)
@@ -1483,9 +1529,11 @@ struct SwiftVersion: Comparable {
 
     /// The newest release a version list holds, falling back to its last entry when the list is
     /// all nightlies.
-    static func newestRelease(in versions: [String]) -> String {
-        let releases = versions.filter { !$0.hasPrefix("nightly-") }
-        let newest = releases.max { SwiftVersion.inVersionList($0) < SwiftVersion.inVersionList($1) }
+    static func newestRelease(in versions: [String], releases: SwiftReleases) -> String {
+        let released = versions.filter { !$0.hasPrefix("nightly-") }
+        let newest = released.max {
+            SwiftVersion.inVersionList(releases.version(for: $0)) < SwiftVersion.inVersionList(releases.version(for: $1))
+        }
         return newest ?? versions.last ?? ""
     }
 }
@@ -1496,9 +1544,11 @@ struct MinimumVersion {
     /// As the caller or the manifest wrote it, for the message.
     let text: String
     private let floor: SwiftVersion?
+    private let releases: SwiftReleases
 
-    init(_ text: String) {
+    init(_ text: String, releases: SwiftReleases) {
         self.text = text
+        self.releases = releases
         if text.isEmpty || text == "none" {
             self.floor = nil
             return
@@ -1518,7 +1568,7 @@ struct MinimumVersion {
     func admits(_ label: String) -> Bool {
         guard let floor = self.floor else { return true }
         if label.hasPrefix("nightly-") { return true }
-        return SwiftVersion.inVersionList(label) >= floor
+        return SwiftVersion.inVersionList(self.releases.version(for: label)) >= floor
     }
 
     /// What a caller does about a version the filter dropped. The filter is not an input of its
@@ -1535,7 +1585,7 @@ extension MinimumVersion {
     /// its manifests declare. Reading the manifests says what they declared.
     init(for configuration: Configuration) {
         if !configuration.minimumSwiftVersion.isEmpty {
-            self.init(configuration.minimumSwiftVersion)
+            self.init(configuration.minimumSwiftVersion, releases: configuration.releases)
             return
         }
         let detected = MinimumVersion.detected(
@@ -1543,7 +1593,7 @@ extension MinimumVersion {
             includingSubdirectories: configuration.searchSubdirectories
         )
         if !detected.isEmpty { log("Auto-detected minimum Swift tools version: \(detected)") }
-        self.init(detected)
+        self.init(detected, releases: configuration.releases)
     }
 
     /// The lowest tools version the manifests in `root` declare, which is the oldest toolchain the

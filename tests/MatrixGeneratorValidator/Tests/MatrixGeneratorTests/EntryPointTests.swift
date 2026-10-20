@@ -31,14 +31,14 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.packageTest,
         [
-          "Linux Swift 6.2",
-          "Linux Swift 6.3",
-          "Linux Swift 6.4",
+          "Linux Swift current-2",
+          "Linux Swift current-1",
+          "Linux Swift current",
           "Linux Swift nightly-release",
           "Linux Swift nightly-main",
-          "Windows Swift 6.2",
-          "Windows Swift 6.3",
-          "Windows Swift 6.4",
+          "Windows Swift current-2",
+          "Windows Swift current-1",
+          "Windows Swift current",
           "Windows Swift nightly-release",
           "Windows Swift nightly-main",
         ]
@@ -46,9 +46,9 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.toolchainMatrix,
         [
-          "Linux Swift 6.2",
-          "Linux Swift 6.3",
-          "Linux Swift 6.4",
+          "Linux Swift current-2",
+          "Linux Swift current-1",
+          "Linux Swift current",
           "Linux Swift nightly-release",
           "Linux Swift nightly-main",
         ]
@@ -56,9 +56,9 @@ struct EntryPointDefaultTests {
       (
         EntryPoint.benchmarks,
         [
-          "Linux Swift 6.2",
-          "Linux Swift 6.3",
-          "Linux Swift 6.4",
+          "Linux Swift current-2",
+          "Linux Swift current-1",
+          "Linux Swift current",
           "Linux Swift nightly-release",
           "Linux Swift nightly-main",
         ]
@@ -75,7 +75,7 @@ struct EntryPointDefaultTests {
     "A caller who asks for macOS and nothing else gets the same jobs from every entry point"
   )
   func macOSJobNamesAgree() throws {
-    let expected = ["macOS Swift 6.2", "macOS Swift 6.3", "macOS Swift 6.4"]
+    let expected = ["macOS Swift current-2", "macOS Swift current-1", "macOS Swift current"]
     for entryPoint in EntryPoint.all {
       var environment = try entryPoint.environment()
       environment["ENABLE_LINUX"] = "false"
@@ -95,10 +95,10 @@ struct EntryPointDefaultTests {
     viaWorkflow["ENABLE_ANDROID_SDK_BUILD"] = "true"
 
     let expected = [
-      "Android SDK Swift 6.4 NDK r27d",
+      "Android SDK Swift current NDK r27d",
       "Android SDK Swift nightly-release NDK r27d",
       "Android SDK Swift nightly-main NDK r27d",
-      "Android SDK Swift 6.4 NDK r28c",
+      "Android SDK Swift current NDK r28c",
       "Android SDK Swift nightly-release NDK r28c",
       "Android SDK Swift nightly-main NDK r28c",
     ]
@@ -127,10 +127,14 @@ struct DefaultAgreementTests {
   /// sweep. `toolchain_matrix.yml` hands back a toolchain axis for a command
   /// execute_matrix.yml runs on every entry, which is usually a POSIX shell
   /// script.
+  ///
+  /// `swift_current_release` and `swift_nightly_release`: the generator holds no
+  /// release of its own, so a pinned workflow version keeps the versions it was
+  /// released with. A run without them fails when a label needs one.
   static let deliberateDifferences: [String: Set<String>] = [
-    "package_test": [],
-    "toolchain_matrix": ["ENABLE_WINDOWS"],
-    "benchmarks": [],
+    "package_test": ["SWIFT_CURRENT_RELEASE", "SWIFT_NIGHTLY_RELEASE", "MACOS_SWIFTLY_TOOLCHAINS"],
+    "toolchain_matrix": ["ENABLE_WINDOWS", "SWIFT_CURRENT_RELEASE", "SWIFT_NIGHTLY_RELEASE"],
+    "benchmarks": ["SWIFT_CURRENT_RELEASE", "SWIFT_NIGHTLY_RELEASE"],
   ]
 
   /// The entry point's environment with every job group it forwards turned on, so
@@ -182,12 +186,31 @@ struct DefaultAgreementTests {
     let versionLists = [
       "LINUX_SWIFT_VERSIONS", "WINDOWS_SWIFT_VERSIONS", "MACOS_SWIFT_VERSIONS",
       "LINUX_STATIC_SDK_VERSIONS", "WASM_SDK_VERSIONS", "EMBEDDED_WASM_SDK_VERSIONS",
-      "ANDROID_SDK_VERSIONS", "MACOS_SWIFTLY_TOOLCHAINS",
+      "ANDROID_SDK_VERSIONS",
     ]
     let forwarded = versionLists.filter { environment[$0] != nil }
     #expect(!forwarded.isEmpty, "\(entryPoint) no longer forwards any version list")
     for key in forwarded {
       #expect(environment[key] == "", "\(entryPoint) \(key)")
+    }
+  }
+
+  @Test("Every entry point supplies the same releases")
+  func releasesAgree() throws {
+    // The generator holds no release, so each workflow declares the ones it was
+    // released with. Three copies that differ would give the same label different
+    // versions depending on which workflow a caller used.
+    let declared = try EntryPoint.all.map { entryPoint -> [String: String] in
+      let environment = try entryPoint.environment()
+      return [
+        "SWIFT_CURRENT_RELEASE": try #require(environment["SWIFT_CURRENT_RELEASE"], "\(entryPoint)"),
+        "SWIFT_NIGHTLY_RELEASE": try #require(environment["SWIFT_NIGHTLY_RELEASE"], "\(entryPoint)"),
+      ]
+    }
+    for values in declared {
+      #expect(!values["SWIFT_CURRENT_RELEASE", default: ""].isEmpty)
+      #expect(!values["SWIFT_NIGHTLY_RELEASE", default: ""].isEmpty)
+      #expect(values == declared[0], "\(values) differs from \(declared[0])")
     }
   }
 
@@ -207,9 +230,9 @@ struct DefaultAgreementTests {
     #expect(gained.exitCode == 0, "\(entryPoint): \(gained.standardError)")
     #expect(
       Set(gained.names).subtracting(off.names) == [
-        "Windows Swift 6.2",
-        "Windows Swift 6.3",
-        "Windows Swift 6.4",
+        "Windows Swift current-2",
+        "Windows Swift current-1",
+        "Windows Swift current",
         "Windows Swift nightly-release",
         "Windows Swift nightly-main",
       ],
