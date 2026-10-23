@@ -158,16 +158,16 @@ struct FreeBSDTests {
     ])
     let entry = try #require(generated.entries.first)
     #expect(entry.platform == "FreeBSD")
-    #expect(entry.freebsd?.osVersion == "14.3")
-    #expect(entry.freebsd?.envVars == "FOO=bar")
+    #expect(entry.freeBSDBuild?.osVersion == "14.3")
+    #expect(entry.freeBSDBuild?.envVars == "FOO=bar")
     #expect(entry.command == "swift build")
     #expect(entry.setupCommand == "cd sub")
     // The executor derives SWIFT_VERSION from this. A FreeBSD entry has neither
     // swift_build nor xcode_build, so without it anything keyed on the version -
     // benchmark thresholds - would look under an empty directory name.
-    #expect(entry.freebsd?.swiftVersion == "nightly-main")
+    #expect(entry.freeBSDBuild?.swiftVersion == "nightly-main")
     // The toolchain has to be the one built for the OS the job claims to run.
-    #expect(entry.freebsd?.swiftURL.contains("freebsd-14") == true)
+    #expect(entry.freeBSDBuild?.swiftURL.contains("freebsd-14") == true)
   }
 
   @Test("A version other than nightly-main fails rather than mislabeling the job")

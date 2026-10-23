@@ -47,7 +47,7 @@ struct Configuration {
     /// workflow version keeps the versions it was released with.
     @Input("SWIFT_CURRENT_RELEASE") var currentRelease = ""
     /// The branch spelling `nightly-release` names, such as `6.4.x`.
-    @Input("SWIFT_NIGHTLY_RELEASE") var nightlyRelease = ""
+    @Input("SWIFT_NIGHTLY_RELEASE") var nightlyBranch = ""
     @Input("SWIFT_FLAGS") var swiftFlags = ""
     @Input("SWIFT_NIGHTLY_FLAGS") var swiftNightlyFlags = ""
     @Input("MINIMUM_SWIFT_VERSION") var minimumSwiftVersion = ""
@@ -213,7 +213,7 @@ extension Configuration {
 
     /// What the relative and alias labels resolve to.
     var releases: SwiftReleases {
-        SwiftReleases(current: self.currentRelease, nightlyBranch: self.nightlyRelease)
+        SwiftReleases(currentRelease: self.currentRelease, nightlyBranch: self.nightlyBranch)
     }
 
     /// The Swift versions the macOS entries run.
@@ -761,13 +761,13 @@ extension JobGroupSettings {
         case .toolchains(let toolchainsInput):
             // Fanning out over toolchains leaves a label nothing to select from, so the versions it
             // names carry nothing.
-            if self.commands.contains(where: { $0.swiftVersions != nil }) {
+            if self.commands.contains(where: { $0.versionLabels != nil }) {
                 fatal("\(commandsInput) takes no versions; its toolchains come from \(toolchainsInput).")
             }
         case .list:
             let selectable = self.selectableVersions
             let unmatched = self.commands.flatMap { variant in
-                (variant.swiftVersions ?? []).filter { !selectable.contains($0) }.map { "\(variant.label): \($0)" }
+                (variant.versionLabels ?? []).filter { !selectable.contains($0) }.map { "\(variant.label): \($0)" }
             }
             guard unmatched.isEmpty else {
                 fatal(
@@ -827,11 +827,11 @@ extension JobGroupSettings {
         for variant in self.commands {
             // A label naming no versions of its own runs the group's whole list, which the check
             // above covers.
-            guard let swiftVersions = variant.swiftVersions else { continue }
+            guard let versionLabels = variant.versionLabels else { continue }
             guard variant.versions(among: self.versionsExemptFromMinimum + runnable).isEmpty else { continue }
             fatal(
                 """
-                \(commandsInput) label '\(variant.label)' runs only on \(swiftVersions.joined(separator: " ")), which \
+                \(commandsInput) label '\(variant.label)' runs only on \(versionLabels.joined(separator: " ")), which \
                 minimum Swift version \(minimum.text) removes, so that label would produce no jobs while the others \
                 still run. \(MinimumVersion.remedy)
                 """
@@ -930,9 +930,9 @@ struct SwiftFlags {
     }
 
     /// The arguments one version's command runs with.
-    func arguments(for version: String) -> [String] {
-        let base = self.flags(nightly: version.hasPrefix("nightly-"))
-        return self.split("\(base) \(self.overrides.arguments(for: version) ?? "")")
+    func arguments(for versionLabel: String) -> [String] {
+        let base = self.flags(nightly: versionLabel.hasPrefix("nightly-"))
+        return self.split("\(base) \(self.overrides.arguments(for: versionLabel) ?? "")")
     }
 
     /// The arguments for a toolchain that has no version to look an override up by; this is
@@ -984,7 +984,7 @@ struct SwiftBuildJobs: JobGroup {
         var image: ContainerImage?
         var ndkVersion: String?
         var variant: Commands.Variant
-        var version: String
+        var versionLabel: String
     }
 
     /// One pass per NDK release, or a single pass for a build with no NDK to name.
@@ -1002,7 +1002,7 @@ struct SwiftBuildJobs: JobGroup {
                                 image: image,
                                 ndkVersion: ndkVersion,
                                 variant: variant,
-                                version: $0
+                                versionLabel: $0
                             )
                         }
                     }
@@ -1013,13 +1013,13 @@ struct SwiftBuildJobs: JobGroup {
 
     var entries: [MatrixEntry] {
         self.combinations.map { combination in
-            let toolchain = Toolchain(label: combination.version, releases: self.releases)
+            let toolchain = Toolchain(label: combination.versionLabel, releases: self.releases)
             var sdk = self.sdk
             sdk?.ndkVersion = combination.ndkVersion
             return MatrixEntry(
                 platform: self.platform,
                 name: self.settings.name(
-                    "\(self.settings.namePrefix) \(combination.version)",
+                    "\(self.settings.namePrefix) \(combination.versionLabel)",
                     combination.ndkVersion.map { "NDK \($0)" },
                     self.images.count > 1 ? combination.image?.distribution : nil,
                     self.runners.count > 1 ? combination.runner.name : nil,
@@ -1033,7 +1033,7 @@ struct SwiftBuildJobs: JobGroup {
                 ),
                 setupCommand: self.setupCommand,
                 command: self.command(for: combination),
-                commandArguments: self.flags.arguments(for: combination.version),
+                commandArguments: self.flags.arguments(for: combination.versionLabel),
                 env: self.environment,
                 androidEmulator: self.androidEmulator
             )
@@ -1047,7 +1047,7 @@ struct SwiftBuildJobs: JobGroup {
         case .fixed:
             return combination.variant.command
         case .input:
-            return self.settings.overrides.command(for: combination.version) ?? combination.variant.command
+            return self.settings.overrides.command(for: combination.versionLabel) ?? combination.variant.command
         }
     }
 }
@@ -1103,7 +1103,7 @@ struct MacOSJobs: JobGroup {
                     ),
                     runner: runner.labels,
                     xcodeBuild: MatrixEntry.XcodeBuild(
-                        swiftVersion: namesXcode ? nil : self.releases.version(for: version),
+                        swiftVersion: namesXcode ? nil : self.releases.resolvedVersion(for: version),
                         xcodeVersion: namesXcode ? version : nil,
                         targets: self.targets,
                         debugOutput: self.debugOutput
@@ -1453,23 +1453,23 @@ enum VersionLabel {
 /// The releases a run was given, which the labels that name one by position resolve against.
 struct SwiftReleases {
     /// The release `current` names, such as `6.4`. Empty when the caller gave none.
-    let current: String
+    let currentRelease: String
     /// The branch spelling upstream publishes the next release's nightly under, such as `6.4.x`,
     /// which `nightly-release` is an alias for. Empty when the caller gave none.
     let nightlyBranch: String
 
     /// The version a label names: `current`, `current-1` and `current-2` count back from the
     /// current release, and anything else is already a version.
-    func version(for label: String) -> String {
+    func resolvedVersion(for label: String) -> String {
         switch VersionLabel(label) {
         case .nightly, .explicit:
             return label
         case .release(let offset):
-            if self.current.isEmpty {
+            if self.currentRelease.isEmpty {
                 fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
             }
-            guard let release = SwiftVersion(majorMinor: self.current) else {
-                fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.current)'")
+            guard let release = SwiftVersion(majorMinor: self.currentRelease) else {
+                fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.currentRelease)'")
             }
             guard release.minor >= offset else {
                 fatal("'\(label)' counts back past the first minor release of Swift \(release.major).")
@@ -1480,7 +1480,7 @@ struct SwiftReleases {
 
     /// Where a label falls among the released versions, for ordering it.
     func ordered(_ label: String) -> SwiftVersion {
-        SwiftVersion.inVersionList(self.version(for: label))
+        SwiftVersion.inVersionList(self.resolvedVersion(for: label))
     }
 }
 
@@ -1491,20 +1491,20 @@ struct Toolchain {
     let version: String
     /// The branch spelling upstream publishes the next release's nightly under, which
     /// `nightly-release` is an alias for.
-    let releaseToken: String
+    let nightlyBranch: String
 
     init(label: String, releases: SwiftReleases) {
-        self.version = releases.version(for: label)
-        self.releaseToken = releases.nightlyBranch
+        self.version = releases.resolvedVersion(for: label)
+        self.nightlyBranch = releases.nightlyBranch
     }
 
     /// The Docker tag infix, the Windows installer script suffix, and the argument
     /// install-and-build-with-sdk.sh takes.
     var resolved: String {
-        if self.version == "nightly-release" && self.releaseToken.isEmpty {
+        if self.version == "nightly-release" && self.nightlyBranch.isEmpty {
             fatal("swift_nightly_release is not set, so 'nightly-release' has no branch to name.")
         }
-        let alias = "nightly-\(self.releaseToken)"
+        let alias = "nightly-\(self.nightlyBranch)"
         return self.version == "nightly-release" || self.version == alias ? alias : self.version
     }
 
@@ -1668,7 +1668,7 @@ extension MinimumVersion {
             guard let declared = MinimumVersion.toolsVersion(ofManifestAt: path) else { continue }
             log("Found \(path) with tools-version: \(declared)")
             let version = SwiftVersion.inVersionList(declared)
-            if let current = minimum, current.version <= version { continue }
+            if let lowestSoFar = minimum, lowestSoFar.version <= version { continue }
             minimum = (version, declared)
         }
         return minimum?.text ?? ""
@@ -1710,18 +1710,18 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
     struct Variant {
         var label: String
         var command: String
-        var swiftVersions: [String]?
+        var versionLabels: [String]?
 
-        init(label: String, command: String, swiftVersions: [String]?) {
+        init(label: String, command: String, versionLabels: [String]?) {
             self.label = label
             self.command = command.trimmingTrailingNewlines
-            self.swiftVersions = swiftVersions
+            self.versionLabels = versionLabels
         }
 
         /// The versions this variant runs on, in the group's own order rather than the label's.
         func versions(among available: [String]) -> [String] {
-            guard let swiftVersions = self.swiftVersions else { return available }
-            return available.filter(swiftVersions.contains)
+            guard let versionLabels = self.versionLabels else { return available }
+            return available.filter(versionLabels.contains)
         }
     }
 
@@ -1734,7 +1734,7 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
     }
 
     init(_ command: String) {
-        self.variants = [Variant(label: "", command: command, swiftVersions: nil)]
+        self.variants = [Variant(label: "", command: command, versionLabels: nil)]
     }
 
     init(stringLiteral command: String) {
@@ -1751,7 +1751,7 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
     /// is not a command anyone would have run.
     init(input text: String, name: String) {
         self.variants =
-            Commands.labeled(text, name: name) ?? [Variant(label: "", command: text, swiftVersions: nil)]
+            Commands.labeled(text, name: name) ?? [Variant(label: "", command: text, versionLabels: nil)]
     }
 
     /// The variants a map of labels names, or nil when the value is the command itself.
@@ -1788,7 +1788,7 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
         }
         return members.compactMap { member in
             settings(of: member.value).map {
-                Variant(label: member.key, command: $0.command, swiftVersions: $0.versions)
+                Variant(label: member.key, command: $0.command, versionLabels: $0.versions)
             }
         }
     }
@@ -1880,20 +1880,20 @@ struct VersionOverrides: InputDecodable {
 
     /// What a version's override adds to the flags, if it names any: its own, or else those of
     /// `default`. A version key replaces `default` for the fields it names and leaves it the rest.
-    func arguments(for version: String) -> String? {
-        self.override(for: version)?.arguments ?? self.override(for: Self.defaultKey)?.arguments
+    func arguments(for versionLabel: String) -> String? {
+        self.override(for: versionLabel)?.arguments ?? self.override(for: Self.defaultKey)?.arguments
     }
 
     /// The command a version's override replaces the group's with, if it names one.
-    func command(for version: String) -> String? {
-        self.override(for: version)?.command
+    func command(for versionLabel: String) -> String? {
+        self.override(for: versionLabel)?.command
     }
 
     /// A version written twice takes the last of its overrides, which is what jq would do
     /// reading these into an object: the
     /// members are kept in the order they were written so that a repeated key can be seen.
-    private func override(for version: String) -> Override? {
-        self.overrides.last { $0.version == version }
+    private func override(for versionLabel: String) -> Override? {
+        self.overrides.last { $0.version == versionLabel }
     }
 
     /// The versions this replaces the command for, of those a group runs. A key naming a version
@@ -2445,17 +2445,17 @@ let jq = Tool("jq")
 let yq = Tool("yq")
 
 // Populates the configuration from the environment, through the `@Input` initializers.
-let config = Configuration()
+let configuration = Configuration()
 
-guard let mode = Matrix.Mode(rawValue: config.matrixMode) else {
-    fatal("MATRIX_MODE must be 'jobs' or 'toolchains', got '\(config.matrixMode)'")
+guard let mode = Matrix.Mode(rawValue: configuration.matrixMode) else {
+    fatal("MATRIX_MODE must be 'jobs' or 'toolchains', got '\(configuration.matrixMode)'")
 }
-guard let format = Matrix.Format(rawValue: config.matrixFormat) else {
-    fatal("MATRIX_FORMAT must be 'yaml' or 'json', got '\(config.matrixFormat)'")
+guard let format = Matrix.Format(rawValue: configuration.matrixFormat) else {
+    fatal("MATRIX_FORMAT must be 'yaml' or 'json', got '\(configuration.matrixFormat)'")
 }
-config.validatePairings(in: mode)
+configuration.validatePairings(in: mode)
 
-let generator = Generator(config, mode: mode)
+let generator = Generator(configuration, mode: mode)
 let jobMatrix = generator.generate()
 
 print(jobMatrix.encoded(as: format), terminator: "")

@@ -29,7 +29,7 @@ public struct MatrixEntry: Decodable, Sendable {
   public var xcodeBuild: XcodeBuild?
 
   /// Configuration for the FreeBSD virtual machine. Absent everywhere else.
-  public var freebsd: FreeBSD?
+  public var freeBSDBuild: FreeBSDBuild?
 
   /// Omitted in toolchain-only mode, where the caller supplies them instead.
   public var command: String?
@@ -86,7 +86,7 @@ public struct MatrixEntry: Decodable, Sendable {
     public var test: Bool
   }
 
-  public struct FreeBSD: Decodable, Sendable {
+  public struct FreeBSDBuild: Decodable, Sendable {
     public var osVersion: String
     /// The version label, which the executor uses for `SWIFT_VERSION`. FreeBSD
     /// entries have no `swift_build`, so it lives here.
@@ -114,7 +114,7 @@ extension MatrixEntry {
     case runner
     case swiftBuild = "swift_build"
     case xcodeBuild = "xcode_build"
-    case freebsd
+    case freeBSDBuild = "freebsd"
     case command
     case setupCommand = "setup_command"
     case commandArguments = "command_arguments"
