@@ -328,6 +328,16 @@ struct MinimumVersionTests {
     #expect(generated.standardError.contains("package_path"), "\(generated.standardError)")
   }
 
+  @Test("A package path that cannot be read fails rather than counting as having no manifests")
+  func unreadablePackagePathFails() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "PACKAGE_PATH": "no/such/directory",
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("no/such/directory"), "\(generated.standardError)")
+  }
+
   @Test("An explicit minimum overrides the manifest")
   func explicitMinimum() throws {
     let generated = try Generator.run(

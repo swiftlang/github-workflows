@@ -97,7 +97,13 @@ public struct Generator: Sendable {
     let workDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("matrix-tests-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: workDirectory, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: workDirectory) }
+    defer {
+      do {
+        try FileManager.default.removeItem(at: workDirectory)
+      } catch {
+        print("warning: could not remove \(workDirectory.path): \(error)")
+      }
+    }
 
     for (name, contents) in manifests {
       let file = workDirectory.appendingPathComponent(name)

@@ -1638,16 +1638,25 @@ extension MinimumVersion {
     static func detected(in root: String, includingSubdirectories: Bool) -> String {
         let fileManager = FileManager.default
 
+        // A directory that cannot be read would count as having no manifests, and a package
+        // without one raises no floor, so a too-old Swift version would pass the filter.
+        func contents(of directory: String) -> [String] {
+            do {
+                return try fileManager.contentsOfDirectory(atPath: directory)
+            } catch {
+                fatal("Could not read \(directory) to look for Package.swift manifests: \(error)")
+            }
+        }
+
         func manifests(in directory: String) -> [String] {
-            let contents = (try? fileManager.contentsOfDirectory(atPath: directory)) ?? []
+            let contents = contents(of: directory)
             let versioned = contents.filter { $0.hasPrefix("Package@swift-") && $0.hasSuffix(".swift") }.sorted()
             return (["Package.swift"] + versioned).map { directory == "." ? $0 : "\(directory)/\($0)" }
         }
 
         var directories = [root]
         if includingSubdirectories {
-            let contents = (try? fileManager.contentsOfDirectory(atPath: root)) ?? []
-            directories += contents.filter { entry in
+            directories += contents(of: root).filter { entry in
                 var isDirectory: ObjCBool = false
                 let path = root == "." ? entry : "\(root)/\(entry)"
                 return fileManager.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue

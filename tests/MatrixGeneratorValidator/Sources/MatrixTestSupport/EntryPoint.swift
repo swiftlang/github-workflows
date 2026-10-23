@@ -178,6 +178,8 @@ struct ActionsScalar: Decodable {
 
   init(from decoder: any Decoder) throws {
     let container = try decoder.singleValueContainer()
+    // A decode that fails here means only that the value is not that shape, and the next shape
+    // is tried; a value of no shape throws below.
     if let string = try? container.decode(String.self) {
       value = string
     } else if let boolean = try? container.decode(Bool.self) {
