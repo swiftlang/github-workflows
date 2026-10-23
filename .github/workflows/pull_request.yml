@@ -201,7 +201,8 @@ jobs:
       # adopter testing a Swift release before 6.1 depends on it.
       windows_swift_versions: '["6.3"]'
       windows_use_docker: true
-      windows_command: Invoke-Program swift build
+      # A container runs its commands under cmd, where Invoke-Program does not exist.
+      windows_command: swift build
       # Only the Linux and Windows container paths are under test here.
       enable_macos: false
       enable_macos_swiftly: false

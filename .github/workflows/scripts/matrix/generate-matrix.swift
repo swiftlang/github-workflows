@@ -256,10 +256,20 @@ extension Configuration {
     return minutes > 0 ? minutes : nil
   }
 
+  /// The shell a setup command runs under, which decides how a path is written.
+  enum PackageShell {
+    /// bash, on Linux, macOS and FreeBSD.
+    case posix
+    /// PowerShell, for a Windows job on the runner.
+    case powershell
+    /// cmd, for a Windows container, which receives its commands as one command line.
+    case cmd
+  }
+
   /// The setup command with a `cd` into the package appended. The setup command and the command
   /// run in one shell on every platform, so the caller's own setup runs from the repository
   /// root, where its relative paths are written, and the command runs in the package.
-  func enteringPackage(after setupCommand: String, onWindows: Bool = false) -> String {
+  func enteringPackage(after setupCommand: String, under shell: PackageShell = .posix) -> String {
     if self.packagePath.isEmpty || self.packagePath == "." { return setupCommand }
     let forbidden = CharacterSet(charactersIn: "\"$`\\\n\r")
     if self.packagePath.rangeOfCharacter(from: forbidden) != nil {
@@ -270,10 +280,23 @@ extension Configuration {
         """
       )
     }
-    // cmd, which runs a Windows container's commands, fails `cd` on a quoted path written with
-    // forward slashes, and PowerShell takes either separator.
-    let path = onWindows ? self.packagePath.replacingOccurrences(of: "/", with: "\\") : self.packagePath
-    let enter = "cd \"\(path)\""
+
+    let enter: String
+    switch shell {
+    case .posix:
+      enter = "cd \"\(self.packagePath)\""
+
+    case .powershell:
+      enter = "cd \"\(self.packagePath.replacingOccurrences(of: "/", with: "\\"))\""
+
+    case .cmd:
+      // A double quote inside the command line reaches cmd as a literal `\"`, so the path is
+      // written bare, and cmd rejects a forward slash in a `cd` it is given that way.
+      if self.packagePath.rangeOfCharacter(from: .whitespaces) != nil {
+        fatal("package_path cannot contain whitespace for a Windows container, but got: \(self.packagePath)")
+      }
+      enter = "cd \(self.packagePath.replacingOccurrences(of: "/", with: "\\"))"
+    }
     return setupCommand.isEmpty ? enter : "\(setupCommand.trimmingTrailingNewlines)\n\(enter)"
   }
 
@@ -389,7 +412,7 @@ extension Generator {
       flags: self.configuration.flags(with: self.configuration.windowsOverrides),
       setupCommand: self.configuration.enteringPackage(
         after: self.configuration.windowsSetupCommand,
-        onWindows: true
+        under: self.configuration.windowsUsesDocker ? .cmd : .powershell
       ),
       environment: self.configuration.windowsEnvironment,
       runners: self.configuration.windowsOS.names.map(Runner.windows(label:)),

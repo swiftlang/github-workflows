@@ -317,6 +317,31 @@ struct MinimumVersionTests {
     #expect(generated.entry(named: "Wasm SDK Swift 6.3")?.setupCommand == "cd \"tests/TestPackage\"")
   }
 
+  @Test("A Windows container enters the package with a bare path, since cmd receives one command line")
+  func windowsContainerEntersWithABarePath() throws {
+    let generated = try Generator.run([
+      "ENABLE_WINDOWS": "true",
+      "WINDOWS_USE_DOCKER": "true",
+      "WINDOWS_SWIFT_VERSIONS": #"["6.3"]"#,
+      "PACKAGE_PATH": "tests/TestPackage",
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(generated.entry(named: "Windows Swift 6.3")?.setupCommand == #"cd tests\TestPackage"#)
+  }
+
+  @Test("A Windows container cannot take a package path with whitespace")
+  func windowsContainerRejectsWhitespace() throws {
+    let generated = try Generator.run([
+      "ENABLE_WINDOWS": "true",
+      "WINDOWS_USE_DOCKER": "true",
+      "PACKAGE_PATH": "my package",
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("whitespace"), "\(generated.standardError)")
+  }
+
   @Test("A package path that would need escaping fails the run")
   func packagePathMustBePlain() throws {
     let generated = try Generator.run([
