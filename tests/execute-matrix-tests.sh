@@ -321,7 +321,7 @@ fi
 echo "== Workflow declarations"
 
 # job_timeout is documented as the bound on every job, so every step that runs one has
-# to carry a timeout: a hung VM or emulator otherwise runs to the six-hour default.
+# to carry a timeout: a stuck VM or emulator otherwise runs to the six-hour default.
 for step in \
     "Run matrix job (Linux)" \
     "Run Android emulator tests" \
