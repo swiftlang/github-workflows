@@ -524,11 +524,11 @@ struct EmptiedByTheMinimumTests {
       "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
       "MINIMUM_SWIFT_VERSION": "6.2",
       "LINUX_COMMAND": """
-        current: swift test
-        legacy:
-          command: swift test --legacy
-          versions: ["6.1", "6.2"]
-        """,
+      current: swift test
+      legacy:
+        command: swift test --legacy
+        versions: ["6.1", "6.2"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(generated.names.contains("legacy Linux Swift 6.2"))
@@ -546,11 +546,11 @@ struct EmptiedByTheMinimumTests {
       "MACOS_XCODE_VERSIONS": #"["latest-beta"]"#,
       "MINIMUM_SWIFT_VERSION": "6.2",
       "MACOS_COMMAND": """
-        test: xcrun swift test
-        beta:
-          command: xcrun swift build
-          versions: ["latest-beta"]
-        """,
+      test: xcrun swift test
+      beta:
+        command: xcrun swift build
+        versions: ["latest-beta"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(generated.names.contains("beta macOS Xcode latest-beta"))

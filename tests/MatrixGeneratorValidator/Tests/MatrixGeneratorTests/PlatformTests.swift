@@ -102,9 +102,9 @@ struct MacOSTests {
       "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
       "XCODE_SCHEME": "P-Package",
       "XCODE_TARGETS": """
-        iOS: {build: true, test: true}
-        watchOS: {build: true}
-        """,
+      iOS: {build: true, test: true}
+      watchOS: {build: true}
+      """,
     ])
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
@@ -208,9 +208,9 @@ struct MacOSTests {
     let alongsideAGoodEntry = try Generator.run([
       "ENABLE_MACOS_SWIFTLY": "true",
       "MACOS_SWIFTLY_TOOLCHAINS": """
-        [{"swiftly_toolchain":"main-snapshot"},\
-        {"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot"}]
-        """,
+      [{"swiftly_toolchain":"main-snapshot"},\
+      {"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot"}]
+      """,
     ])
     #expect(alongsideAGoodEntry.exitCode != 0)
     #expect(alongsideAGoodEntry.standardError.contains("xcode_version"))
@@ -237,8 +237,8 @@ struct MacOSTests {
       "ENABLE_MACOS_SWIFTLY": "true",
       "MACOS_OS": #"["sequoia"]"#,
       "MACOS_SWIFTLY_TOOLCHAINS": """
-        [{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot","os_version":"sonoma"}]
-        """,
+      [{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot","os_version":"sonoma"}]
+      """,
     ])
     #expect(named.entries.first?.runner.contains("sonoma") == true)
   }
@@ -269,9 +269,9 @@ struct MacOSTests {
       "ENABLE_MACOS_SWIFTLY": "true",
       "MACOS_OS": #"["sequoia","tahoe"]"#,
       "MACOS_SWIFTLY_TOOLCHAINS": """
-        [{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot","os_version":"sonoma"},\
-        {"xcode_version":"swift_6.2","swiftly_toolchain":"6.2-snapshot"}]
-        """,
+      [{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot","os_version":"sonoma"},\
+      {"xcode_version":"swift_6.2","swiftly_toolchain":"6.2-snapshot"}]
+      """,
     ])
     try #require(pinned.count == 3)
     #expect(
@@ -422,9 +422,9 @@ struct ApplePlatformTargetTests {
       "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
       "XCODE_SCHEME": "P-Package",
       "XCODE_TARGETS": """
-        iOS: {test: true}
-        tvOS: {build: false, test: true}
-        """,
+      iOS: {test: true}
+      tvOS: {build: false, test: true}
+      """,
     ])
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
@@ -443,9 +443,9 @@ struct ApplePlatformTargetTests {
       "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
       "XCODE_SCHEME": "P-Package",
       "XCODE_TARGETS": """
-        iOS: {scheme: iOS-Only}
-        tvOS: {}
-        """,
+      iOS: {scheme: iOS-Only}
+      tvOS: {}
+      """,
     ])
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
@@ -463,9 +463,9 @@ struct ApplePlatformTargetTests {
       "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
       "XCODE_SCHEME": "P-Package",
       "XCODE_TARGETS": """
-        iOS: {test: true, test_destination: "name=iPhone 16 Pro"}
-        watchOS: {build_destination: "generic/platform=watchOS Simulator"}
-        """,
+      iOS: {test: true, test_destination: "name=iPhone 16 Pro"}
+      watchOS: {build_destination: "generic/platform=watchOS Simulator"}
+      """,
     ])
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
@@ -513,9 +513,9 @@ struct ApplePlatformTargetTests {
       "MACOS_SWIFT_VERSIONS": #"["6.3"]"#,
       "XCODE_SCHEME": "P-Package",
       "XCODE_TARGETS": """
-        iOS: {build: true}
-        iPadOS: {build: true}
-        """,
+      iOS: {build: true}
+      iPadOS: {build: true}
+      """,
     ])
     #expect(generated.exitCode != 0)
     #expect(generated.count == 0)

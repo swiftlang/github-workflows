@@ -54,9 +54,9 @@ struct CommandAxisTests {
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.2","6.3"]"#,
       "LINUX_COMMAND": """
-        test: swift test
-        release: swift test -c release
-        """,
+      test: swift test
+      release: swift test -c release
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(
@@ -101,11 +101,11 @@ struct CommandAxisTests {
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
       "LINUX_COMMAND": """
-        test: swift test
-        release:
-          command: swift build -c release
-          versions: ["6.3"]
-        """,
+      test: swift test
+      release:
+        command: swift build -c release
+        versions: ["6.3"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(
@@ -126,10 +126,10 @@ struct CommandAxisTests {
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
       "LINUX_COMMAND": """
-        release:
-          command: swift build -c release
-          versions: ["6.3", "6.1"]
-        """,
+      release:
+        command: swift build -c release
+        versions: ["6.3", "6.1"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(generated.versions == ["6.1", "6.3"])
@@ -146,11 +146,11 @@ struct CommandAxisTests {
       "MACOS_SWIFT_VERSIONS": #"["6.2","6.3"]"#,
       "MACOS_XCODE_VERSIONS": #"["latest-beta"]"#,
       "MACOS_COMMAND": """
-        test: xcrun swift test
-        beta:
-          command: xcrun swift build
-          versions: ["latest-beta"]
-        """,
+      test: xcrun swift test
+      beta:
+        command: xcrun swift build
+        versions: ["latest-beta"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(
@@ -373,11 +373,11 @@ struct CommandClassificationTests {
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
       "LINUX_COMMAND": """
-        test: swift test
-        release:
-          command: swift build -c release
-          versions: ["6.2"]
-        """,
+      test: swift test
+      release:
+        command: swift build -c release
+        versions: ["6.2"]
+      """,
     ])
     #expect(generated.exitCode != 0)
     #expect(generated.standardError.contains("linux_command"))
@@ -391,10 +391,10 @@ struct CommandClassificationTests {
     let generated = try Generator.run([
       "ENABLE_MACOS_SWIFTLY": "true",
       "MACOS_SWIFTLY_COMMAND": """
-        test:
-          command: swiftly run swift test
-          versions: ["6.3"]
-        """,
+      test:
+        command: swiftly run swift test
+        versions: ["6.3"]
+      """,
     ])
     #expect(generated.exitCode != 0)
     #expect(generated.standardError.contains("macos_swiftly_command"))
@@ -410,10 +410,10 @@ struct CommandClassificationTests {
       "ENABLE_LINUX": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
       "WASM_SDK_COMMAND": """
-        build:
-          command: swift build --target NIOCore
-          versions: ["6.9"]
-        """,
+      build:
+        command: swift build --target NIOCore
+        versions: ["6.9"]
+      """,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(generated.names == ["Linux Swift 6.3"])
