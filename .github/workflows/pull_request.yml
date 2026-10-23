@@ -135,13 +135,16 @@ jobs:
             test: ./tests/invoke-program-tests.ps1
             shell: pwsh
     runs-on: ${{ matrix.runner }}
+    # A step's `shell:` cannot use expressions, but the job default can.
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Assert failures are not reported as success
-        shell: ${{ matrix.shell }}
         run: ${{ matrix.test }}
 
   unified_package_test:
