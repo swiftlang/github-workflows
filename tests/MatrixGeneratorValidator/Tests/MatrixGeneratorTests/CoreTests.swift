@@ -313,7 +313,7 @@ struct MinimumVersionTests {
       generated.entry(named: "Linux Swift 6.3")?.setupCommand
         == "./.github/scripts/prebuild.sh\ncd \"tests/TestPackage\""
     )
-    #expect(generated.entry(named: "Windows Swift 6.3")?.setupCommand == "cd \"tests/TestPackage\"")
+    #expect(generated.entry(named: "Windows Swift 6.3")?.setupCommand == "cd \"tests\\TestPackage\"")
     #expect(generated.entry(named: "Wasm SDK Swift 6.3")?.setupCommand == "cd \"tests/TestPackage\"")
   }
 

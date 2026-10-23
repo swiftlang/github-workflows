@@ -259,7 +259,7 @@ extension Configuration {
   /// The setup command with a `cd` into the package appended. The setup command and the command
   /// run in one shell on every platform, so the caller's own setup runs from the repository
   /// root, where its relative paths are written, and the command runs in the package.
-  func enteringPackage(after setupCommand: String) -> String {
+  func enteringPackage(after setupCommand: String, onWindows: Bool = false) -> String {
     if self.packagePath.isEmpty || self.packagePath == "." { return setupCommand }
     let forbidden = CharacterSet(charactersIn: "\"$`\\\n\r")
     if self.packagePath.rangeOfCharacter(from: forbidden) != nil {
@@ -270,7 +270,10 @@ extension Configuration {
         """
       )
     }
-    let enter = "cd \"\(self.packagePath)\""
+    // cmd, which runs a Windows container's commands, fails `cd` on a quoted path written with
+    // forward slashes, and PowerShell takes either separator.
+    let path = onWindows ? self.packagePath.replacingOccurrences(of: "/", with: "\\") : self.packagePath
+    let enter = "cd \"\(path)\""
     return setupCommand.isEmpty ? enter : "\(setupCommand.trimmingTrailingNewlines)\n\(enter)"
   }
 
@@ -384,7 +387,10 @@ extension Generator {
       minimum: self.minimum,
       releases: self.configuration.releases,
       flags: self.configuration.flags(with: self.configuration.windowsOverrides),
-      setupCommand: self.configuration.enteringPackage(after: self.configuration.windowsSetupCommand),
+      setupCommand: self.configuration.enteringPackage(
+        after: self.configuration.windowsSetupCommand,
+        onWindows: true
+      ),
       environment: self.configuration.windowsEnvironment,
       runners: self.configuration.windowsOS.names.map(Runner.windows(label:)),
       images: self.configuration.windowsUsesDocker ? [.windows] : [nil]
