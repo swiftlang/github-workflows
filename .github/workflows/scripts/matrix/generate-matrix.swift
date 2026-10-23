@@ -1,4 +1,3 @@
-#!/usr/bin/env swift
 //===----------------------------------------------------------------------===//
 //
 // This source file is part of the Swift.org open source project
@@ -12,8 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 // Generates the job matrix the rest of the workflow runs: the workflow's inputs in
-// as environment variables, the matrix out on standard output. Executable, so the
-// workflows invoke it by path.
+// as environment variables, the matrix out on standard output. The workflows run it
+// with `swift`.
 //
 // yq reads the YAML an input is written in and writes the YAML the matrix comes out
 // as, and jq writes the JSON form. Everything between them is typed.

@@ -92,7 +92,7 @@ public struct Generator: Sendable {
     includePlatformDefaults: Bool = false
   ) throws -> (standardOutput: String, standardError: String, exitCode: Int32) {
     let script = scriptPath
-    guard FileManager.default.isExecutableFile(atPath: script) else {
+    guard FileManager.default.fileExists(atPath: script) else {
       throw GeneratorError.generatorNotFound(script)
     }
 
@@ -131,7 +131,8 @@ public struct Generator: Sendable {
     }
 
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: script)
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["swift", script]
     process.environment = variables
     process.currentDirectoryURL = workDirectory
 

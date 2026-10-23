@@ -103,4 +103,4 @@ config:
       swiftly: 6.4.x-snapshot
 ```
 
-The shortest way to see every field a platform takes is to run `generate-matrix.swift` with the relevant `ENABLE_*` variable set and read its output.
+The shortest way to see every field a platform takes is to run `swift generate-matrix.swift` with the relevant `ENABLE_*` variable set and read its output.
