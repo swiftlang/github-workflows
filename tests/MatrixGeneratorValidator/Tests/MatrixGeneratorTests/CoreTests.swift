@@ -1072,3 +1072,57 @@ struct RelativeVersionLabelTests {
     #expect(generated.standardError.contains("swift_current_release is not set"), "\(generated.standardError)")
   }
 }
+
+@Suite("Default overrides")
+struct DefaultOverrideTests {
+  private func run(_ overrides: String) throws -> Generated {
+    try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.3","nightly-main"]"#,
+      "LINUX_VERSION_OVERRIDES": overrides,
+      "MINIMUM_SWIFT_VERSION": "none",
+    ])
+  }
+
+  @Test("Arguments written alone are the default for every version")
+  func bareArgumentsAreTheDefault() throws {
+    let generated = try run("-Xswiftc -warnings-as-errors")
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    for entry in generated.entries {
+      #expect(entry.commandArguments == ["-Xswiftc", "-warnings-as-errors"], "\(entry.name)")
+    }
+  }
+
+  @Test("A version's own arguments replace the default for that version")
+  func versionKeyReplacesTheDefault() throws {
+    let generated = try run("default: -Xswiftc -warnings-as-errors --check\nnightly-main: --check")
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(
+      generated.entry(named: "Linux Swift 6.3")?.commandArguments
+        == ["-Xswiftc", "-warnings-as-errors", "--check"]
+    )
+    #expect(generated.entry(named: "Linux Swift nightly-main")?.commandArguments == ["--check"])
+  }
+
+  @Test("A version that names only a command keeps the default arguments")
+  func commandOnlyKeyKeepsTheDefaultArguments() throws {
+    let generated = try run(#"{"default": "--check", "6.3": {"command": "swift build"}}"#)
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    let entry = try #require(generated.entry(named: "Linux Swift 6.3"))
+    #expect(entry.command == "swift build")
+    #expect(entry.commandArguments == ["--check"])
+  }
+
+  @Test("A default needs no version in the list to match")
+  func defaultIsNotAVersionKey() throws {
+    let generated = try run("default: --check")
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+  }
+
+  @Test("A default command fails, since it would give every label the same one")
+  func defaultCommandFails() throws {
+    let generated = try run(#"{"default": {"command": "swift build"}}"#)
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("only arguments"), "\(generated.standardError)")
+  }
+}

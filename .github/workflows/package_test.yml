@@ -238,6 +238,8 @@ on:
           every Linux job group; an object with `arguments` and/or `command` can also replace the
           command for that version. Replacing needs a single command configured for the groups that
           run it, and the Cxx interop check refuses it, since its command is the check itself.
+          The key `default` sets the arguments for every version whose own key does not name
+          some, and arguments written alone are the same as `default`.
         default: "{}"
       windows_version_overrides:
         type: string
@@ -245,6 +247,8 @@ on:
           Per-Windows-version overrides (JSON/YAML object). A string value adds arguments; an object
           with `arguments` and/or `command` can also replace the command for that version, which
           needs windows_command holding a single command.
+          The key `default` sets the arguments for every version whose own key does not name
+          some, and arguments written alone are the same as `default`.
         default: "{}"
       macos_version_overrides:
         type: string
@@ -252,30 +256,32 @@ on:
           Per-macOS-version overrides (JSON/YAML object), keyed by Swift or Xcode version. A string
           value adds arguments; an object with `arguments` and/or `command` can also replace the
           command for that version, which needs macos_command holding a single command.
+          The key `default` sets the arguments for every version whose own key does not name
+          some, and arguments written alone are the same as `default`.
         default: "{}"
       linux_static_sdk_version_overrides:
         type: string
         description: >-
           Per-version overrides (JSON/YAML object) for the Static Linux SDK build, in the form
-          linux_version_overrides takes. Empty uses linux_version_overrides.
+          linux_version_overrides takes, including `default`. Empty uses linux_version_overrides.
         default: ""
       wasm_sdk_version_overrides:
         type: string
         description: >-
           Per-version overrides (JSON/YAML object) for the Wasm SDK build, in the form
-          linux_version_overrides takes. Empty uses linux_version_overrides.
+          linux_version_overrides takes, including `default`. Empty uses linux_version_overrides.
         default: ""
       embedded_wasm_sdk_version_overrides:
         type: string
         description: >-
           Per-version overrides (JSON/YAML object) for the Embedded Wasm SDK build, in the form
-          linux_version_overrides takes. Empty uses linux_version_overrides.
+          linux_version_overrides takes, including `default`. Empty uses linux_version_overrides.
         default: ""
       android_sdk_version_overrides:
         type: string
         description: >-
           Per-version overrides (JSON/YAML object) for the Android SDK build, in the form
-          linux_version_overrides takes. Empty uses linux_version_overrides. The Android build
+          linux_version_overrides takes, including `default`. Empty uses linux_version_overrides. The Android build
           takes the command from an override but not its arguments.
         default: ""
 

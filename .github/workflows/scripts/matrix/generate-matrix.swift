@@ -1860,14 +1860,19 @@ struct VersionOverrides: InputDecodable {
     private(set) var name = ""
     private var overrides: [Override] = []
 
+    /// The key whose arguments a version takes unless its own key names some.
+    static let defaultKey = "default"
+
     var isEmpty: Bool { self.overrides.isEmpty }
-    var versions: [String] { self.overrides.map(\.version) }
+    /// The versions the keys name, which `default` is not one of.
+    var versions: [String] { self.overrides.map(\.version).filter { $0 != Self.defaultKey } }
 
     init() {}
 
-    /// What a version's override adds to the flags, if it names any.
+    /// What a version's override adds to the flags, if it names any: its own, or else those of
+    /// `default`. A version key replaces `default` for the fields it names and leaves it the rest.
     func arguments(for version: String) -> String? {
-        self.override(for: version)?.arguments
+        self.override(for: version)?.arguments ?? self.override(for: Self.defaultKey)?.arguments
     }
 
     /// The command a version's override replaces the group's with, if it names one.
@@ -1899,11 +1904,16 @@ struct VersionOverrides: InputDecodable {
         // A value that carried nothing - blank, or an explicit null - is no overrides rather
         // than a malformed map.
         if parsed.value.isNull { return }
+        // Arguments written alone are the default arguments.
+        if !parsed.isMap, let arguments = parsed.value.asString {
+            self.overrides = [Override(version: Self.defaultKey, arguments: arguments, command: nil)]
+            return
+        }
         guard parsed.isMap else {
             fatal(
                 """
                 \(name) must be a map of version to override, such as {"6.3": "-Xswiftc -warnings-as-errors"}, \
-                but got: \(text)
+                or the default arguments, but got: \(text)
                 """
             )
         }
@@ -1930,6 +1940,11 @@ struct VersionOverrides: InputDecodable {
         guard malformed.isEmpty else {
             let reported = malformed.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
             fatal("\(name) takes command and arguments, each a string, but got: \(reported)")
+        }
+
+        // A default command would give every command label the same one.
+        if members.contains(where: { $0.key == Self.defaultKey && $0.value["command"] != nil }) {
+            fatal("\(name) takes only arguments under '\(Self.defaultKey)'; a command belongs to a version.")
         }
 
         self.overrides = members.map { member in
