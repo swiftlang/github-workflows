@@ -118,8 +118,9 @@ public struct Generator: Sendable {
 
     var variables = ProcessInfo.processInfo.environment
     if !includePlatformDefaults {
-      variables["ENABLE_LINUX"] = "false"
-      variables["ENABLE_WINDOWS"] = "false"
+      for enable in EntryPoint.jobGroupEnables {
+        variables[enable] = "false"
+      }
     }
     // What the workflows supply, since the generator has no releases of its own.
     for (key, value) in workflowSuppliedValues {
@@ -155,12 +156,12 @@ public struct Generator: Sendable {
   /// Runs the generator in a scratch directory and decodes the matrix.
   ///
   /// - Parameters:
-  ///   - environment: Variables for this run. Linux and Windows are disabled first
-  ///     so a test sees only the entries it is about; pass
-  ///     `includePlatformDefaults` to keep the generator's own defaults.
+  ///   - environment: Variables for this run. Every job group is disabled first so a
+  ///     test sees only the entries it is about; pass `includePlatformDefaults` to
+  ///     keep the generator's own defaults.
   ///   - manifests: Files to write into the scratch directory before running,
   ///     keyed by name - how minimum-version detection is given something to read.
-  ///   - includePlatformDefaults: Leave the platform enables alone.
+  ///   - includePlatformDefaults: Leave the job group enables alone.
   public static func run(
     _ environment: [String: String] = [:],
     manifests: [String: String] = [:],

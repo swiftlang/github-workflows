@@ -36,12 +36,12 @@ struct Configuration {
     static let defaultSDKVersions = ["current"] + nightlies
 
     @Input("ENABLE_LINUX") var linuxEnabled = true
-    @Input("ENABLE_MACOS") var macOSEnabled = false
-    @Input("ENABLE_MACOS_SWIFTLY") var swiftlyEnabled = false
+    @Input("ENABLE_MACOS") var macOSEnabled = true
+    @Input("ENABLE_MACOS_SWIFTLY") var swiftlyEnabled = true
     @Input("ENABLE_WINDOWS") var windowsEnabled = true
     @Input("ENABLE_FREEBSD") var freeBSDEnabled = false
-    @Input("ENABLE_ANDROID_EMULATOR_TESTS") var androidEmulatorEnabled = false
-    @Input("ENABLE_CXX_INTEROP") var cxxInteropEnabled = false
+    @Input("ENABLE_ANDROID_EMULATOR_TESTS") var androidEmulatorEnabled = true
+    @Input("ENABLE_CXX_INTEROP") var cxxInteropEnabled = true
 
     /// The release `current` names, such as `6.4`. The workflow supplies it, so that a pinned
     /// workflow version keeps the versions it was released with.
@@ -2130,7 +2130,7 @@ struct SDKBuild {
         self.kind = kind
         self.name = name
         let variable = prefix.uppercased()
-        self.enabled = Input.read("ENABLE_\(variable)_BUILD", default: false)
+        self.enabled = Input.read("ENABLE_\(variable)_BUILD", default: true)
         self.versions = Input.read("\(variable)_VERSIONS", default: Configuration.defaultSDKVersions)
         self.commands = Input.read("\(variable)_COMMAND", default: "swift build")
         self.setupCommand = Input.read("\(variable)_SETUP_COMMAND", default: "")

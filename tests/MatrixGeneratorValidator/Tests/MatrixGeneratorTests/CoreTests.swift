@@ -39,10 +39,10 @@ struct PlatformSelectionTests {
     #expect(generated.exitCode == 0)
   }
 
-  @Test("Linux and Windows are the defaults")
-  func defaults() throws {
+  @Test("Every platform but FreeBSD is on by default")
+  func everyPlatformButFreeBSDIsOnByDefault() throws {
     let generated = try Generator.run(includePlatformDefaults: true)
-    #expect(Set(generated.platforms) == ["Linux", "Windows"])
+    #expect(Set(generated.platforms) == ["Linux", "macOS", "Windows"])
   }
 }
 
@@ -442,9 +442,8 @@ struct EmptiedByTheMinimumTests {
     // bumping swift-tools-version ahead of the released toolchains hits, and the
     // Linux and Windows nightlies survive to keep the matrix non-empty.
     let generated = try Generator.run(
-      ["ENABLE_CXX_INTEROP": "true"],
-      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.5")],
-      includePlatformDefaults: true
+      ["ENABLE_CXX_INTEROP": "true", "ENABLE_LINUX": "true", "ENABLE_WINDOWS": "true"],
+      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.5")]
     )
     #expect(generated.exitCode != 0)
     #expect(generated.standardError.contains("enable_cxx_interop"), "\(generated.standardError)")

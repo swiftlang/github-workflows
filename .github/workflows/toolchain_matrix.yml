@@ -187,6 +187,14 @@ jobs:
           ENABLE_LINUX: ${{ inputs.enable_linux }}
           ENABLE_MACOS: ${{ inputs.enable_macos }}
           ENABLE_WINDOWS: ${{ inputs.enable_windows }}
+          ENABLE_MACOS_SWIFTLY: "false"
+          ENABLE_FREEBSD: "false"
+          ENABLE_LINUX_STATIC_SDK_BUILD: "false"
+          ENABLE_WASM_SDK_BUILD: "false"
+          ENABLE_EMBEDDED_WASM_SDK_BUILD: "false"
+          ENABLE_ANDROID_SDK_BUILD: "false"
+          ENABLE_ANDROID_EMULATOR_TESTS: "false"
+          ENABLE_CXX_INTEROP: "false"
           LINUX_SWIFT_VERSIONS: ${{ inputs.linux_swift_versions }}
           LINUX_HOST_ARCHS: ${{ inputs.linux_host_archs }}
           LINUX_USE_DOCKER: ${{ inputs.linux_use_docker }}

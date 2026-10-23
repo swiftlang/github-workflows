@@ -36,11 +36,31 @@ struct EntryPointDefaultTests {
           "Linux Swift current",
           "Linux Swift nightly-release",
           "Linux Swift nightly-main",
+          "macOS Swift current-2",
+          "macOS Swift current-1",
+          "macOS Swift current",
+          "macOS Swiftly main-snapshot (Xcode swift_6.3)",
           "Windows Swift current-2",
           "Windows Swift current-1",
           "Windows Swift current",
           "Windows Swift nightly-release",
           "Windows Swift nightly-main",
+          "Static Linux SDK Swift current",
+          "Static Linux SDK Swift nightly-release",
+          "Static Linux SDK Swift nightly-main",
+          "Wasm SDK Swift current",
+          "Wasm SDK Swift nightly-release",
+          "Wasm SDK Swift nightly-main",
+          "Embedded Wasm SDK Swift current",
+          "Embedded Wasm SDK Swift nightly-release",
+          "Embedded Wasm SDK Swift nightly-main",
+          "Android SDK Swift current NDK r27d",
+          "Android SDK Swift nightly-release NDK r27d",
+          "Android SDK Swift nightly-main NDK r27d",
+          "Android SDK Swift current NDK r28c",
+          "Android SDK Swift nightly-release NDK r28c",
+          "Android SDK Swift nightly-main NDK r28c",
+          "Cxx interop Swift current",
         ]
       ),
       (
@@ -78,8 +98,9 @@ struct EntryPointDefaultTests {
     let expected = ["macOS Swift current-2", "macOS Swift current-1", "macOS Swift current"]
     for entryPoint in EntryPoint.all {
       var environment = try entryPoint.environment()
-      environment["ENABLE_LINUX"] = "false"
-      environment["ENABLE_WINDOWS"] = "false"
+      for enable in EntryPoint.jobGroupEnables {
+        environment[enable] = "false"
+      }
       environment["ENABLE_MACOS"] = "true"
       let generated = try Generator.run(environment, manifests: manifest)
       #expect(generated.exitCode == 0, "\(entryPoint): \(generated.standardError)")
@@ -90,8 +111,9 @@ struct EntryPointDefaultTests {
   @Test("A caller who asks for the Android SDK build gets both NDK releases")
   func androidNDKJobNames() throws {
     var viaWorkflow = try EntryPoint.packageTest.environment()
-    viaWorkflow["ENABLE_LINUX"] = "false"
-    viaWorkflow["ENABLE_WINDOWS"] = "false"
+    for enable in EntryPoint.jobGroupEnables {
+      viaWorkflow[enable] = "false"
+    }
     viaWorkflow["ENABLE_ANDROID_SDK_BUILD"] = "true"
 
     let expected = [

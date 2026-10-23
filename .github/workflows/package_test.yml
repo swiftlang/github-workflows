@@ -9,44 +9,44 @@ on:
       # ----- Platform enables -----
       enable_linux:
         type: boolean
-        description: "Run the tests on Linux."
+        description: "Run the tests on Linux. Set false to skip it."
         default: true
       enable_macos:
         type: boolean
-        description: "Run the tests on macOS."
-        default: false
+        description: "Run the tests on macOS. Set false to skip it."
+        default: true
       enable_macos_swiftly:
         type: boolean
-        description: "Run the tests on macOS with swiftly-managed toolchains, for a nightly snapshot no Xcode carries."
-        default: false
+        description: "Run the tests on macOS with swiftly-managed toolchains, for a nightly snapshot no Xcode carries. Set false to skip it."
+        default: true
       enable_windows:
         type: boolean
-        description: "Run the tests on Windows."
+        description: "Run the tests on Windows. Set false to skip it."
         default: true
       enable_linux_static_sdk_build:
         type: boolean
-        description: "Boolean to enable building with the Static Linux Swift SDK. Defaults to false."
-        default: false
+        description: "Build with the Static Linux Swift SDK. Set false to skip it."
+        default: true
       enable_wasm_sdk_build:
         type: boolean
-        description: "Boolean to enable building with the Swift SDK for Wasm. Defaults to false."
-        default: false
+        description: "Build with the Swift SDK for Wasm. Set false to skip it."
+        default: true
       enable_embedded_wasm_sdk_build:
         type: boolean
-        description: "Boolean to enable building with the Embedded Swift SDK for Wasm. Defaults to false."
-        default: false
+        description: "Build with the Embedded Swift SDK for Wasm. Set false to skip it."
+        default: true
       enable_android_sdk_build:
         type: boolean
-        description: "Boolean to enable building with the Swift SDK for Android. Defaults to false."
-        default: false
+        description: "Build with the Swift SDK for Android. Set false to skip it."
+        default: true
       enable_android_emulator_tests:
         type: boolean
-        description: "Boolean to enable Android emulator testing after SDK builds. Defaults to false."
-        default: false
+        description: "Run the Android emulator tests after the SDK build. Set false to skip it."
+        default: true
       enable_cxx_interop:
         type: boolean
-        description: "Boolean to enable Cxx interoperability check. Defaults to false."
-        default: false
+        description: "Run the Cxx interoperability check. Set false to skip it."
+        default: true
       cxx_interop_swift_versions:
         type: string
         description: "Swift version list (JSON array) for the Cxx interop check. Empty uses the newest release version in linux_swift_versions."
@@ -374,7 +374,7 @@ on:
       # ----- FreeBSD -----
       enable_freebsd:
         type: boolean
-        description: "Boolean to enable FreeBSD testing. Defaults to false."
+        description: "Boolean to enable FreeBSD testing."
         default: false
       freebsd_swift_versions:
         type: string

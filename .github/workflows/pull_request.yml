@@ -153,14 +153,20 @@ jobs:
       windows_swift_versions: '["6.3"]'
       windows_setup_command: cd tests/TestPackage
       windows_command: Invoke-Program swift build
-      enable_linux_static_sdk_build: true
+      # The static SDK build and the Cxx interop check are on by default.
       linux_static_sdk_versions: '["6.3"]'
       # The SDK script builds in the working directory, so the setup command is
       # the only way to reach a package below the repository root.
       linux_static_sdk_setup_command: cd tests/TestPackage
       # The Cxx interop check takes linux_setup_command as its setup command, so
       # it enters tests/TestPackage too.
-      enable_cxx_interop: true
+      # The rest are off: this call is about Linux, Windows and the two checks above.
+      enable_macos: false
+      enable_macos_swiftly: false
+      enable_wasm_sdk_build: false
+      enable_embedded_wasm_sdk_build: false
+      enable_android_sdk_build: false
+      enable_android_emulator_tests: false
       # Two labeled commands, so a run exercises the label suffix.
       linux_command: |
         Debug-Build: swift build
@@ -193,6 +199,15 @@ jobs:
       windows_swift_versions: '["6.3"]'
       windows_use_docker: true
       windows_command: Invoke-Program swift build
+      # Only the Linux and Windows container paths are under test here.
+      enable_macos: false
+      enable_macos_swiftly: false
+      enable_linux_static_sdk_build: false
+      enable_wasm_sdk_build: false
+      enable_embedded_wasm_sdk_build: false
+      enable_android_sdk_build: false
+      enable_android_emulator_tests: false
+      enable_cxx_interop: false
 
   unified_package_test_commands:
     name: Unified package test (commands)
@@ -201,6 +216,14 @@ jobs:
       # Named so this does not share a concurrency group with the other calls.
       name: unified-package-test-commands
       enable_windows: false
+      enable_macos: false
+      enable_macos_swiftly: false
+      enable_linux_static_sdk_build: false
+      enable_wasm_sdk_build: false
+      enable_embedded_wasm_sdk_build: false
+      enable_android_sdk_build: false
+      enable_android_emulator_tests: false
+      enable_cxx_interop: false
       package_path: tests/TestPackage
       linux_swift_versions: '["6.2", "6.3"]'
       # Two commands on one toolchain list, the second narrowed to one version, so
