@@ -109,10 +109,10 @@ struct MacOSTests {
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
     #expect(targets.map(\.platform) == ["iOS", "watchOS"])
-    #expect(targets[0].build == true)
-    #expect(targets[0].test == true)
-    #expect(targets[1].build == true)
-    #expect(targets[1].test == false, "testing needs a simulator, so it is asked for rather than assumed")
+    #expect(targets[0].build)
+    #expect(targets[0].test)
+    #expect(targets[1].build)
+    #expect(!targets[1].test, "testing needs a simulator, so it is asked for rather than assumed")
     #expect(targets[0].scheme == "P-Package")
   }
 
@@ -386,8 +386,8 @@ struct ApplePlatformTargetTests {
     #expect(targets.map(\.platform) == [platform])
     #expect(targets[0].buildDestination == buildDestination)
     #expect(targets[0].testDestination == testDestination)
-    #expect(targets[0].build == true)
-    #expect(targets[0].test == true)
+    #expect(targets[0].build)
+    #expect(targets[0].test)
   }
 
   @Test("A bare list asks for each platform with every setting at its default")
@@ -404,8 +404,8 @@ struct ApplePlatformTargetTests {
     try #require(targets.count == 2)
     #expect(targets.map(\.platform) == ["iOS", "watchOS"])
     for target in targets {
-      #expect(target.build == true)
-      #expect(target.test == false)
+      #expect(target.build)
+      #expect(!target.test)
       #expect(target.scheme == "P-Package")
       #expect(!target.buildDestination.isEmpty)
       #expect(!target.testDestination.isEmpty)
@@ -428,10 +428,10 @@ struct ApplePlatformTargetTests {
     ])
     let targets = try #require(generated.entries.first?.xcodeBuild?.targets)
     try #require(targets.count == 2)
-    #expect(targets[0].build == true)
-    #expect(targets[0].test == true)
-    #expect(targets[1].build == false)
-    #expect(targets[1].test == true)
+    #expect(targets[0].build)
+    #expect(targets[0].test)
+    #expect(!targets[1].build)
+    #expect(targets[1].test)
   }
 
   @Test("A target's scheme overrides xcode_scheme, which the rest keep")

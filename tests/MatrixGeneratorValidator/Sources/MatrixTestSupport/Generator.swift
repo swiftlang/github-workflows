@@ -38,8 +38,10 @@ public enum GeneratorError: Error, CustomStringConvertible {
     switch self {
     case .generatorNotFound(let path):
       return "generate-matrix.swift not found at \(path)"
+
     case .toolNotFound(let tool):
       return "\(tool) is required to run these tests but was not found on PATH"
+
     case .decodingFailed(let underlying, let json, let standardError):
       return """
         Could not decode the generated matrix: \(underlying)
@@ -180,7 +182,7 @@ public struct Generator: Sendable {
     // A failing generator produces no matrix, which is a legitimate thing for a
     // test to assert on, so report it rather than throwing.
     let trimmed = result.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else {
+    if trimmed.isEmpty {
       return Generated(entries: [], standardError: result.standardError, exitCode: result.exitCode)
     }
 

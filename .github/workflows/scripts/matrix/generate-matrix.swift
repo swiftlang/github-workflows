@@ -144,7 +144,10 @@ extension Configuration {
         // has to hold where both could appear.
         if mode == .jobs && self.androidEmulatorEnabled && !self.androidSDKBuild.enabled {
             fatal(
-                "enable_android_emulator_tests needs enable_android_sdk_build; the emulator runs what that build produces."
+                """
+                enable_android_emulator_tests needs enable_android_sdk_build; the emulator runs what that build \
+                produces.
+                """
             )
         }
         // An Apple-platform target rides on a macOS entry, so asking for one without enabling
@@ -183,6 +186,7 @@ extension Configuration {
                 log("linux_os names \(names.count) distributions, so Linux runs in a container")
             }
         }
+
         return names.map {
             ContainerImage(
                 distribution: $0,
@@ -249,6 +253,7 @@ extension Configuration {
         case .freeBSD: minutes = self.freeBSDTimeoutMinutes
         case .linux, .macOS: minutes = 0
         }
+
         return minutes > 0 ? minutes : nil
     }
 
@@ -259,7 +264,12 @@ extension Configuration {
         if self.packagePath.isEmpty || self.packagePath == "." { return setupCommand }
         let forbidden = CharacterSet(charactersIn: "\"$`\\\n\r")
         if self.packagePath.rangeOfCharacter(from: forbidden) != nil {
-            fatal("package_path must be a plain directory, without quotes, $, backticks or backslashes, but got: \(self.packagePath)")
+            fatal(
+                """
+                package_path must be a plain directory, without quotes, $, backticks or backslashes, \
+                but got: \(self.packagePath)
+                """
+            )
         }
         let enter = "cd \"\(self.packagePath)\""
         return setupCommand.isEmpty ? enter : "\(setupCommand.trimmingTrailingNewlines)\n\(enter)"
@@ -449,6 +459,7 @@ extension Generator {
             runners: [self.configuration.primaryLinuxRunner],
             sdk: MatrixEntry.SwiftBuild.SDK(kind: build.kind)
         )
+
         guard build.kind == .android else { return jobs }
         jobs.android = SwiftBuildJobs.AndroidBuild(
             triples: self.configuration.androidTriples,
@@ -655,6 +666,7 @@ extension XcodeTarget {
                     """
                 )
             }
+
             return XcodeTarget(
                 platform: platform,
                 scheme: scheme,
@@ -702,8 +714,7 @@ enum VersionAxis {
     /// The input a message names, so the caller knows which knob to turn.
     var inputName: String {
         switch self {
-        case .list(let input): return input
-        case .toolchains(let input): return input
+        case .list(let input), .toolchains(let input): return input
         }
     }
 }
@@ -769,6 +780,7 @@ extension JobGroupSettings {
             if self.commands.contains(where: { $0.versionLabels != nil }) {
                 fatal("\(commandsInput) takes no versions; its toolchains come from \(toolchainsInput).")
             }
+
         case .list:
             let selectable = self.selectableVersions
             let unmatched = self.commands.flatMap { variant in
@@ -1275,6 +1287,7 @@ struct Matrix: Encodable {
         } catch {
             fatal("Could not encode the matrix: \(error)")
         }
+
         switch format {
         case .json: return jq.format(json, ["."])
         case .yaml: return yq.format(json, ["-P"])
@@ -1486,6 +1499,7 @@ struct SwiftReleases {
         switch VersionLabel(label) {
         case .nightly, .explicit:
             return label
+
         case .release(let offset):
             guard let currentRelease = self.currentRelease else {
                 fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
@@ -1638,8 +1652,8 @@ struct MinimumVersion {
     }
 
     /// What a caller does about a version the filter dropped. The filter is not an input of its
-    /// own, so a message naming
-    /// only what was dropped leaves them looking for a knob that isn't there.
+    /// own, so a message naming only what was dropped leaves them looking for a knob that isn't
+    /// there.
     static let remedy =
         "The minimum comes from the manifest's swift-tools-version unless minimum_swift_version "
         + "overrides it, so raise the versions, or lower minimum_swift_version - 'none' turns the "
@@ -1815,6 +1829,7 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
                 """
             )
         }
+
         return members.compactMap { member in
             settings(of: member.value).map {
                 Variant(label: member.key, command: $0.command, versionLabels: $0.versions)
@@ -1835,7 +1850,7 @@ struct Commands: InputDecodable, ExpressibleByStringLiteral {
             return nil
         }
         guard let listed = settings["versions"]?.nonNull else { return (command, nil) }
-        guard let versions = listed.asArray, versions.isEmpty == false,
+        guard let versions = listed.asArray, !versions.isEmpty,
             versions.allSatisfy({ $0.asString != nil })
         else {
             return nil
@@ -1918,9 +1933,9 @@ struct VersionOverrides: InputDecodable {
         self.override(for: versionLabel)?.command
     }
 
-    /// A version written twice takes the last of its overrides, which is what jq would do
-    /// reading these into an object: the
-    /// members are kept in the order they were written so that a repeated key can be seen.
+    /// The last override written for a version, which is what jq would do reading these into an
+    /// object. The members are kept in the order they were written so that a repeated key can be
+    /// seen.
     private func override(for versionLabel: String) -> Override? {
         self.overrides.last { $0.version == versionLabel }
     }
@@ -2288,6 +2303,7 @@ extension JSONValue: CustomStringConvertible {
         case .number(let value): return String(value)
         case .string(let text): return JSONValue.quoted(text)
         case .array(let items): return "[" + items.map(\.description).joined(separator: ",") + "]"
+
         case .object(let members):
             // Sorted so a message quoting a caller's value back reads the same on every run: a
             // dictionary has no order of its own.

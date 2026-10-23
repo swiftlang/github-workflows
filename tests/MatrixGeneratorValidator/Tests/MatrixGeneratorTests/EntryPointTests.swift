@@ -66,7 +66,7 @@ struct EntryPointDefaultTests {
     ]
   )
   func passNothingJobNames(entryPoint: EntryPoint, expected: [String]) throws {
-    let generated = try Generator.run(try entryPoint.environment(), manifests: manifest)
+    let generated = try Generator.run(entryPoint.environment(), manifests: manifest)
     #expect(generated.exitCode == 0, "\(entryPoint): \(generated.standardError)")
     #expect(generated.names == expected, "\(entryPoint)")
   }

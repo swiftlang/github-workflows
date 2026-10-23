@@ -35,8 +35,8 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
   /// Every workflow that generates a matrix by calling the generator.
   public static let all: [EntryPoint] = [packageTest, toolchainMatrix, benchmarks]
 
-  /// Overridable so CI can point at a checkout elsewhere; otherwise derived from
-  /// the generator's location, which sits in the same checkout.
+  /// This workflow's file in the checkout the generator sits in, so pointing the generator at
+  /// another checkout with `GENERATE_MATRIX_PATH` moves the workflow with it.
   public var path: String {
     // <root>/.github/workflows/scripts/matrix/generate-matrix.swift
     var url = URL(fileURLWithPath: Generator.scriptPath)
@@ -87,6 +87,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
         resolved[key] = value
       }
     }
+
     return resolved
   }
 
@@ -97,6 +98,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
     for (key, value) in try stepEnvironment() where Self.inputReference(in: value) != nil {
       keys.insert(key)
     }
+
     return keys
   }
 
@@ -128,7 +130,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
     let inner = trimmed.dropFirst(3).dropLast(2).trimmingCharacters(in: .whitespaces)
     guard inner.hasPrefix("inputs.") else { return nil }
     let name = inner.dropFirst("inputs.".count)
-    guard !name.isEmpty, name.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) else {
+    if name.isEmpty || !name.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) {
       return nil
     }
     return String(name)
@@ -208,12 +210,16 @@ public enum WorkflowError: Error, CustomStringConvertible {
     switch self {
     case .workflowNotFound(let path):
       return "Workflow not found at \(path)"
+
     case .noGenerateStep(let workflow):
       return "\(workflow).yml has no step with id 'generate'"
+
     case .yqFailed(let expression, let standardError):
       return "yq failed for \(expression): \(standardError)"
+
     case .unknownInput(let workflow, let key, let input):
       return "\(workflow).yml sets \(key) from inputs.\(input), which it does not declare"
+
     case .unresolvedExpression(let workflow, let key, let value):
       return """
         \(workflow).yml sets \(key) to an expression these tests cannot resolve: \(value). \
