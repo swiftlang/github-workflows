@@ -213,7 +213,10 @@ extension Configuration {
 
     /// What the relative and alias labels resolve to.
     var releases: SwiftReleases {
-        SwiftReleases(currentRelease: self.currentRelease, nightlyBranch: self.nightlyBranch)
+        SwiftReleases(
+            currentRelease: self.currentRelease.isEmpty ? nil : self.currentRelease,
+            nightlyBranch: self.nightlyBranch.isEmpty ? nil : self.nightlyBranch
+        )
     }
 
     /// The Swift versions the macOS entries run.
@@ -447,9 +450,11 @@ extension Generator {
             sdk: MatrixEntry.SwiftBuild.SDK(kind: build.kind)
         )
         guard build.kind == .android else { return jobs }
-        jobs.sdk?.triples = self.configuration.androidTriples
-        jobs.ndkVersions = self.configuration.androidNDKVersions
-        jobs.androidEmulator = self.configuration.androidEmulatorEnabled
+        jobs.android = SwiftBuildJobs.AndroidBuild(
+            triples: self.configuration.androidTriples,
+            ndkVersions: self.configuration.androidNDKVersions,
+            emulatorEnabled: self.configuration.androidEmulatorEnabled
+        )
         // The emulator runs what the build produced, so the build is told to make test binaries
         // and takes none of the flags inputs.
         jobs.flags = .always(self.configuration.androidEmulatorEnabled ? "--build-tests" : "")
@@ -931,7 +936,7 @@ struct SwiftFlags {
 
     /// The arguments one version's command runs with.
     func arguments(for versionLabel: String) -> [String] {
-        let base = self.flags(nightly: versionLabel.hasPrefix("nightly-"))
+        let base = self.flags(nightly: VersionLabel(versionLabel).isNightly)
         return self.split("\(base) \(self.overrides.arguments(for: versionLabel) ?? "")")
     }
 
@@ -972,11 +977,18 @@ struct SwiftBuildJobs: JobGroup {
     var images: [ContainerImage?] = [nil]
     /// The SDK the entries build against, which the NDK axis completes.
     var sdk: MatrixEntry.SwiftBuild.SDK?
-    /// The NDK releases the entries fan out over, which only the Android SDK build has.
-    var ndkVersions: [String]?
-    /// Carried by the Android SDK build, telling the executor whether the emulator runs what
-    /// the build produced.
-    var androidEmulator: Bool?
+    /// What only the Android SDK build carries.
+    var android: AndroidBuild?
+
+    /// The parts of an Android SDK build that the other SDK builds have no counterpart for.
+    struct AndroidBuild {
+        /// The triples the SDK is installed for.
+        var triples: [String]
+        /// The NDK releases the entries fan out over.
+        var ndkVersions: [String]
+        /// Whether the executor runs what the build produced on an emulator.
+        var emulatorEnabled: Bool
+    }
 
     /// One entry's value from every axis.
     private struct Combination {
@@ -988,7 +1000,7 @@ struct SwiftBuildJobs: JobGroup {
     }
 
     /// One pass per NDK release, or a single pass for a build with no NDK to name.
-    private var ndkPasses: [String?] { self.ndkVersions?.map(Optional.some) ?? [nil] }
+    private var ndkPasses: [String?] { self.android?.ndkVersions.map(Optional.some) ?? [nil] }
 
     /// In the order the jobs come out in.
     private var combinations: [Combination] {
@@ -1016,6 +1028,7 @@ struct SwiftBuildJobs: JobGroup {
             let toolchain = Toolchain(label: combination.versionLabel, releases: self.releases)
             var sdk = self.sdk
             sdk?.ndkVersion = combination.ndkVersion
+            sdk?.triples = self.android?.triples
             return MatrixEntry(
                 platform: self.platform,
                 name: self.settings.name(
@@ -1035,7 +1048,7 @@ struct SwiftBuildJobs: JobGroup {
                 command: self.command(for: combination),
                 commandArguments: self.flags.arguments(for: combination.versionLabel),
                 env: self.environment,
-                androidEmulator: self.androidEmulator
+                androidEmulator: self.android?.emulatorEnabled
             )
         }
     }
@@ -1448,15 +1461,24 @@ enum VersionLabel {
         }
         self = .release(offset: offset)
     }
+
+    /// Whether the label names a nightly toolchain, which takes the nightly flags and is always
+    /// kept by the minimum-version filter.
+    var isNightly: Bool {
+        switch self {
+        case .nightly: return true
+        case .release, .explicit: return false
+        }
+    }
 }
 
 /// The releases a run was given, which the labels that name one by position resolve against.
 struct SwiftReleases {
-    /// The release `current` names, such as `6.4`. Empty when the caller gave none.
-    let currentRelease: String
+    /// The release `current` names, such as `6.4`, if the caller gave one.
+    let currentRelease: String?
     /// The branch spelling upstream publishes the next release's nightly under, such as `6.4.x`,
-    /// which `nightly-release` is an alias for. Empty when the caller gave none.
-    let nightlyBranch: String
+    /// which `nightly-release` is an alias for, if the caller gave one.
+    let nightlyBranch: String?
 
     /// The version a label names: `current`, `current-1` and `current-2` count back from the
     /// current release, and anything else is already a version.
@@ -1465,11 +1487,15 @@ struct SwiftReleases {
         case .nightly, .explicit:
             return label
         case .release(let offset):
-            if self.currentRelease.isEmpty {
+            guard let currentRelease = self.currentRelease else {
                 fatal("swift_current_release is not set, so '\(label)' has no release to count back from.")
             }
-            guard let release = SwiftVersion(majorMinor: self.currentRelease) else {
-                fatal("swift_current_release must be a major.minor version such as 6.4, but got: '\(self.currentRelease)'")
+            guard let release = SwiftVersion(majorMinor: currentRelease) else {
+                fatal(
+                    """
+                    swift_current_release must be a major.minor version such as 6.4, but got: '\(currentRelease)'
+                    """
+                )
             }
             guard release.minor >= offset else {
                 fatal("'\(label)' counts back past the first minor release of Swift \(release.major).")
@@ -1490,8 +1516,8 @@ struct Toolchain {
     /// `nightly-main` label itself.
     let version: String
     /// The branch spelling upstream publishes the next release's nightly under, which
-    /// `nightly-release` is an alias for.
-    let nightlyBranch: String
+    /// `nightly-release` is an alias for, if the caller gave one.
+    let nightlyBranch: String?
 
     init(label: String, releases: SwiftReleases) {
         self.version = releases.resolvedVersion(for: label)
@@ -1501,17 +1527,20 @@ struct Toolchain {
     /// The Docker tag infix, the Windows installer script suffix, and the argument
     /// install-and-build-with-sdk.sh takes.
     var resolved: String {
-        if self.version == "nightly-release" && self.nightlyBranch.isEmpty {
-            fatal("swift_nightly_release is not set, so 'nightly-release' has no branch to name.")
+        guard let nightlyBranch = self.nightlyBranch else {
+            if self.version == "nightly-release" {
+                fatal("swift_nightly_release is not set, so 'nightly-release' has no branch to name.")
+            }
+            return self.version
         }
-        let alias = "nightly-\(self.nightlyBranch)"
+        let alias = "nightly-\(nightlyBranch)"
         return self.version == "nightly-release" || self.version == alias ? alias : self.version
     }
 
     /// The swiftly selector. The branch token names the release snapshot's own directory under
     /// dev/, and swiftly's release-snapshot grammar takes it whole, so it is passed through.
     var swiftly: String {
-        guard self.resolved.hasPrefix("nightly-") else { return self.resolved }
+        guard VersionLabel(self.resolved).isNightly else { return self.resolved }
         let branch = String(self.resolved.dropFirst("nightly-".count))
         return branch == "main" ? "main-snapshot" : "\(branch)-snapshot"
     }
@@ -1519,7 +1548,7 @@ struct Toolchain {
     /// The image this toolchain runs in on a distribution. Upstream publishes the nightlies
     /// under their own repository, so a nightly is not tagged like a release.
     func image(distribution: String) -> String {
-        self.resolved.hasPrefix("nightly-")
+        VersionLabel(self.resolved).isNightly
             ? "swiftlang/swift:\(self.resolved)-\(distribution)"
             : "swift:\(self.resolved)-\(distribution)"
     }
@@ -1569,7 +1598,7 @@ struct SwiftVersion: Comparable {
     /// The newest release a version list holds, falling back to its last entry when the list is
     /// all nightlies.
     static func newestRelease(in versions: [String], releases: SwiftReleases) -> String {
-        let released = versions.filter { !$0.hasPrefix("nightly-") }
+        let released = versions.filter { !VersionLabel($0).isNightly }
         let newest = released.max { releases.ordered($0) < releases.ordered($1) }
         return newest ?? versions.last ?? ""
     }
@@ -1604,7 +1633,7 @@ struct MinimumVersion {
     /// A nightly is always kept: it is not a released version this can order.
     func admits(_ label: String) -> Bool {
         guard let floor = self.floor else { return true }
-        if label.hasPrefix("nightly-") { return true }
+        if VersionLabel(label).isNightly { return true }
         return self.releases.ordered(label) >= floor
     }
 
