@@ -11,6 +11,10 @@ on:
         type: string
         description: "Path to a file that will be passed as --breakage-allowlist-path to swift package diagnose-api-breaking-changes"
         default: ""
+      api_breakage_pre_build_command:
+        type: string
+        description: "Execute before running the AOU breakage check"
+        default: ""
       api_breakage_check_baseline:
         type: string
         description: "The tag against which API breakages that should be used as the baseline for the API breakage check. By default the PR base is used."
@@ -154,6 +158,9 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-build
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.api_breakage_pre_build_command }}
       - name: Run API breakage check
         shell: bash
         env:
