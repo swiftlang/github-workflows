@@ -64,8 +64,16 @@ function Invoke-WebRequestWithRetry {
             }
 
             # Verify file is not corrupted by checking if it's a valid PE executable
-            $fileBytes = [System.IO.File]::ReadAllBytes($OutFile)
-            if ($fileBytes.Length -lt 2 -or $fileBytes[0] -ne 0x4D -or $fileBytes[1] -ne 0x5A) {
+            # Read only the header; ReadAllBytes throws on files over 2 GB
+            $fileBytes = New-Object byte[] 2
+            $stream = [System.IO.File]::OpenRead($OutFile)
+            try {
+                $bytesRead = $stream.Read($fileBytes, 0, 2)
+            }
+            finally {
+                $stream.Dispose()
+            }
+            if ($bytesRead -lt 2 -or $fileBytes[0] -ne 0x4D -or $fileBytes[1] -ne 0x5A) {
                 throw "Downloaded file is not a valid executable (missing MZ header)"
             }
 
