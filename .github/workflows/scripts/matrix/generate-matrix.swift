@@ -430,13 +430,12 @@ extension Generator {
         // The runner expands SCRIPTS_ROOT, so that reference stays literal here.
         commandSource: .fixed,
         commands: "${SCRIPTS_ROOT}/check-cxx-interop.sh",
-        overrides: self.configuration.linuxOverrides,
         namePrefix: "Cxx interop Swift"
       ),
       platform: .linux,
       minimum: self.minimum,
       releases: self.configuration.releases,
-      flags: self.configuration.flags(with: self.configuration.linuxOverrides),
+      flags: self.configuration.flags(),
       setupCommand: self.configuration.enteringPackage(after: self.configuration.linuxSetupCommand),
       environment: self.configuration.linuxEnvironment,
       runners: [self.configuration.primaryLinuxRunner],
@@ -466,8 +465,7 @@ extension Generator {
   /// fetches a toolchain matched to the SDK, and job-runner-linux.sh refuses an entry
   /// carrying both an sdk and a container.
   private func sdkJobs(_ build: SDKBuild) -> SwiftBuildJobs {
-    // A build with no overrides of its own takes the Linux ones.
-    let overrides = build.overrides.isEmpty ? self.configuration.linuxOverrides : build.overrides
+    let overrides = build.overrides
     var jobs = SwiftBuildJobs(
       settings: JobGroupSettings(
         enableInput: build.enableInput,
