@@ -92,15 +92,14 @@ struct SDKTests {
 
 @Suite("Cxx interop")
 struct SupplementaryCheckTests {
-  @Test("Cxx interop defaults to one version and can enter a subdirectory")
+  @Test("Cxx interop defaults to the Linux versions and can enter a subdirectory")
   func cxxInteropScope() throws {
     let generated = try Generator.run([
       "ENABLE_CXX_INTEROP": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.2","6.3"]"#,
       "LINUX_SETUP_COMMAND": "cd sub",
     ])
-    #expect(generated.count == 1)
-    #expect(generated.entries.first?.swiftBuild?.swiftVersion == "6.3")
+    #expect(generated.entries.compactMap { $0.swiftBuild?.swiftVersion } == ["6.2", "6.3"])
     // check-cxx-interop.sh reads the manifest in the working directory.
     #expect(generated.entries.first?.setupCommand == "cd sub")
     #expect(generated.entries.first?.command == "${SCRIPTS_ROOT}/check-cxx-interop.sh")

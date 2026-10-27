@@ -57,7 +57,11 @@ struct EntryPointDefaultTests {
           "Android SDK Swift current NDK r30",
           "Android SDK Swift nightly-release NDK r30",
           "Android SDK Swift nightly-main NDK r30",
+          "Cxx interop Swift current-2",
+          "Cxx interop Swift current-1",
           "Cxx interop Swift current",
+          "Cxx interop Swift nightly-release",
+          "Cxx interop Swift nightly-main",
         ]
       ),
       (

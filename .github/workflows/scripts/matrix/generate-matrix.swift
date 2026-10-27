@@ -233,15 +233,10 @@ extension Configuration {
     return self.macOSVersions
   }
 
-  /// The Swift versions the Cxx interop check runs.
-  ///
-  /// The check is supplementary rather than a full compatibility check, so it runs on the
-  /// newest release in the Linux list unless a caller names more.
+  /// The Swift versions the Cxx interop check runs: those the Linux tests run, unless a caller
+  /// names others.
   var cxxInteropSwiftVersions: [String] {
-    if self.cxxInteropVersions.isEmpty {
-      return [SwiftVersion.newestRelease(in: self.linuxVersions, releases: self.releases)]
-    }
-    return self.cxxInteropVersions
+    self.cxxInteropVersions.isEmpty ? self.linuxVersions : self.cxxInteropVersions
   }
 
   /// The timeout an entry on this platform carries, or nil to leave the executor's own.
@@ -1633,14 +1628,6 @@ struct SwiftVersion: Comparable {
       )
     }
     return version
-  }
-
-  /// The newest release a version list holds, falling back to its last entry when the list is
-  /// all nightlies.
-  static func newestRelease(in versions: [String], releases: SwiftReleases) -> String {
-    let released = versions.filter { !VersionLabel($0).isNightly }
-    let newest = released.max { releases.ordered($0) < releases.ordered($1) }
-    return newest ?? versions.last ?? ""
   }
 }
 

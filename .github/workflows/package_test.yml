@@ -49,7 +49,7 @@ on:
         default: true
       cxx_interop_swift_versions:
         type: string
-        description: "Swift version list (JSON array) for the Cxx interop check. Empty uses the newest release version in linux_swift_versions."
+        description: "Swift version list (JSON array) for the Cxx interop check. Empty uses linux_swift_versions."
         default: ""
 
       # ----- Version lists (JSON arrays) -----
