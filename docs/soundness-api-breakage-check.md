@@ -8,11 +8,12 @@ The job fails when the command reports API breakages that are not covered by an 
 
 1. Checks out the repository with full history, tags, and submodules (`fetch-depth: 0`, `fetch-tags: true`). Credentials are persisted because `diagnose-api-breaking-changes` clones the repository again, which would otherwise fail for private repositories.
 2. Marks the workspace as a safe git directory.
-3. Runs `linux_pre_build_command`, if provided.
-4. Determines the **baseline** to compare against:
+3. Runs `api_breakage_pre_build_command`, if provided, in its own step.
+4. Runs `linux_pre_build_command`, if provided, immediately before the check itself.
+5. Determines the **baseline** to compare against:
    - if `api_breakage_check_baseline` is set, that tag or ref is used;
    - otherwise the pull request's base branch (`GITHUB_BASE_REF`) is fetched into a local `pull-base-ref` ref and used.
-5. Runs `swift package diagnose-api-breaking-changes <baseline>`, adding `--breakage-allowlist-path <path>` when `api_breakage_check_allowlist_path` is set, followed by any `api_breakage_check_additional_arguments`.
+6. Runs `swift package diagnose-api-breaking-changes <baseline>`, adding `--breakage-allowlist-path <path>` when `api_breakage_check_allowlist_path` is set, followed by any `api_breakage_check_additional_arguments`.
 
 The job has a 40 minute timeout.
 
@@ -45,6 +46,7 @@ jobs:
 |---|---|---|---|
 | `api_breakage_check_enabled` | boolean | `true` | Enable or disable the job. |
 | `api_breakage_check_allowlist_path` | string | `""` | Path to a file passed as `--breakage-allowlist-path`. Relative paths are resolved from the repository root. |
+| `api_breakage_pre_build_command` | string | `""` | Shell command run in its own step before the baseline is determined and the check runs (e.g., generating sources the check depends on). |
 | `api_breakage_check_baseline` | string | `""` | Tag or ref to compare against. When empty, the pull request's base branch is used. |
 | `api_breakage_check_container_image` | string | `swift:6.3-noble` | Docker image used to run the check. |
 | `api_breakage_check_additional_arguments` | string | `""` | Extra arguments appended to the `swift package diagnose-api-breaking-changes` invocation. |
@@ -101,6 +103,18 @@ jobs:
       linux_pre_build_command: "apt-get update && apt-get install -y libxml2-dev"
 ```
 
+### Run a command before the check
+
+Use `api_breakage_pre_build_command` to run setup the check itself depends on, such as generating sources:
+
+```yaml
+jobs:
+  soundness:
+    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
+    with:
+      api_breakage_pre_build_command: "swift run generate-sources"
+```
+
 ### Disable the check
 
 Packages that expose no public API (for example, executables only) can turn the job off:
@@ -121,5 +135,5 @@ jobs:
 | The baseline tag is not found. | The tag does not exist in the repository. Tags are fetched by the checkout step, so confirm the name matches exactly. |
 | Job fails on a breakage you intend to make. | Add the reported breakage to the allowlist file referenced by `api_breakage_check_allowlist_path`. |
 | Allowlist file is not found. | The path is resolved from the repository root, not from the workflow file's location. |
-| Build fails before the comparison runs. | A system dependency is missing. Install it with `linux_pre_build_command`. |
+| Build fails before the comparison runs. | A system dependency is missing. Install it with `linux_pre_build_command`, or `api_breakage_pre_build_command` if the setup is specific to this job. |
 | Job fails to clone the repository (private repositories). | The checkout step must persist credentials. The workflow already does this, so check that the calling workflow grants `contents: read`. |
