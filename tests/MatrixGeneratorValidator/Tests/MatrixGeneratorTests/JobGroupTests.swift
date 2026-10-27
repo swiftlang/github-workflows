@@ -529,11 +529,10 @@ struct InvariantTests {
     #expect(generated.standardError.contains("nightly-next"))
   }
 
-  @Test("A Linux override key may name a version from any enabled Linux list")
-  func overrideKeysValidatedAgainstEveryLinuxList() throws {
-    // The Cxx-interop and SDK lists are independent of the test sweep, and every
-    // one of them draws its arguments from linux_version_overrides. Checking the
-    // sweep alone rejects a key naming a version only the Cxx interop check runs.
+  @Test("A Linux override key must name a version the Linux tests run")
+  func overrideKeysAreValidatedAgainstTheLinuxTests() throws {
+    // The Cxx interop check and the SDK builds take no Linux overrides, so a key naming only a
+    // version they run reaches nothing; accepting it would drop the arguments and still pass.
     let generated = try Generator.run([
       "ENABLE_LINUX": "true",
       "ENABLE_CXX_INTEROP": "true",
@@ -541,19 +540,8 @@ struct InvariantTests {
       "CXX_INTEROP_SWIFT_VERSIONS": #"["6.2","6.3"]"#,
       "LINUX_VERSION_OVERRIDES": #"{"6.2":"-Xswiftc -DX"}"#,
     ])
-    #expect(generated.exitCode == 0)
-    #expect(generated.entry(named: "Cxx interop Swift 6.2")?.commandArguments == ["-Xswiftc", "-DX"])
-    #expect(generated.entry(named: "Linux Swift 6.3")?.commandArguments == [])
-
-    // A key naming no enabled list is still rejected.
-    let bogus = try Generator.run([
-      "ENABLE_LINUX": "true",
-      "ENABLE_CXX_INTEROP": "true",
-      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
-      "CXX_INTEROP_SWIFT_VERSIONS": #"["6.3"]"#,
-      "LINUX_VERSION_OVERRIDES": #"{"6.2":"-Xswiftc -DX"}"#,
-    ])
-    #expect(bogus.exitCode != 0)
+    #expect(generated.exitCode != 0)
+    #expect(generated.standardError.contains("6.2"), "\(generated.standardError)")
   }
 
   @Test(

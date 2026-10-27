@@ -423,21 +423,31 @@ struct CommandClassificationTests {
 @Suite("A per-version command override and the command axis")
 struct VersionOverrideCommandTests {
   @Test(
-    "The override reaches every group that runs the caller's own command",
+    "Each group that runs the caller's own command takes the override from its own input",
     arguments: [
-      ("ENABLE_LINUX", "LINUX_SWIFT_VERSIONS", "Linux Swift 6.3"),
-      ("ENABLE_LINUX_STATIC_SDK_BUILD", "LINUX_STATIC_SDK_VERSIONS", "Static Linux SDK Swift 6.3"),
-      ("ENABLE_WASM_SDK_BUILD", "WASM_SDK_VERSIONS", "Wasm SDK Swift 6.3"),
+      ("ENABLE_LINUX", "LINUX_SWIFT_VERSIONS", "LINUX_VERSION_OVERRIDES", "Linux Swift 6.3"),
+      (
+        "ENABLE_LINUX_STATIC_SDK_BUILD", "LINUX_STATIC_SDK_VERSIONS",
+        "LINUX_STATIC_SDK_VERSION_OVERRIDES", "Static Linux SDK Swift 6.3"
+      ),
+      (
+        "ENABLE_WASM_SDK_BUILD", "WASM_SDK_VERSIONS", "WASM_SDK_VERSION_OVERRIDES",
+        "Wasm SDK Swift 6.3"
+      ),
       (
         "ENABLE_EMBEDDED_WASM_SDK_BUILD", "EMBEDDED_WASM_SDK_VERSIONS",
-        "Embedded Wasm SDK Swift 6.3"
+        "EMBEDDED_WASM_SDK_VERSION_OVERRIDES", "Embedded Wasm SDK Swift 6.3"
       ),
-      ("ENABLE_ANDROID_SDK_BUILD", "ANDROID_SDK_VERSIONS", "Android SDK Swift 6.3 NDK r27d"),
+      (
+        "ENABLE_ANDROID_SDK_BUILD", "ANDROID_SDK_VERSIONS", "ANDROID_SDK_VERSION_OVERRIDES",
+        "Android SDK Swift 6.3 NDK r27d"
+      ),
     ]
   )
   func overrideReplacesTheCallersCommand(
     enableKey: String,
     versionsKey: String,
+    overridesKey: String,
     expectedName: String
   ) throws {
     // Every one of these honored `arguments:` already. A group reading the base
@@ -445,49 +455,33 @@ struct VersionOverrideCommandTests {
     var environment = [
       "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
-      "LINUX_VERSION_OVERRIDES": #"{"6.3": {"command": "swift test --filter Foo"}}"#,
     ]
     environment[enableKey] = "true"
     environment[versionsKey] = #"["6.3"]"#
+    environment[overridesKey] = #"{"6.3": {"command": "swift test --filter Foo"}}"#
 
     let generated = try Generator.run(environment)
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(generated.entry(named: expectedName)?.command == "swift test --filter Foo")
   }
 
-  @Test("The override fails on a group whose command is the check itself")
-  func overrideFailsWhereTheCommandIsTheGroup() throws {
-    // Honoring it would leave a job named for a check it no longer runs; dropping
-    // it silently is how a caller believes a command reached a job it did not.
+  @Test("The Cxx interop check takes no Linux overrides")
+  func cxxInteropTakesNoLinuxOverrides() throws {
+    // The overrides are for the Linux tests. A flag meant for them, such as warnings as errors,
+    // must not reach a check the caller never asked to carry it.
     let generated = try Generator.run([
-      "ENABLE_CXX_INTEROP": "true",
-      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
-      "LINUX_VERSION_OVERRIDES": #"{"6.3": {"command": "swift test --filter Foo"}}"#,
-    ])
-    #expect(generated.exitCode != 0)
-    #expect(generated.count == 0)
-    #expect(generated.standardError.contains("Cxx interop Swift"), "\(generated.standardError)")
-    #expect(generated.standardError.contains("linux_version_overrides"))
-  }
-
-  @Test("Arguments still reach a group whose command is the check itself")
-  func argumentsStillReachEveryGroup() throws {
-    // Only `command:` is refused. A string override, which is the common case,
-    // carries arguments and has to go on working.
-    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
       "ENABLE_CXX_INTEROP": "true",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
       "LINUX_VERSION_OVERRIDES": #"{"6.3": "-Xswiftc -warnings-as-errors"}"#,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
-    #expect(generated.count == 1)
-    for entry in generated.entries {
-      #expect(entry.commandArguments == ["-Xswiftc", "-warnings-as-errors"], "\(entry.name)")
-    }
     #expect(
-      generated.entry(named: "Cxx interop Swift 6.3")?.command
-        == "${SCRIPTS_ROOT}/check-cxx-interop.sh"
+      generated.entry(named: "Linux Swift 6.3")?.commandArguments == ["-Xswiftc", "-warnings-as-errors"]
     )
+    let cxx = try #require(generated.entry(named: "Cxx interop Swift 6.3"))
+    #expect(cxx.commandArguments == [])
+    #expect(cxx.command == "${SCRIPTS_ROOT}/check-cxx-interop.sh")
   }
 
   @Test("A version that group does not run is not its business")
@@ -512,11 +506,11 @@ struct VersionOverrideCommandTests {
     "The override fails when more than one command is configured",
     arguments: [
       (
-        "LINUX_COMMAND", "linux_command",
+        "LINUX_COMMAND", "linux_command", "LINUX_VERSION_OVERRIDES",
         ["ENABLE_LINUX": "true", "LINUX_SWIFT_VERSIONS": #"["6.3"]"#]
       ),
       (
-        "LINUX_STATIC_SDK_COMMAND", "linux_static_sdk_command",
+        "LINUX_STATIC_SDK_COMMAND", "linux_static_sdk_command", "LINUX_STATIC_SDK_VERSION_OVERRIDES",
         [
           "ENABLE_LINUX_STATIC_SDK_BUILD": "true", "LINUX_STATIC_SDK_VERSIONS": #"["6.3"]"#,
           "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
@@ -527,6 +521,7 @@ struct VersionOverrideCommandTests {
   func overrideNeedsOneCommandToReplace(
     key: String,
     reported: String,
+    overridesKey: String,
     enables: [String: String]
   ) throws {
     // An override keyed on the version alone says nothing about which label it
@@ -535,7 +530,7 @@ struct VersionOverrideCommandTests {
     // which is the one to change.
     var environment = enables
     environment[key] = "test: swift test\nbuild: swift build"
-    environment["LINUX_VERSION_OVERRIDES"] = #"{"6.3": {"command": "swift build"}}"#
+    environment[overridesKey] = #"{"6.3": {"command": "swift build"}}"#
     let generated = try Generator.run(environment)
     #expect(generated.exitCode != 0)
     #expect(generated.count == 0)
@@ -570,7 +565,7 @@ struct VersionOverrideCommandTests {
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
       "LINUX_STATIC_SDK_VERSIONS": #"["6.2"]"#,
       "LINUX_COMMAND": "test: swift test\nrelease: swift build -c release",
-      "LINUX_VERSION_OVERRIDES": #"{"6.2": {"command": "swift build --static-swift-stdlib"}}"#,
+      "LINUX_STATIC_SDK_VERSION_OVERRIDES": #"{"6.2": {"command": "swift build --static-swift-stdlib"}}"#,
     ])
     #expect(generated.exitCode == 0, "\(generated.standardError)")
     #expect(
@@ -581,7 +576,7 @@ struct VersionOverrideCommandTests {
     #expect(generated.names.contains("release Linux Swift 6.3"))
   }
 
-  @Test("An SDK build's own overrides win over the Linux ones, and an absent set falls back")
+  @Test("An SDK build takes only its own overrides, never the Linux ones")
   func sdkBuildTakesItsOwnOverrides() throws {
     let generated = try Generator.run([
       "ENABLE_LINUX": "false",
@@ -598,7 +593,7 @@ struct VersionOverrideCommandTests {
     #expect(wasm.command == "swift build --target Core")
     #expect(wasm.commandArguments?.contains("-warnings-as-errors") != true)
     let staticLinux = try #require(generated.entry(named: "Static Linux SDK Swift 6.3"))
-    #expect(staticLinux.commandArguments == ["-Xswiftc", "-warnings-as-errors"])
+    #expect(staticLinux.commandArguments == [])
   }
 
   @Test("An SDK build's overrides naming a version it does not run fail the run")
