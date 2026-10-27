@@ -460,19 +460,23 @@ struct EmptiedByTheMinimumTests {
     #expect(!raised.entries.isEmpty)
   }
 
-  @Test("The default Cxx-interop version is filtered like any other")
-  func defaultedVersionIsChecked() throws {
-    // The check names no version: it defaults to the newest release in the Linux
-    // list, which a newer manifest puts below the minimum. This is what a caller
-    // bumping swift-tools-version ahead of the released toolchains hits, and the
-    // Linux and Windows nightlies survive to keep the matrix non-empty.
+  @Test("The Cxx interop check follows the Linux list and is filtered like it")
+  func cxxInteropFollowsTheLinuxList() throws {
+    // The check names no versions, so it runs on each version the Linux tests run, and a
+    // manifest that needs a newer toolchain removes the same ones from both.
     let generated = try Generator.run(
-      ["ENABLE_CXX_INTEROP": "true", "ENABLE_LINUX": "true", "ENABLE_WINDOWS": "true"],
-      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.5")]
+      [
+        "ENABLE_CXX_INTEROP": "true",
+        "ENABLE_LINUX": "true",
+        "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","nightly-main"]"#,
+      ],
+      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.2")]
     )
-    #expect(generated.exitCode != 0)
-    #expect(generated.standardError.contains("enable_cxx_interop"), "\(generated.standardError)")
-    #expect(generated.standardError.contains("current"), "\(generated.standardError)")
+    #expect(generated.exitCode == 0, "\(generated.standardError)")
+    #expect(
+      generated.names.filter { $0.hasPrefix("Cxx interop") }
+        == ["Cxx interop Swift 6.2", "Cxx interop Swift nightly-main"]
+    )
   }
 
   @Test(
