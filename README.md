@@ -40,6 +40,8 @@ jobs:
 
 ### Testing
 
+`package_test.yml` runs the tests across Swift versions and platforms from a matrix it generates, and replaces `swift_package_test.yml` and the per-job workflows in `apple/swift-nio`. [The architecture document](.github/workflows/architecture.md) describes it, and [the migration guide](.github/workflows/migration.md) says how to move to it. The rest of this section describes `swift_package_test.yml`.
+
 To enable pull request testing for all supported Swift versions (5.9, 5.10,
 6.0, 6.1, 6.2, nightly, and nightly-6.3) on Linux and Windows, add the following code example in
 `.github/workflows/pull_request.yml`:
