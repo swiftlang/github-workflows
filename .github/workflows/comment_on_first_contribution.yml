@@ -1,0 +1,54 @@
+name: Comment on first contribution
+
+on:
+  workflow_call:
+    inputs:
+      pull_request_message:
+        description: >
+          The Markdown message to comment when a contributor creates their first
+          pull request.
+        type: string
+        required: false
+      issue_message:
+        description: >
+          The Markdown message to comment when a contributor creates their first
+          issue.
+        type: string
+        required: false
+
+jobs:
+  comment:
+    if: >
+      (
+        (github.event_name == 'pull_request_target' && inputs.pull_request_message) ||
+        (github.event_name == 'issues' && inputs.issue_message)
+      ) &&
+      github.event.action == 'opened' &&
+      contains(
+        fromJSON('["FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR"]'),
+        github.event_name == 'issues'
+          && github.event.issue.author_association
+          || github.event.pull_request.author_association
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          # Pass the message via an environment variable rather than
+          # interpolating to prevent code injection.
+          message: >-
+            ${{
+              github.event_name == 'issues'
+                && inputs.issue_message
+                || inputs.pull_request_message
+            }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: process.env.message
+            })
