@@ -11,6 +11,10 @@ on:
         type: string
         description: "Path to a file that will be passed as --breakage-allowlist-path to swift package diagnose-api-breaking-changes"
         default: ""
+      api_breakage_pre_build_command:
+        type: string
+        description: "Execute before running the AOU breakage check"
+        default: ""
       api_breakage_check_baseline:
         type: string
         description: "The tag against which API breakages that should be used as the baseline for the API breakage check. By default the PR base is used."
@@ -19,6 +23,10 @@ on:
         type: string
         description: "Container image for the API breakage check job. Defaults to latest Swift Ubuntu image."
         default: "swift:6.3-noble"
+      api_breakage_check_additional_arguments:
+        type: string
+        description: "Additional arguments to pass directory to the `swift package diagnose-api-breaking-changes` invocation."
+        default: ""
       docs_check_enabled:
         type: boolean
         description: "Boolean to enable the docs check job. Defaults to true."
@@ -150,11 +158,15 @@ jobs:
       - name: Mark the workspace as safe
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Pre-build
+        # zizmor: ignore[template-injection]
+        run: ${{ inputs.api_breakage_pre_build_command }}
       - name: Run API breakage check
         shell: bash
         env:
           API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
           API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
+          API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS: ${{ inputs.api_breakage_check_additional_arguments }}
         # zizmor: ignore[template-injection]
         run: |
           ${{ inputs.linux_pre_build_command }}
@@ -166,9 +178,9 @@ jobs:
           fi
           echo "Using baseline: $BASELINE_REF"
           if [[ -z "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ]]; then
-            swift package diagnose-api-breaking-changes "$BASELINE_REF"
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" ${API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS}
           else
-            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}"
+            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ${API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS}
           fi
 
   docs-check:

@@ -123,7 +123,7 @@ jobs:
           eval "${PREREQUISITES_COMMAND}"
       - name: Install CMake
         id: install
-        uses: ./.github/actions/install-cmake
+        uses: $/.github/actions/install-cmake
         with:
           cmake-version: ${{ inputs.cmake_version }}
           hash: ${{ matrix.hash }}
@@ -159,7 +159,7 @@ jobs:
         uses: actions/checkout@v7
       - name: Install CMake
         id: install
-        uses: ./.github/actions/install-cmake
+        uses: $/.github/actions/install-cmake
         with:
           cmake-version: ${{ inputs.cmake_version }}
           hash: ${{ inputs.macos_hash }}
@@ -203,7 +203,7 @@ jobs:
         uses: actions/checkout@v7
       - name: Install CMake
         id: install
-        uses: ./.github/actions/install-cmake
+        uses: $/.github/actions/install-cmake
         with:
           cmake-version: ${{ inputs.cmake_version }}
           hash: ${{ matrix.hash }}
