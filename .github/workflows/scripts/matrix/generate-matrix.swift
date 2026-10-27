@@ -93,7 +93,7 @@ struct Configuration {
   /// before building. Zero leaves the executor's timeout.
   @Input("WINDOWS_JOB_TIMEOUT") var windowsTimeoutMinutes = 0
 
-  @Input("ANDROID_NDK_VERSIONS") var androidNDKVersions = ["r27d", "r28c"]
+  @Input("ANDROID_NDK_VERSIONS") var androidNDKVersions = ["r30"]
   @Input("ANDROID_SDK_TRIPLES") var androidTriples = [
     "aarch64-unknown-linux-android28", "x86_64-unknown-linux-android28",
   ]

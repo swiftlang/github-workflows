@@ -54,12 +54,9 @@ struct EntryPointDefaultTests {
           "Embedded Wasm SDK Swift current",
           "Embedded Wasm SDK Swift nightly-release",
           "Embedded Wasm SDK Swift nightly-main",
-          "Android SDK Swift current NDK r27d",
-          "Android SDK Swift nightly-release NDK r27d",
-          "Android SDK Swift nightly-main NDK r27d",
-          "Android SDK Swift current NDK r28c",
-          "Android SDK Swift nightly-release NDK r28c",
-          "Android SDK Swift nightly-main NDK r28c",
+          "Android SDK Swift current NDK r30",
+          "Android SDK Swift nightly-release NDK r30",
+          "Android SDK Swift nightly-main NDK r30",
           "Cxx interop Swift current",
         ]
       ),
@@ -108,7 +105,7 @@ struct EntryPointDefaultTests {
     }
   }
 
-  @Test("A caller who asks for the Android SDK build gets both NDK releases")
+  @Test("A caller who asks for the Android SDK build gets the default NDK release")
   func androidNDKJobNames() throws {
     var viaWorkflow = try EntryPoint.packageTest.environment()
     for enable in EntryPoint.jobGroupEnables {
@@ -117,12 +114,9 @@ struct EntryPointDefaultTests {
     viaWorkflow["ENABLE_ANDROID_SDK_BUILD"] = "true"
 
     let expected = [
-      "Android SDK Swift current NDK r27d",
-      "Android SDK Swift nightly-release NDK r27d",
-      "Android SDK Swift nightly-main NDK r27d",
-      "Android SDK Swift current NDK r28c",
-      "Android SDK Swift nightly-release NDK r28c",
-      "Android SDK Swift nightly-main NDK r28c",
+      "Android SDK Swift current NDK r30",
+      "Android SDK Swift nightly-release NDK r30",
+      "Android SDK Swift nightly-main NDK r30",
     ]
 
     let workflow = try Generator.run(viaWorkflow, manifests: manifest)
