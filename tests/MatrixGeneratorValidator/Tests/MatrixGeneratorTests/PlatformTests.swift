@@ -177,7 +177,7 @@ struct MacOSTests {
     let entry = try #require(generated.entries.first)
     #expect(entry.xcodeBuild?.xcodeVersion == "swift_6.3")
     #expect(entry.xcodeBuild?.swiftlyToolchain == "main-snapshot")
-    #expect(entry.runner == ["self-hosted", "macos", "sequoia", "X64", "general"])
+    #expect(entry.runner == ["self-hosted", "macos", "sequoia", "X64"])
     #expect(entry.command == "swiftly run swift build")
   }
 
