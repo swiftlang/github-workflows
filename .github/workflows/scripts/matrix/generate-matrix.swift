@@ -38,7 +38,7 @@ struct Configuration {
   @Input("ENABLE_MACOS") var macOSEnabled = true
   @Input("ENABLE_MACOS_SWIFTLY") var swiftlyEnabled = true
   @Input("ENABLE_WINDOWS") var windowsEnabled = true
-  @Input("ENABLE_FREEBSD") var freeBSDEnabled = false
+  @Input("ENABLE_FREEBSD") var freeBSDEnabled = true
   @Input("ENABLE_ANDROID_EMULATOR_TESTS") var androidEmulatorEnabled = true
   @Input("ENABLE_CXX_INTEROP") var cxxInteropEnabled = true
 
