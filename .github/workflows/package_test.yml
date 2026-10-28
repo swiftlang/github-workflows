@@ -375,8 +375,8 @@ on:
       # ----- FreeBSD -----
       enable_freebsd:
         type: boolean
-        description: "Boolean to enable FreeBSD testing."
-        default: false
+        description: "Run the tests on FreeBSD. Set false to skip it."
+        default: true
       freebsd_swift_versions:
         type: string
         description: "FreeBSD Swift version list (JSON array)."

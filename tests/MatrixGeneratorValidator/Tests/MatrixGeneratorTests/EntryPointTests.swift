@@ -62,6 +62,7 @@ struct EntryPointDefaultTests {
           "Cxx interop Swift current",
           "Cxx interop Swift nightly-release",
           "Cxx interop Swift nightly-main",
+          "FreeBSD nightly-main - 14.3 - x86_64",
         ]
       ),
       (

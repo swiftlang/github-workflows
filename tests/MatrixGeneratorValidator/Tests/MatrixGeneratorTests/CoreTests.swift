@@ -39,10 +39,10 @@ struct PlatformSelectionTests {
     #expect(generated.exitCode == 0)
   }
 
-  @Test("Every platform but FreeBSD is on by default")
-  func everyPlatformButFreeBSDIsOnByDefault() throws {
+  @Test("Every platform is on by default")
+  func everyPlatformIsOnByDefault() throws {
     let generated = try Generator.run(includePlatformDefaults: true)
-    #expect(Set(generated.platforms) == ["Linux", "macOS", "Windows"])
+    #expect(Set(generated.platforms) == ["FreeBSD", "Linux", "macOS", "Windows"])
   }
 }
 
