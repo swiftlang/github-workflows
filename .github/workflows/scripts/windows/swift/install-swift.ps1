@@ -134,6 +134,48 @@ function Remove-FileWithRetry {
     return $false
 }
 
+# A toolchain's tools are built against a recent Microsoft Visual C++ runtime, which the
+# runner image can predate. Without it swift.exe fails to start, with "the side-by-side
+# configuration is incorrect". The link follows the latest release, so there is no fixed
+# hash to check; the installer must instead carry a valid Microsoft signature.
+function Install-VisualCppRedistributable {
+    $architecture = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "x64" }
+    $url = "https://aka.ms/vs/17/release/vc_redist.$architecture.exe"
+    $installerPath = Join-Path $env:TEMP "vc_redist.$architecture.exe"
+
+    Write-Host "Installing the Visual C++ Redistributable ($architecture)..."
+    try {
+        Invoke-WebRequestWithRetry -Uri $url -OutFile $installerPath
+    }
+    catch {
+        Write-Host "FAILED: $($_.Exception.Message)"
+        Remove-FileWithRetry -Path $installerPath
+        exit 1
+    }
+
+    $signature = Get-AuthenticodeSignature $installerPath
+    if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notlike "*O=Microsoft Corporation*") {
+        Write-Host "FAILED: $installerPath is not signed by Microsoft (status $($signature.Status))"
+        Remove-FileWithRetry -Path $installerPath
+        exit 1
+    }
+
+    $process = Start-Process $installerPath -Wait -PassThru -NoNewWindow -ArgumentList @(
+        '/install',
+        '/quiet',
+        '/norestart'
+    )
+    Remove-FileWithRetry -Path $installerPath
+
+    # 0 is installed, 1638 is a newer version already installed, and 3010 is installed with
+    # a restart pending, which the toolchain does not need.
+    if ($process.ExitCode -notin @(0, 1638, 3010)) {
+        Write-Host "FAILED ($($process.ExitCode))"
+        exit 1
+    }
+    Write-Host "SUCCESS"
+}
+
 function Install-Swift {
     param (
         [string]$Url,
@@ -141,7 +183,9 @@ function Install-Swift {
     )
     Set-Variable ErrorActionPreference Stop
     Set-Variable ProgressPreference SilentlyContinue
-    
+
+    Install-VisualCppRedistributable
+
     Write-Host "Downloading $Url ... "
     
     try {
