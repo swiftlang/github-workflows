@@ -127,7 +127,7 @@ struct OSInputTests {
     let macOS = try Generator.run([
       "ENABLE_MACOS": "true", "MACOS_SWIFT_VERSIONS": #"["6.3"]"#, "MACOS_OS": "sequoia",
     ])
-    #expect(macOS.entries.first?.runner == ["self-hosted", "macos", "sequoia", "ARM64", "general"])
+    #expect(macOS.entries.first?.runner == ["self-hosted", "macos", "sequoia", "ARM64"])
 
     let windows = try Generator.run([
       "ENABLE_WINDOWS": "true", "WINDOWS_SWIFT_VERSIONS": #"["6.3"]"#, "WINDOWS_OS": "windows-11-arm",
@@ -150,7 +150,7 @@ struct OSInputTests {
     let macOS = try Generator.run([
       "ENABLE_MACOS": "true", "MACOS_SWIFT_VERSIONS": #"["6.3"]"#, "MACOS_OS": "26.10",
     ])
-    #expect(macOS.entries.first?.runner == ["self-hosted", "macos", "26.10", "ARM64", "general"])
+    #expect(macOS.entries.first?.runner == ["self-hosted", "macos", "26.10", "ARM64"])
   }
 
   @Test("One OS leaves the job names alone, however it is written")
@@ -251,6 +251,18 @@ struct OSInputTests {
     #expect(generated.standardError.contains(name))
     #expect(generated.standardError.contains(#"["jammy""#))
     #expect(!generated.standardError.contains("bad file"))
+  }
+
+  @Test("A pool label is added to the runner labels only when one is given")
+  func macOSPoolLabelIsOptional() throws {
+    let environment = ["ENABLE_MACOS": "true", "MACOS_SWIFT_VERSIONS": #"["6.3"]"#, "MACOS_OS": "tahoe"]
+    let without = try Generator.run(environment)
+    #expect(without.entries.first?.runner == ["self-hosted", "macos", "tahoe", "ARM64"])
+
+    var pooled = environment
+    pooled["MACOS_RUNNER_POOL"] = "nightly"
+    let with = try Generator.run(pooled)
+    #expect(with.entries.first?.runner == ["self-hosted", "macos", "tahoe", "ARM64", "nightly"])
   }
 }
 

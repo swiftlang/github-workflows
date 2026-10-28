@@ -347,8 +347,8 @@ on:
         default: "ARM64"
       macos_runner_pool:
         type: string
-        description: "macOS self-hosted runner pool label."
-        default: "general"
+        description: "Label of the pool of self-hosted macOS runners to use, for an organization that splits its runners into pools such as general and nightly. Empty adds no pool label."
+        default: ""
       xcode_debug_output:
         type: boolean
         description: "Drop -quiet from the xcodebuild target invocations."

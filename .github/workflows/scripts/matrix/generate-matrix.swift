@@ -71,7 +71,7 @@ struct Configuration {
   @Input("MACOS_SWIFT_VERSIONS") var macOSVersions: [String] = []
   @Input("MACOS_OS") var macOSOS: OSList = "tahoe"
   @Input("MACOS_ARCH") var macOSArchitecture = "ARM64"
-  @Input("MACOS_RUNNER_POOL") var macOSPool = "general"
+  @Input("MACOS_RUNNER_POOL") var macOSPool = ""
   @Input("MACOS_COMMAND") var macOSCommands: Commands = "xcrun swift test"
   @Input("MACOS_SETUP_COMMAND") var macOSSetupCommand = ""
   @Input("MACOS_ENV_VARS") var macOSEnvironment = JSONValue.object([:])
@@ -900,9 +900,12 @@ struct Runner {
     Runner(labels: [label], name: label)
   }
 
-  /// A machine from one of the self-hosted macOS pools.
+  /// A machine from the self-hosted macOS runners, in one of their pools if the organization
+  /// splits them into pools. A pool label no runner carries leaves the job waiting forever,
+  /// so an empty pool adds none.
   static func macOS(os: String, architecture: String, pool: String) -> Runner {
-    Runner(labels: ["self-hosted", "macos", os, architecture, pool], name: os)
+    let poolLabels = pool.isEmpty ? [] : [pool]
+    return Runner(labels: ["self-hosted", "macos", os, architecture] + poolLabels, name: os)
   }
 }
 

@@ -94,8 +94,8 @@ on:
         default: "ARM64"
       macos_runner_pool:
         type: string
-        description: "macOS self-hosted runner pool label."
-        default: "general"
+        description: "Label of the pool of self-hosted macOS runners to use, for an organization that splits its runners into pools such as general and nightly. Empty adds no pool label."
+        default: ""
       windows_swift_versions:
         type: string
         description: "Windows Swift version list (JSON/YAML array). Empty uses current-2, current-1, current, nightly-release and nightly-main."

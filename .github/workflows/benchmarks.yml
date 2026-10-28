@@ -44,8 +44,8 @@ on:
         default: ""
       macos_runner_pool:
         type: string
-        description: "The self-hosted runner pool for macOS benchmark jobs."
-        default: "general"
+        description: "Label of the pool of self-hosted macOS runners to use, for an organization that splits its runners into pools such as general and nightly. Empty adds no pool label."
+        default: ""
       linux_env_vars:
         type: string
         description: "Environment variables for Linux jobs as JSON."
