@@ -151,19 +151,14 @@ jobs:
     name: Unified package test
     uses: ./.github/workflows/package_test.yml
     with:
+      # Every platform enters the package below the repository root, the FreeBSD VM included.
+      package_path: tests/TestPackage
       linux_swift_versions: '["6.3", "nightly-main"]'
-      linux_setup_command: cd tests/TestPackage
       windows_swift_versions: '["6.3"]'
-      windows_setup_command: cd tests/TestPackage
       windows_command: Invoke-Program swift build
-      # The static SDK build and the Cxx interop check are on by default.
+      # FreeBSD, the static SDK build and the Cxx interop check are on by default.
       linux_static_sdk_versions: '["6.3"]'
-      # The SDK script builds in the working directory, so the setup command is
-      # the only way to reach a package below the repository root.
-      linux_static_sdk_setup_command: cd tests/TestPackage
-      # The Cxx interop check takes linux_setup_command as its setup command, so
-      # it enters tests/TestPackage too.
-      # The rest are off: this call is about Linux, Windows and the two checks above.
+      # The rest are off: this call is about Linux, Windows, FreeBSD and the checks above.
       enable_macos: false
       enable_macos_swiftly: false
       enable_wasm_sdk_build: false
@@ -204,6 +199,7 @@ jobs:
       # A container runs its commands under cmd, where Invoke-Program does not exist.
       windows_command: swift build
       # Only the Linux and Windows container paths are under test here.
+      enable_freebsd: false
       enable_macos: false
       enable_macos_swiftly: false
       enable_linux_static_sdk_build: false
@@ -220,6 +216,7 @@ jobs:
       # Named so this does not share a concurrency group with the other calls.
       name: unified-package-test-commands
       enable_windows: false
+      enable_freebsd: false
       enable_macos: false
       enable_macos_swiftly: false
       enable_linux_static_sdk_build: false
