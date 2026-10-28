@@ -100,6 +100,16 @@ jobs:
         cd tests/TestPackage
         xcodebuild -quiet -scheme TestPackage -destination "generic/platform=ios" build
 
+  unified_tests:
+    name: Package Tests
+    uses: ./.github/workflows/package_test.yml
+    with:
+      name: package-tests
+      package_path: tests/TestPackage
+      linux_host_archs: '["x86_64", "aarch64"]'
+      windows_os: '["windows-2022", "windows-11-arm"]'
+      enable_freebsd: true
+
   soundness:
     name: Soundness
     uses: ./.github/workflows/soundness.yml
