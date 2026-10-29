@@ -125,13 +125,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-latest
+          - runner: [ubuntu-latest]
             test: ./tests/runner-exit-code-tests.sh
             shell: bash
-          - runner: macos-latest
+          - runner: [self-hosted, macos, tahoe, ARM64]
             test: ./tests/runner-exit-code-tests-macos.sh
             shell: bash
-          - runner: windows-latest
+          - runner: [windows-latest]
             test: ./tests/invoke-program-tests.ps1
             shell: pwsh
     runs-on: ${{ matrix.runner }}
