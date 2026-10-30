@@ -42,15 +42,6 @@ on:
         type: boolean
         description: "Whether PRs can be tested together with linked PRs mentioned in the PR description"
         default: false
-
-      workflows_repository:
-        type: string
-        description: "Repository to take the matrix scripts from. Point this at a fork to test a change to the workflows before it lands; it carries no version, so Dependabot has only the `uses:` line to bump."
-        default: "swiftlang/github-workflows"
-      workflows_ref:
-        type: string
-        description: "Ref to take the scripts from. Empty uses workflows_repository's default branch, which is correct for a released version; set it when workflows_repository is a fork whose default branch does not carry the change."
-        default: ""
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.name }}
   cancel-in-progress: true
@@ -165,44 +156,11 @@ jobs:
           persist-credentials: false
           submodules: true
 
-      - name: Resolve the workflows source
-        id: workflows_source
-        shell: bash
-        env:
-          WORKFLOWS_REPOSITORY: ${{ inputs.workflows_repository }}
-          WORKFLOWS_REF: ${{ inputs.workflows_ref }}
-        run: |
-          set -euo pipefail
-
-          # Empty uses the default branch.
-          echo "ref=$WORKFLOWS_REF" >> $GITHUB_OUTPUT
-
-          if [ "$GITHUB_REPOSITORY" = "$WORKFLOWS_REPOSITORY" ]; then
-            echo "needs_checkout=false" >> $GITHUB_OUTPUT
-            root="$GITHUB_WORKSPACE"
-            scripts_relative=".github/workflows/scripts"
-          else
-            echo "needs_checkout=true" >> $GITHUB_OUTPUT
-            root="$GITHUB_WORKSPACE/github-workflows"
-            scripts_relative="github-workflows/.github/workflows/scripts"
-          fi
-
-          echo "root_directory=$root" >> $GITHUB_OUTPUT
-          # The Windows dispatch invokes the runner through PowerShell, which
-          # needs backslashes.
-          echo "root_directory_windows=$(echo "$root" | sed 's|/|\\|g')" >> $GITHUB_OUTPUT
-          # The FreeBSD VM works in its own copy of the workspace, at a path the host
-          # does not know, so it rebuilds ${SCRIPTS_ROOT} from this relative form.
-          echo "scripts_root_relative=$scripts_relative" >> $GITHUB_OUTPUT
-
-      - name: Checkout the workflows repository
-        if: ${{ steps.workflows_source.outputs.needs_checkout == 'true' }}
-        uses: actions/checkout@v7
+      - name: Locate the workflows scripts
+        id: workflows_scripts
+        uses: $/.github/actions/workflows-scripts
         with:
-          repository: ${{ inputs.workflows_repository }}
-          ref: ${{ steps.workflows_source.outputs.ref }}
-          path: github-workflows
-          persist-credentials: false
+          copy_into_workspace: true
 
       # Linux and Windows install their toolchain inside the job runner, so they
       # check out linked PRs there afterwards, to compile the checkout script with
@@ -213,7 +171,7 @@ jobs:
         if: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' && matrix.config.platform == 'macOS' }}
         shell: bash
         env:
-          SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory }}/.github/workflows/scripts
+          SCRIPTS_ROOT: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           PR_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
@@ -226,7 +184,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
-          SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory }}/.github/workflows/scripts
+          SCRIPTS_ROOT: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           CONTAINER_JSON: ${{ toJson(matrix.config.swift_build.container) }}
           MATRIX_SWIFT_VERSION: ${{ matrix.config.swift_build.swift_version }}
           MATRIX_TOOLCHAIN: ${{ matrix.config.swift_build.toolchain }}
@@ -265,7 +223,7 @@ jobs:
         timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         shell: bash
         env:
-          SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory }}/.github/workflows/scripts
+          SCRIPTS_ROOT: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           SDK_TRIPLES: ${{ join(matrix.config.swift_build.sdk.triples, ' --android-sdk-triple=') }}
         run: |
           # The SDK build exported the matched toolchain and SDK bundle to GITHUB_ENV for
@@ -280,7 +238,7 @@ jobs:
         timeout-minutes: ${{ matrix.config.timeout_minutes || inputs.job_timeout }}
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
-          SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory_windows }}\.github\workflows\scripts
+          SCRIPTS_ROOT: ${{ steps.workflows_scripts.outputs.scripts_directory_windows }}
           CONTAINER_IMAGE: ${{ matrix.config.swift_build.container.image }}
           CROSS_PR_TESTING: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}
           CROSS_PR_REPO: ${{ github.repository }}
@@ -308,7 +266,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
-          SCRIPTS_ROOT: ${{ steps.workflows_source.outputs.root_directory }}/.github/workflows/scripts
+          SCRIPTS_ROOT: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           XCODE_TARGETS_JSON: ${{ toJson(matrix.config.xcode_build.targets) }}
           XCODE_DEBUG_OUTPUT: ${{ matrix.config.xcode_build.debug_output }}
           SWIFTLY_TOOLCHAIN: ${{ matrix.config.xcode_build.swiftly_toolchain }}
@@ -399,7 +357,7 @@ jobs:
           MATRIX_COMMAND: ${{ matrix.config.command }}
           # Shell-quoted on the host, where jq is available.
           MATRIX_COMMAND_ARGUMENTS: ${{ steps.freebsd_arguments.outputs.command_arguments }}
-          SCRIPTS_ROOT_RELATIVE: ${{ steps.workflows_source.outputs.scripts_root_relative }}
+          SCRIPTS_ROOT_RELATIVE: ${{ steps.workflows_scripts.outputs.scripts_directory_relative }}
           GITHUB_TOKEN: ${{ inputs.needs_token && secrets.GITHUB_TOKEN || '' }}
           CROSS_PR_TESTING: ${{ inputs.enable_cross_pr_testing && github.event_name == 'pull_request' }}
           CROSS_PR_REPO: ${{ github.repository }}

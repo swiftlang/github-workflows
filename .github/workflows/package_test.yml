@@ -404,15 +404,6 @@ on:
         type: number
         description: "Timeout in minutes for FreeBSD jobs. 0 uses job_timeout. FreeBSD provisions a virtual machine and installs a toolchain into it before building, so it often needs longer."
         default: 0
-
-      workflows_repository:
-        type: string
-        description: "Repository to take the matrix scripts from. Point this at a fork to test a change to the workflows before it lands; it carries no version, so Dependabot has only the `uses:` line to bump."
-        default: "swiftlang/github-workflows"
-      workflows_ref:
-        type: string
-        description: "Ref to take the scripts from. Empty uses workflows_repository's default branch, which is correct for a released version; set it when workflows_repository is a fork whose default branch does not carry the change."
-        default: ""
 jobs:
   generate-matrix:
     name: Generate test matrix
@@ -425,44 +416,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve the workflows source
-        id: workflows_source
-        shell: bash
-        env:
-          WORKFLOWS_REPOSITORY: ${{ inputs.workflows_repository }}
-          WORKFLOWS_REF: ${{ inputs.workflows_ref }}
-        run: |
-          set -euo pipefail
-
-          # Empty uses the default branch.
-          echo "ref=$WORKFLOWS_REF" >> $GITHUB_OUTPUT
-
-          if [ "$GITHUB_REPOSITORY" = "$WORKFLOWS_REPOSITORY" ]; then
-            echo "needs_checkout=false" >> $GITHUB_OUTPUT
-            echo "root_directory=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
-          else
-            echo "needs_checkout=true" >> $GITHUB_OUTPUT
-            echo "root_directory=$GITHUB_WORKSPACE/github-workflows" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Checkout the workflows repository
-        if: ${{ steps.workflows_source.outputs.needs_checkout == 'true' }}
-        uses: actions/checkout@v7
-        with:
-          repository: ${{ inputs.workflows_repository }}
-          ref: ${{ steps.workflows_source.outputs.ref }}
-          path: github-workflows
-          persist-credentials: false
+      - name: Locate the workflows scripts
+        id: workflows_scripts
+        uses: $/.github/actions/workflows-scripts
 
       - name: Generate matrix
         id: generate
         run: |
-          matrix_yaml=$(swift "${WORKFLOWS_CHECKOUT}/.github/workflows/scripts/matrix/generate-matrix.swift")
+          matrix_yaml=$(swift "${SCRIPTS_DIRECTORY}/matrix/generate-matrix.swift")
           echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
           echo "$matrix_yaml" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         env:
-          WORKFLOWS_CHECKOUT: ${{ steps.workflows_source.outputs.root_directory }}
+          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           ENABLE_LINUX: ${{ inputs.enable_linux }}
           ENABLE_MACOS: ${{ inputs.enable_macos }}
           ENABLE_MACOS_SWIFTLY: ${{ inputs.enable_macos_swiftly }}
@@ -547,8 +513,6 @@ jobs:
     with:
       name: ${{ inputs.name }}
       matrix_yaml_string: ${{ needs.generate-matrix.outputs.matrix_yaml }}
-      workflows_repository: ${{ inputs.workflows_repository }}
-      workflows_ref: ${{ inputs.workflows_ref }}
       job_timeout: ${{ inputs.job_timeout }}
       needs_token: ${{ inputs.needs_token }}
       enable_cross_pr_testing: ${{ inputs.enable_cross_pr_testing }}
