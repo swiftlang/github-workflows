@@ -605,7 +605,7 @@ jobs:
   wasm-sdk-build:
     name: Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_wasm_sdk_build }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -675,7 +675,7 @@ jobs:
   embedded-wasm-sdk-build:
     name: Embedded Swift SDK for Wasm Build (${{ matrix.swift_version }} - ${{ matrix.os_version }})
     if: ${{ inputs.enable_embedded_wasm_sdk_build }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -745,7 +745,7 @@ jobs:
   android-sdk-build:
     name: Swift SDK for Android Build (${{ matrix.swift_version }} - NDK ${{ matrix.ndk_version }})
     if: ${{ inputs.enable_android_sdk_build }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
