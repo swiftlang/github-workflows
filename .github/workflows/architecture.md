@@ -4,6 +4,8 @@
 
 The Swift Package Test workflow is intended to give maintainers of open-source Swift packages a low-friction way to give contributors confidence in the code they write. This means making testing against a range of Swift versions and platforms as simple as possible, and making the results as accessible as possible.
 
+To move an existing repository onto these workflows, see [the migration guide](migration.md).
+
 The following key features are treated as requirements by the unified architecture.
 
 ### 1. GitHub-release-based versioning
@@ -20,7 +22,7 @@ Some jobs rely on scripts to execute their functionality. This is often preferre
 
 ### 4. Custom matrix builds
 
-Some packages need additional checks, such as their own integration tests or a custom script. Those checks often need the same matrix of builds that the recommended test workflow, `package_test.yml`, uses. Hence, a unified solution should offer lower level primitives that can execute a matrix. Furthermore, it should provide a workflow with a matrix that is already configured with the recommended Swift versions and platforms that just executes a command across them.
+Some packages need additional checks, such as their own integration tests or a custom script. Those checks often need the same matrix of builds that the recommended test workflow, `package_test.yml`, uses. Hence, a unified solution should offer lower level primitives that can execute a matrix. Furthermore, it should provide a workflow with a matrix that is already configured with the recommended Swift versions and platforms that just executes a command across them. The [migration guide](migration.md#customization-calling-execute_matrixyml-directly) has worked examples.
 
 ### 5. Detect minimum version
 
