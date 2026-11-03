@@ -39,7 +39,7 @@ WORKDIR=$(mktemp -d)
 trap 'rm -rf "$WORKDIR"' EXIT
 
 STUB_DIR="$WORKDIR/stubs"
-VM_SCRIPTS_DIR="$WORKDIR/github-workflows/.github/workflows/scripts"
+VM_SCRIPTS_DIR="$WORKDIR/.github-workflows-scripts"
 mkdir -p "$STUB_DIR" "$VM_SCRIPTS_DIR"
 
 # The FreeBSD script reports the toolchain version before it builds.
@@ -127,7 +127,7 @@ run_freebsd_vm() {
         MATRIX_COMMAND="$WORKDIR/record.sh" \
         MATRIX_COMMAND_ARGUMENTS="$3" \
         BUILD_FLAGS="--from-build-flags" \
-        SCRIPTS_ROOT_RELATIVE="github-workflows/.github/workflows/scripts" \
+        SCRIPTS_ROOT_RELATIVE=".github-workflows-scripts" \
         CROSS_PR_TESTING="false" \
             sh -c "$FREEBSD_RUN_SCRIPT" >"$STEP_LOG" 2>&1
     )

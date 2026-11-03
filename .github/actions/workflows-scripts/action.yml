@@ -1,0 +1,75 @@
+name: Locate the workflows scripts
+description: >-
+  Returns the paths of the scripts and configuration files that belong to the
+  running commit of swiftlang/github-workflows, and can copy the scripts into
+  the workspace. Reference it with `uses: $/.github/actions/workflows-scripts`
+  from a workflow in this repository, so the scripts come from the same commit
+  as the workflow even when a caller pins the workflow to a release.
+
+inputs:
+  copy_into_workspace:
+    description: >-
+      Whether to copy the scripts into the job's workspace. Set this when the
+      scripts must be visible somewhere other than on the runner's own file
+      system, such as inside a container or a virtual machine that is given only
+      the workspace. Run it after the checkout of the repository under test,
+      which would otherwise remove the copy.
+    required: false
+    default: "false"
+
+outputs:
+  scripts_directory:
+    description: "Absolute path of the scripts directory."
+    value: ${{ steps.locate.outputs.scripts_directory }}
+  scripts_directory_windows:
+    description: "The scripts_directory with backslash separators, for PowerShell."
+    value: ${{ steps.locate.outputs.scripts_directory_windows }}
+  scripts_directory_relative:
+    description: "The scripts directory relative to the workspace. Empty unless copy_into_workspace is true."
+    value: ${{ steps.locate.outputs.scripts_directory_relative }}
+  configs_directory:
+    description: "Absolute path of the directory of shared configuration files. It is never copied."
+    value: ${{ steps.locate.outputs.configs_directory }}
+
+runs:
+  using: composite
+  steps:
+    - name: Locate the scripts
+      id: locate
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        COPY_INTO_WORKSPACE: ${{ inputs.copy_into_workspace }}
+      run: |
+        set -euo pipefail
+
+        # The runner downloads the whole repository at the running commit and
+        # places this action inside it, so the workflows directory is two levels up.
+        workflows_directory="${ACTION_PATH//\\//}/../../workflows"
+
+        # Windows keeps the parent references, which its tools resolve themselves;
+        # elsewhere they are resolved so the paths are clean.
+        if [ "$RUNNER_OS" != "Windows" ]; then
+          workflows_directory="$(cd "$workflows_directory" && pwd -P)"
+        fi
+
+        if [ "$COPY_INTO_WORKSPACE" = "true" ]; then
+          relative=".github-workflows-scripts"
+          scripts="$GITHUB_WORKSPACE/$relative"
+          rm -rf "$scripts"
+          mkdir -p "$scripts"
+          cp -R "$workflows_directory/scripts/." "$scripts/"
+        else
+          relative=""
+          scripts="$workflows_directory/scripts"
+        fi
+        configs="$workflows_directory/configs"
+
+        {
+          echo "scripts_directory=$scripts"
+          # The Windows dispatch invokes the runner through PowerShell, which
+          # needs backslashes.
+          echo "scripts_directory_windows=${scripts//\//\\}"
+          echo "scripts_directory_relative=$relative"
+          echo "configs_directory=$configs"
+        } >> "$GITHUB_OUTPUT"

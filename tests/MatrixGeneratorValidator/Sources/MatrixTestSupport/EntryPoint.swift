@@ -79,7 +79,7 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
         }
         resolved[key] = declared
       } else if value.contains("${{ steps.") {
-        // Where the scripts were checked out, which the test supplies itself.
+        // Where the scripts were placed, which the test supplies itself.
         continue
       } else if value.contains("${{") {
         throw WorkflowError.unresolvedExpression(workflow: workflow, key: key, value: value)

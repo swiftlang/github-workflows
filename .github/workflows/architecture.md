@@ -14,9 +14,9 @@ Workflows and actions must be versioned using GitHub releases to guarantee stabi
 
 No reusable workflow offered should show skipped jobs. Skipped jobs add visual noise, look confusing to contributors and imply that something is configured incorrectly.
 
-### 3. Scripts must be cloned not curled
+### 3. Scripts must come from the workflow's own commit
 
-Some jobs rely on scripts to execute their functionality. This is often preferred over inline scripts in the workflow definition `yml` files since it gives a better developer experience to the maintainers of those scripts. However, one downside of this approach is that these scripts are not present when a reusable workflow is executed from another repository. It is important that a unified solution checks the scripts out explicitly rather than curling them, since curling frequently runs into rate limiting with GitHub's API.
+Some jobs rely on scripts to execute their functionality. This is often preferred over inline scripts in the workflow definition `yml` files since it gives a better developer experience to the maintainers of those scripts. However, one downside of this approach is that these scripts are not present when a reusable workflow is executed from another repository, and a script taken from the default branch does not match a workflow pinned to a release. It is important that a unified solution takes the scripts from the same commit as the workflow, and does so without curling them, since curling frequently runs into rate limiting with GitHub's API. "How workflows get their scripts" below describes how this is done.
 
 ### 4. Custom matrix builds
 
@@ -43,7 +43,26 @@ The design is intended to be layered, so that adopters may use the whole stack o
 * `toolchain_matrix.yml`: produces a matrix of toolchains with no command attached, for callers supplying their own
 * `execute_matrix.yml`: expands a work definition into one job per entry and dispatches each to its platform. FreeBSD runs in a VM step here rather than through a job runner
 * `generate-matrix.swift`: produces the canonical work definition YAML or JSON. It reads the workflow's inputs from the environment and fails the run rather than emitting a matrix that would silently drop a job the caller asked for
+* `.github/actions/workflows-scripts`: the composite action that makes the scripts and configuration files of the running commit available and returns their paths
 * `job-runner-linux.sh`, `job-runner-macos.sh`, `job-runner-windows.ps1`: helper scripts which execute the defined work. They handle the complexity of running inside/outside Docker and installing Swift if required.
+
+## How workflows get their scripts
+
+`$/` in a `uses:` reference means the repository that holds the running workflow file, at the commit that file was loaded from. In a workflow called from another repository it still means this repository, at the tag or branch the caller named. Every workflow here reaches its scripts with `uses: $/.github/actions/workflows-scripts`, so the scripts always match the workflow that runs them. See "Workflow syntax for GitHub Actions" in GitHub's documentation for the `$/` syntax.
+
+The action takes one input and returns four outputs:
+
+| Name | Meaning |
+| --- | --- |
+| `copy_into_workspace` (input) | Copy the scripts into `.github-workflows-scripts` in the workspace. Defaults to `false`. |
+| `scripts_directory` | Absolute path of the scripts. |
+| `scripts_directory_windows` | `scripts_directory` with backslashes, for PowerShell. |
+| `scripts_directory_relative` | The scripts directory relative to the workspace. Empty unless `copy_into_workspace` is `true`. |
+| `configs_directory` | Absolute path of the shared configuration files. It is never copied. |
+
+`execute_matrix.yml` sets `copy_into_workspace` because the Linux and Windows containers and the FreeBSD VM are given only the workspace; the job runners read the copy there. The other workflows use the scripts where the runner placed them. A job that sets `copy_into_workspace` must run the action after checking out the repository under test; otherwise the checkout removes the copy.
+
+To test a change to the workflows or scripts, call the workflow at the branch or fork that holds it, for example `rnro/github-workflows/.github/workflows/package_test.yml@my-branch`. The scripts come from that same ref, so no separate input names the repository or ref for them.
 
 ## Swift version labels
 
