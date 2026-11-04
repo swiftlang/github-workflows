@@ -59,7 +59,6 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
     "ENABLE_WASM_SDK_BUILD",
     "ENABLE_EMBEDDED_WASM_SDK_BUILD",
     "ENABLE_ANDROID_SDK_BUILD",
-    "ENABLE_ANDROID_EMULATOR_TESTS",
     "ENABLE_CXX_INTEROP",
   ]
 

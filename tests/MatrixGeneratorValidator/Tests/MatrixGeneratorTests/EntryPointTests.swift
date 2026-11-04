@@ -54,9 +54,12 @@ struct EntryPointDefaultTests {
           "Embedded Wasm SDK Swift current",
           "Embedded Wasm SDK Swift nightly-release",
           "Embedded Wasm SDK Swift nightly-main",
-          "Android SDK Swift current NDK r30",
-          "Android SDK Swift nightly-release NDK r30",
-          "Android SDK Swift nightly-main NDK r30",
+          "Android SDK Swift current NDK r30 x86_64-android28",
+          "Android SDK Swift current NDK r30 aarch64-android28",
+          "Android SDK Swift nightly-release NDK r30 x86_64-android28",
+          "Android SDK Swift nightly-release NDK r30 aarch64-android28",
+          "Android SDK Swift nightly-main NDK r30 x86_64-android28",
+          "Android SDK Swift nightly-main NDK r30 aarch64-android28",
           "Cxx interop Swift current-2",
           "Cxx interop Swift current-1",
           "Cxx interop Swift current",
@@ -119,9 +122,12 @@ struct EntryPointDefaultTests {
     viaWorkflow["ENABLE_ANDROID_SDK_BUILD"] = "true"
 
     let expected = [
-      "Android SDK Swift current NDK r30",
-      "Android SDK Swift nightly-release NDK r30",
-      "Android SDK Swift nightly-main NDK r30",
+      "Android SDK Swift current NDK r30 x86_64-android28",
+      "Android SDK Swift current NDK r30 aarch64-android28",
+      "Android SDK Swift nightly-release NDK r30 x86_64-android28",
+      "Android SDK Swift nightly-release NDK r30 aarch64-android28",
+      "Android SDK Swift nightly-main NDK r30 x86_64-android28",
+      "Android SDK Swift nightly-main NDK r30 aarch64-android28",
     ]
 
     let workflow = try Generator.run(viaWorkflow, manifests: manifest)

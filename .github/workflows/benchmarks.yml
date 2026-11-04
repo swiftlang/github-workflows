@@ -105,7 +105,6 @@ jobs:
           ENABLE_WASM_SDK_BUILD: "false"
           ENABLE_EMBEDDED_WASM_SDK_BUILD: "false"
           ENABLE_ANDROID_SDK_BUILD: "false"
-          ENABLE_ANDROID_EMULATOR_TESTS: "false"
           ENABLE_CXX_INTEROP: "false"
           LINUX_SWIFT_VERSIONS: ${{ inputs.linux_swift_versions }}
           MACOS_SWIFT_VERSIONS: ${{ inputs.macos_swift_versions }}

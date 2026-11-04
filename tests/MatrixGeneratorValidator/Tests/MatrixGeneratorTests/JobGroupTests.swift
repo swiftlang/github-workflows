@@ -54,39 +54,167 @@ struct SDKTests {
     #expect(generated.entries.first?.setupCommand == "cd sub")
   }
 
-  @Test("Android entries carry an NDK version each and the triples")
-  func androidNDKAndTriples() throws {
-    let generated = try Generator.run([
+  /// The environment for an Android SDK build of one Swift version and one NDK release, which
+  /// each test adds its triples to.
+  private func androidEnvironment(_ triples: [String: String] = [:]) -> [String: String] {
+    [
       "ENABLE_ANDROID_SDK_BUILD": "true",
       "ANDROID_SDK_VERSIONS": #"["6.3"]"#,
-      "ANDROID_NDK_VERSIONS": #"["r27d","r28c"]"#,
-      "ANDROID_SDK_TRIPLES": #"["aarch64-unknown-linux-android28"]"#,
-    ])
+      "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
+    ].merging(triples) { _, new in new }
+  }
+
+  /// Leaves only the build-only list, so the build stays a single entry.
+  private let noEmulatorTriples = ["ANDROID_EMULATOR_TEST_TRIPLES": "[]"]
+
+  @Test("Android entries carry an NDK version each and the triples")
+  func androidNDKAndTriples() throws {
+    let generated = try Generator.run(
+      androidEnvironment([
+        "ANDROID_NDK_VERSIONS": #"["r27d","r28c"]"#,
+        "ANDROID_SDK_BUILD_TRIPLES": #"["aarch64-unknown-linux-android28"]"#,
+      ]).merging(noEmulatorTriples) { _, new in new }
+    )
     #expect(generated.count == 2)
     #expect(generated.entries.compactMap { $0.swiftBuild?.sdk?.ndkVersion } == ["r27d", "r28c"])
     #expect(generated.entries.first?.swiftBuild?.sdk?.triples == ["aarch64-unknown-linux-android28"])
   }
 
-  @Test("Emulator checks ask the build for test binaries")
-  func emulatorRequestsTestBinaries() throws {
-    let withoutEmulator = try Generator.run([
-      "ENABLE_ANDROID_SDK_BUILD": "true",
-      "ANDROID_SDK_VERSIONS": #"["6.3"]"#,
-      "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
-    ])
-    #expect(withoutEmulator.entries.first?.androidEmulator == false)
-    #expect(withoutEmulator.entries.first?.commandArguments == [])
+  @Test("By default the emulator triple builds and runs the emulator, and the build-only triple builds beside it")
+  func defaultTriples() throws {
+    let generated = try Generator.run(androidEnvironment())
+    #expect(
+      generated.names == [
+        "Android SDK Swift 6.3 NDK r27d x86_64-android28",
+        "Android SDK Swift 6.3 NDK r27d aarch64-android28",
+      ]
+    )
+    #expect(
+      generated.entries.map { $0.swiftBuild?.sdk?.triples } == [
+        ["x86_64-unknown-linux-android28"],
+        ["aarch64-unknown-linux-android28"],
+      ]
+    )
+    #expect(generated.entries.map(\.androidEmulator) == [true, false])
+    // The emulator script stages the test binaries the build produced, so only that entry builds them.
+    #expect(generated.entries.map(\.commandArguments) == [["--build-tests"], []])
+  }
 
-    // The emulator script stages what the build produced, so without this there is
-    // nothing to run.
-    let withEmulator = try Generator.run([
-      "ENABLE_ANDROID_SDK_BUILD": "true",
-      "ENABLE_ANDROID_EMULATOR_TESTS": "true",
-      "ANDROID_SDK_VERSIONS": #"["6.3"]"#,
-      "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
+  @Test("Each emulator triple gets its own entry and the build-only triples share one")
+  func triplesDivideAcrossEntries() throws {
+    let generated = try Generator.run(
+      androidEnvironment([
+        "ANDROID_SDK_BUILD_TRIPLES": #"["aarch64-unknown-linux-android28","armv7-unknown-linux-androideabi28"]"#,
+        "ANDROID_EMULATOR_TEST_TRIPLES": #"["x86_64-unknown-linux-android28","i686-unknown-linux-android28"]"#,
+      ])
+    )
+    #expect(
+      generated.names == [
+        "Android SDK Swift 6.3 NDK r27d x86_64-android28",
+        "Android SDK Swift 6.3 NDK r27d i686-android28",
+        "Android SDK Swift 6.3 NDK r27d aarch64-android28+armv7-androideabi28",
+      ]
+    )
+    #expect(
+      generated.entries.map { $0.swiftBuild?.sdk?.triples } == [
+        ["x86_64-unknown-linux-android28"],
+        ["i686-unknown-linux-android28"],
+        ["aarch64-unknown-linux-android28", "armv7-unknown-linux-androideabi28"],
+      ]
+    )
+    #expect(generated.entries.map(\.androidEmulator) == [true, true, false])
+    #expect(generated.entries.map(\.commandArguments) == [["--build-tests"], ["--build-tests"], []])
+  }
+
+  @Test("Emulator triples of one architecture at different API levels get distinct names")
+  func sameArchitectureDifferentAPILevels() throws {
+    let generated = try Generator.run(
+      androidEnvironment([
+        "ANDROID_SDK_BUILD_TRIPLES": "[]",
+        "ANDROID_EMULATOR_TEST_TRIPLES": #"["x86_64-unknown-linux-android28","x86_64-unknown-linux-android35"]"#,
+      ])
+    )
+    #expect(
+      generated.names == [
+        "Android SDK Swift 6.3 NDK r27d x86_64-android28",
+        "Android SDK Swift 6.3 NDK r27d x86_64-android35",
+      ]
+    )
+  }
+
+  @Test("When only the emulator list is non-empty, the build stays a single unnamed entry")
+  func emulatorListAloneStaysOneEntry() throws {
+    let generated = try Generator.run(androidEnvironment(["ANDROID_SDK_BUILD_TRIPLES": "[]"]))
+    #expect(generated.names == ["Android SDK Swift 6.3 NDK r27d"])
+    #expect(generated.entries.map(\.androidEmulator) == [true])
+    #expect(generated.entries.map(\.commandArguments) == [["--build-tests"]])
+  }
+
+  @Test("When only the build list is non-empty, the build stays a single unnamed entry with no test binaries")
+  func buildListAloneStaysOneEntry() throws {
+    let generated = try Generator.run(androidEnvironment(noEmulatorTriples))
+    #expect(generated.names == ["Android SDK Swift 6.3 NDK r27d"])
+    #expect(generated.entries.map(\.androidEmulator) == [false])
+    #expect(generated.entries.map(\.commandArguments) == [[]])
+    #expect(generated.entries.map { $0.swiftBuild?.sdk?.triples } == [["aarch64-unknown-linux-android28"]])
+  }
+
+  @Test("A triple in both lists fails rather than being built twice")
+  func tripleInBothListsFails() throws {
+    let result = try Generator.runRaw(
+      androidEnvironment([
+        "ANDROID_SDK_BUILD_TRIPLES": #"["x86_64-unknown-linux-android28"]"#,
+        "ANDROID_EMULATOR_TEST_TRIPLES": #"["x86_64-unknown-linux-android28"]"#,
+      ])
+    )
+    #expect(result.exitCode != 0)
+    #expect(result.standardError.contains("x86_64-unknown-linux-android28"))
+    #expect(result.standardError.contains("android_sdk_build_triples"))
+    #expect(result.standardError.contains("android_emulator_test_triples"))
+  }
+
+  @Test("A triple repeated within a list fails rather than producing two entries with one name")
+  func repeatedTripleFails() throws {
+    let result = try Generator.runRaw(
+      androidEnvironment([
+        "ANDROID_SDK_BUILD_TRIPLES": "[]",
+        "ANDROID_EMULATOR_TEST_TRIPLES": #"["x86_64-unknown-linux-android28","x86_64-unknown-linux-android28"]"#,
+      ])
+    )
+    #expect(result.exitCode != 0)
+    #expect(result.standardError.contains("appears more than once"))
+  }
+
+  @Test("A blank triple fails rather than reaching the SDK build as an empty argument")
+  func blankTripleFails() throws {
+    let result = try Generator.runRaw(androidEnvironment(["ANDROID_SDK_BUILD_TRIPLES": #"[""]"#]))
+    #expect(result.exitCode != 0)
+    #expect(result.standardError.contains("blank"))
+  }
+
+  @Test("Both lists empty fails rather than producing no Android jobs")
+  func bothListsEmptyFails() throws {
+    let result = try Generator.runRaw(
+      androidEnvironment([
+        "ANDROID_SDK_BUILD_TRIPLES": "[]",
+        "ANDROID_EMULATOR_TEST_TRIPLES": "[]",
+      ])
+    )
+    #expect(result.exitCode != 0)
+    #expect(result.standardError.contains("nothing to build"))
+  }
+
+  @Test("The triples are not checked when there is no Android build")
+  func triplesIgnoredWithoutAndroidBuild() throws {
+    // Another group is enabled so that a run which emitted nothing at all would not pass.
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
+      "ANDROID_SDK_BUILD_TRIPLES": "[]",
+      "ANDROID_EMULATOR_TEST_TRIPLES": "[]",
     ])
-    #expect(withEmulator.entries.first?.androidEmulator == true)
-    #expect(withEmulator.entries.first?.commandArguments == ["--build-tests"])
+    #expect(generated.exitCode == 0)
+    #expect(generated.names == ["Linux Swift 6.3"])
   }
 }
 
@@ -494,25 +622,6 @@ struct InvariantTests {
         "the SDK entry containerized under \(ask)"
       )
     }
-  }
-
-  @Test("Asking for the Android emulator without the SDK build fails")
-  func emulatorWithoutSDKBuildFails() throws {
-    // The emulator runs what the SDK build produced, so on its own it yields no
-    // jobs at all - a green run that tested nothing.
-    let generated = try Generator.run(["ENABLE_ANDROID_EMULATOR_TESTS": "true"])
-    #expect(generated.exitCode != 0)
-    #expect(generated.standardError.contains("enable_android_sdk_build"))
-
-    // Toolchain mode suppresses both, so it must not fail there.
-    let toolchains = try Generator.run([
-      "MATRIX_MODE": "toolchains",
-      "ENABLE_ANDROID_EMULATOR_TESTS": "true",
-      "ENABLE_LINUX": "true",
-      "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
-    ])
-    #expect(toolchains.exitCode == 0)
-    #expect(toolchains.names == ["Linux Swift 6.3"])
   }
 
   @Test("An override key naming no version fails rather than losing its arguments")

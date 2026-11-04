@@ -31,6 +31,8 @@ private let everyGroup = [
   "LINUX_STATIC_SDK_VERSIONS": #"["6.3"]"#,
   "ANDROID_SDK_VERSIONS": #"["6.3"]"#,
   "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
+  // Empty, so the Android build stays a single entry; with an emulator triple it splits in two.
+  "ANDROID_EMULATOR_TEST_TRIPLES": "[]",
 ]
 
 /// The names those groups produce when each runs one command.
@@ -454,6 +456,7 @@ struct VersionOverrideCommandTests {
     // command instead ran what the caller replaced, and still passed.
     var environment = [
       "ANDROID_NDK_VERSIONS": #"["r27d"]"#,
+      "ANDROID_EMULATOR_TEST_TRIPLES": "[]",
       "LINUX_SWIFT_VERSIONS": #"["6.3"]"#,
     ]
     environment[enableKey] = "true"

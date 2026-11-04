@@ -39,7 +39,6 @@ struct Configuration {
   @Input("ENABLE_MACOS_SWIFTLY") var swiftlyEnabled = true
   @Input("ENABLE_WINDOWS") var windowsEnabled = true
   @Input("ENABLE_FREEBSD") var freeBSDEnabled = true
-  @Input("ENABLE_ANDROID_EMULATOR_TESTS") var androidEmulatorEnabled = true
   @Input("ENABLE_CXX_INTEROP") var cxxInteropEnabled = true
 
   /// The release `current` names, such as `6.4`. The workflow supplies it, so that a pinned
@@ -94,9 +93,11 @@ struct Configuration {
   @Input("WINDOWS_JOB_TIMEOUT") var windowsTimeoutMinutes = 0
 
   @Input("ANDROID_NDK_VERSIONS") var androidNDKVersions = ["r30"]
-  @Input("ANDROID_SDK_TRIPLES") var androidTriples = [
-    "aarch64-unknown-linux-android28", "x86_64-unknown-linux-android28",
-  ]
+  /// The triples that are built (not executed).
+  @Input("ANDROID_SDK_BUILD_TRIPLES") var androidBuildTriples = ["aarch64-unknown-linux-android28"]
+  /// The triples that are built and then run on an emulator. The emulator's architecture must be
+  /// one the runner can accelerate, which is the runner's own.
+  @Input("ANDROID_EMULATOR_TEST_TRIPLES") var androidEmulatorTestTriples = ["x86_64-unknown-linux-android28"]
 
   @Input("CXX_INTEROP_SWIFT_VERSIONS") var cxxInteropVersions: [String] = []
 
@@ -124,10 +125,10 @@ struct Configuration {
     [self.linuxOverrides, self.macOSOverrides, self.windowsOverrides] + self.sdkBuilds.map(\.overrides)
   }
 
-  /// The Android SDK build, whose output the emulator tests run.
+  /// The Android SDK build.
   var androidSDKBuild: SDKBuild {
     guard let build = self.sdkBuilds.first(where: { $0.kind == .android }) else {
-      fatal("no Android SDK build is configured, so nothing produces what the emulator runs.")
+      fatal("no Android SDK build is configured.")
     }
     return build
   }
@@ -139,15 +140,37 @@ extension Configuration {
   /// Fails on a pair of inputs that cannot both be honored. Each would otherwise produce a
   /// matrix without the jobs the caller asked for.
   func validatePairings(in mode: Matrix.Mode) {
-    // Toolchains mode emits neither the emulator nor the build it runs, so the pairing only
-    // has to hold where both could appear.
-    if mode == .jobs && self.androidEmulatorEnabled && !self.androidSDKBuild.enabled {
-      fatal(
-        """
-        enable_android_emulator_tests needs enable_android_sdk_build; the emulator runs what that build \
-        produces.
-        """
-      )
+    // Toolchains mode emits no Android entries, so the triples only matter where they could appear.
+    if mode == .jobs && self.androidSDKBuild.enabled {
+      if self.androidBuildTriples.isEmpty && self.androidEmulatorTestTriples.isEmpty {
+        fatal(
+          """
+          enable_android_sdk_build is set, but android_sdk_build_triples and android_emulator_test_triples are \
+          both empty, so there is nothing to build.
+          """
+        )
+      }
+
+      let triples = self.androidBuildTriples + self.androidEmulatorTestTriples
+      if triples.contains(where: { $0.allSatisfy(\.isWhitespace) }) {
+        fatal(
+          """
+          android_sdk_build_triples and android_emulator_test_triples must name each triple, but one is blank; \
+          the SDK build is given it as an empty --android-sdk-triple.
+          """
+        )
+      }
+
+      let repeated = Set(triples.filter { triple in triples.filter { $0 == triple }.count > 1 })
+      if !repeated.isEmpty {
+        fatal(
+          """
+          \(repeated.sorted().joined(separator: ", ")) appears more than once across \
+          android_sdk_build_triples and android_emulator_test_triples; a triple is built once, and either \
+          only built or built and tested.
+          """
+        )
+      }
     }
     // An Apple-platform target rides on a macOS entry, so asking for one without enabling
     // macOS produces no jobs at all.
@@ -483,13 +506,10 @@ extension Generator {
 
     guard build.kind == .android else { return jobs }
     jobs.android = SwiftBuildJobs.AndroidBuild(
-      triples: self.configuration.androidTriples,
-      ndkVersions: self.configuration.androidNDKVersions,
-      emulatorEnabled: self.configuration.androidEmulatorEnabled
+      buildTriples: self.configuration.androidBuildTriples,
+      emulatorTestTriples: self.configuration.androidEmulatorTestTriples,
+      ndkVersions: self.configuration.androidNDKVersions
     )
-    // The emulator runs what the build produced, so the build is told to make test binaries
-    // and takes none of the flags inputs.
-    jobs.flags = .always(self.configuration.androidEmulatorEnabled ? "--build-tests" : "")
     return jobs
   }
 
@@ -1018,12 +1038,12 @@ struct SwiftBuildJobs: JobGroup {
 
   /// The parts of an Android SDK build that the other SDK builds have no counterpart for.
   struct AndroidBuild {
-    /// The triples the SDK is installed for.
-    var triples: [String]
+    /// The triples that are built and nothing more.
+    var buildTriples: [String]
+    /// The triples that are built and run on an emulator, each in an entry of its own.
+    var emulatorTestTriples: [String]
     /// The NDK releases the entries fan out over.
     var ndkVersions: [String]
-    /// Whether the executor runs what the build produced on an emulator.
-    var emulatorEnabled: Bool
   }
 
   /// One entry's value from every axis.
@@ -1059,34 +1079,75 @@ struct SwiftBuildJobs: JobGroup {
     }
   }
 
-  var entries: [MatrixEntry] {
-    self.combinations.map { combination in
-      let toolchain = Toolchain(label: combination.versionLabel, releases: self.releases)
-      var sdk = self.sdk
-      sdk?.ndkVersion = combination.ndkVersion
-      sdk?.triples = self.android?.triples
-      return MatrixEntry(
-        platform: self.platform,
-        name: self.settings.name(
-          "\(self.settings.namePrefix) \(combination.versionLabel)",
-          combination.ndkVersion.map { "NDK \($0)" },
-          self.images.count > 1 ? combination.image?.distribution : nil,
-          self.runners.count > 1 ? combination.runner.name : nil,
-          for: combination.variant
-        ),
-        runner: combination.runner.labels,
-        swiftBuild: MatrixEntry.SwiftBuild(
-          toolchain,
-          sdk: sdk,
-          container: combination.image?.container(toolchain)
-        ),
-        setupCommand: self.setupCommand,
-        command: self.command(for: combination),
-        commandArguments: self.flags.arguments(for: combination.versionLabel),
-        env: self.environment,
-        androidEmulator: self.android?.emulatorEnabled
-      )
+  /// The triples one entry builds, and whether it runs the emulator on them.
+  private struct TripleGroup {
+    var triples: [String]
+    var runsEmulator: Bool
+
+    /// Names what the entry builds, such as `aarch64-android28+armv7-androideabi28`. The API level
+    /// is part of the name because two triples of one architecture can build in separate entries.
+    var nameSuffix: String {
+      self.triples.map { $0.replacing("-unknown-linux", with: "") }.joined(separator: "+")
     }
+
+    /// The emulator runs what the build produced, so an entry that runs it builds the tests. An
+    /// Android build takes none of the flags inputs.
+    var buildArguments: [String] {
+      self.runsEmulator ? ["--build-tests"] : []
+    }
+  }
+
+  /// How the Android triples divide across entries, or none for a build with no Android triples.
+  /// Each emulator triple gets an entry of its own, and the build-only triples share one that has
+  /// no emulator to run, so no emulator waits on builds it never runs.
+  private var tripleGroups: [TripleGroup]? {
+    guard let android = self.android else {
+      return nil
+    }
+    let emulatorGroups = android.emulatorTestTriples.map { TripleGroup(triples: [$0], runsEmulator: true) }
+    if android.buildTriples.isEmpty {
+      return emulatorGroups
+    }
+    return emulatorGroups + [TripleGroup(triples: android.buildTriples, runsEmulator: false)]
+  }
+
+  var entries: [MatrixEntry] {
+    self.combinations.flatMap { combination -> [MatrixEntry] in
+      guard let groups = self.tripleGroups else {
+        return [self.entry(for: combination, group: nil, named: false)]
+      }
+      // Entries are told apart by what they build only when the triples are split across them.
+      return groups.map { self.entry(for: combination, group: $0, named: groups.count > 1) }
+    }
+  }
+
+  private func entry(for combination: Combination, group: TripleGroup?, named: Bool) -> MatrixEntry {
+    let toolchain = Toolchain(label: combination.versionLabel, releases: self.releases)
+    var sdk = self.sdk
+    sdk?.ndkVersion = combination.ndkVersion
+    sdk?.triples = group?.triples
+    return MatrixEntry(
+      platform: self.platform,
+      name: self.settings.name(
+        "\(self.settings.namePrefix) \(combination.versionLabel)",
+        combination.ndkVersion.map { "NDK \($0)" },
+        named ? group?.nameSuffix : nil,
+        self.images.count > 1 ? combination.image?.distribution : nil,
+        self.runners.count > 1 ? combination.runner.name : nil,
+        for: combination.variant
+      ),
+      runner: combination.runner.labels,
+      swiftBuild: MatrixEntry.SwiftBuild(
+        toolchain,
+        sdk: sdk,
+        container: combination.image?.container(toolchain)
+      ),
+      setupCommand: self.setupCommand,
+      command: self.command(for: combination),
+      commandArguments: group?.buildArguments ?? self.flags.arguments(for: combination.versionLabel),
+      env: self.environment,
+      androidEmulator: group?.runsEmulator
+    )
   }
 
   /// The command one entry runs. A group whose command is the check itself takes no

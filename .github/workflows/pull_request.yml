@@ -164,7 +164,6 @@ jobs:
       enable_wasm_sdk_build: false
       enable_embedded_wasm_sdk_build: false
       enable_android_sdk_build: false
-      enable_android_emulator_tests: false
       # Two labeled commands, so a run exercises the label suffix.
       linux_command: |
         Debug-Build: swift build
@@ -206,7 +205,6 @@ jobs:
       enable_wasm_sdk_build: false
       enable_embedded_wasm_sdk_build: false
       enable_android_sdk_build: false
-      enable_android_emulator_tests: false
       enable_cxx_interop: false
 
   unified_package_test_commands:
@@ -223,7 +221,6 @@ jobs:
       enable_wasm_sdk_build: false
       enable_embedded_wasm_sdk_build: false
       enable_android_sdk_build: false
-      enable_android_emulator_tests: false
       enable_cxx_interop: false
       package_path: tests/TestPackage
       linux_swift_versions: '["6.2", "6.3"]'

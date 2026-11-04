@@ -39,10 +39,6 @@ on:
         type: boolean
         description: "Build with the Swift SDK for Android. Set false to skip it."
         default: true
-      enable_android_emulator_tests:
-        type: boolean
-        description: "Run the Android emulator tests after the SDK build. Set false to skip it."
-        default: true
       enable_cxx_interop:
         type: boolean
         description: "Run the Cxx interoperability check. Set false to skip it."
@@ -113,10 +109,14 @@ on:
         type: string
         description: "Android NDK version list (JSON array)."
         default: '["r30"]'
-      android_sdk_triples:
+      android_sdk_build_triples:
         type: string
-        description: "Android SDK triples (JSON array)."
-        default: '["aarch64-unknown-linux-android28", "x86_64-unknown-linux-android28"]'
+        description: "Android SDK triples (JSON array) that are built only. They share one job. Empty builds none."
+        default: '["aarch64-unknown-linux-android28"]'
+      android_emulator_test_triples:
+        type: string
+        description: "Android SDK triples (JSON array) that are built and then run on an emulator, each in its own job. An emulator's architecture must be one the runner can accelerate, which is the runner's own. A triple is in this list or in android_sdk_build_triples, not both. Empty runs no emulator."
+        default: '["x86_64-unknown-linux-android28"]'
 
       # ----- Commands & flags -----
       linux_command:
@@ -439,7 +439,6 @@ jobs:
           ENABLE_WASM_SDK_BUILD: ${{ inputs.enable_wasm_sdk_build }}
           ENABLE_EMBEDDED_WASM_SDK_BUILD: ${{ inputs.enable_embedded_wasm_sdk_build }}
           ENABLE_ANDROID_SDK_BUILD: ${{ inputs.enable_android_sdk_build }}
-          ENABLE_ANDROID_EMULATOR_TESTS: ${{ inputs.enable_android_emulator_tests }}
           ENABLE_CXX_INTEROP: ${{ inputs.enable_cxx_interop }}
           CXX_INTEROP_SWIFT_VERSIONS: ${{ inputs.cxx_interop_swift_versions }}
           LINUX_SWIFT_VERSIONS: ${{ inputs.linux_swift_versions }}
@@ -460,7 +459,8 @@ jobs:
           EMBEDDED_WASM_SDK_VERSIONS: ${{ inputs.embedded_wasm_sdk_versions }}
           ANDROID_SDK_VERSIONS: ${{ inputs.android_sdk_versions }}
           ANDROID_NDK_VERSIONS: ${{ inputs.android_ndk_versions }}
-          ANDROID_SDK_TRIPLES: ${{ inputs.android_sdk_triples }}
+          ANDROID_SDK_BUILD_TRIPLES: ${{ inputs.android_sdk_build_triples }}
+          ANDROID_EMULATOR_TEST_TRIPLES: ${{ inputs.android_emulator_test_triples }}
           LINUX_COMMAND: ${{ inputs.linux_command }}
           LINUX_SETUP_COMMAND: ${{ inputs.linux_setup_command }}
           MACOS_COMMAND: ${{ inputs.macos_command }}
