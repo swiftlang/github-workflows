@@ -63,6 +63,7 @@ step_script() {
 }
 
 CONVERT_SCRIPT=$(step_script '.jobs.convert-matrix.steps[] | select(.id == "convert") | .run')
+SWIFT_VERSION_SCRIPT=$(step_script '.jobs.execute-matrix.steps[] | select(.id == "swift_version") | .run')
 FREEBSD_ENV_SCRIPT=$(step_script '.jobs.execute-matrix.steps[] | select(.id == "freebsd_env") | .run')
 FREEBSD_ARGUMENTS_SCRIPT=$(step_script '.jobs.execute-matrix.steps[] | select(.id == "freebsd_arguments") | .run')
 FREEBSD_RUN_SCRIPT=$(step_script '.jobs.execute-matrix.steps[] | select(.name == "Run matrix job (FreeBSD)") | .with.run')
@@ -83,6 +84,24 @@ run_convert() {
         DEFAULT_COMMAND_ARGUMENTS="" \
         DEFAULT_ENV="{}" \
             bash -c "$CONVERT_SCRIPT" >"$STEP_LOG" 2>&1
+    )
+    echo "$?"
+}
+
+# run_swift_version <swift_version> [toolchain] [container_image] - echoes the exit status;
+# what the step printed is left in $STEP_LOG.
+run_swift_version() {
+    (
+        cd "$WORKDIR" || exit 1
+        JOB_NAME="entry" \
+        MATRIX_SWIFT_VERSION="$1" \
+        MATRIX_TOOLCHAIN="${2:-}" \
+        MATRIX_SWIFTLY="" \
+        MATRIX_XCODE_VERSION="" \
+        MATRIX_CONTAINER_IMAGE="${3:-}" \
+        MATRIX_SDK_TYPE="" \
+        MATRIX_SWIFT_URL="" \
+            bash -eo pipefail -c "$SWIFT_VERSION_SCRIPT" >"$STEP_LOG" 2>&1
     )
     echo "$?"
 }
@@ -211,6 +230,20 @@ assert_contains "the refusal names the entry" "No command for matrix entries: en
 assert_status "an entry on an unsupported platform is refused" "1" \
     "$(run_convert $'config:\n  - platform: Solaris\n    name: entry\n    command: "true"\n')"
 assert_contains "the refusal names the platform" "Unsupported platform" "$(cat "$STEP_LOG")"
+
+echo "== Requested Swift version"
+
+# GitHub runs a bash step under -e, so a field the entry leaves empty must not end the
+# step with a failing status.
+assert_status "a release with no toolchain or container is printed" "0" "$(run_swift_version "6.4")"
+assert_contains "the resolved version is printed" "Swift version:     6.4" "$(cat "$STEP_LOG")"
+assert_text "fields the entry does not set are left out" "" "$(grep -E '^(Toolchain|Container image):' "$STEP_LOG")"
+
+assert_status "a nightly in a container is printed" "0" \
+    "$(run_swift_version "nightly-release" "nightly-6.4.x" "swiftlang/swift:nightly-6.4.x-noble")"
+assert_contains "the nightly's toolchain is printed" "Toolchain:         nightly-6.4.x" "$(cat "$STEP_LOG")"
+assert_contains "the container image is printed" \
+    "Container image:   swiftlang/swift:nightly-6.4.x-noble" "$(cat "$STEP_LOG")"
 
 echo "== FreeBSD environment"
 
