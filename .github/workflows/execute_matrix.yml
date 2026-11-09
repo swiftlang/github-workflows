@@ -150,6 +150,47 @@ jobs:
             || matrix.config.freebsd.swift_version
             || '' }}
     steps:
+      # A job's name contains the alias, so print the resolved value as the name of this step.
+      # Makes it easier to check the Swift version without digging deep in the logs.
+      - name: >-
+          Print Swift version (${{
+            matrix.config.swift_build.toolchain
+            || matrix.config.swift_build.swift_version
+            || matrix.config.xcode_build.swiftly_toolchain
+            || matrix.config.xcode_build.swift_version
+            || (matrix.config.xcode_build.xcode_version && format('Xcode {0}', matrix.config.xcode_build.xcode_version))
+            || matrix.config.freebsd.swift_version
+            || 'none requested' }})
+        id: swift_version
+        shell: bash
+        env:
+          JOB_NAME: ${{ matrix.config.name }}
+          MATRIX_SWIFT_VERSION: >-
+            ${{ matrix.config.swift_build.swift_version
+                || matrix.config.xcode_build.swift_version
+                || matrix.config.freebsd.swift_version }}
+          MATRIX_TOOLCHAIN: ${{ matrix.config.swift_build.toolchain }}
+          MATRIX_SWIFTLY: ${{ matrix.config.swift_build.swiftly || matrix.config.xcode_build.swiftly_toolchain }}
+          MATRIX_XCODE_VERSION: ${{ matrix.config.xcode_build.xcode_version }}
+          MATRIX_CONTAINER_IMAGE: ${{ matrix.config.swift_build.container.image }}
+          MATRIX_SDK_TYPE: ${{ matrix.config.swift_build.sdk.type }}
+          MATRIX_SWIFT_URL: ${{ matrix.config.freebsd.swift_url }}
+        run: |
+          # Print only the fields that are set.
+          print_field() {
+            if [ -n "$2" ]; then
+              printf '%-18s %s\n' "$1:" "$2"
+            fi
+          }
+          print_field "Job" "$JOB_NAME"
+          print_field "Swift version" "$MATRIX_SWIFT_VERSION"
+          print_field "Toolchain" "$MATRIX_TOOLCHAIN"
+          print_field "swiftly selector" "$MATRIX_SWIFTLY"
+          print_field "Xcode version" "$MATRIX_XCODE_VERSION"
+          print_field "Container image" "$MATRIX_CONTAINER_IMAGE"
+          print_field "Swift SDK" "$MATRIX_SDK_TYPE"
+          print_field "Toolchain URL" "$MATRIX_SWIFT_URL"
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:

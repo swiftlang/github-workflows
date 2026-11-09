@@ -160,6 +160,10 @@ assert_contains "a multi-line environment value reaches the container whole" \
     $'MULTILINE_VALUE=first\nsecond' "$docker_args"
 assert_contains "an empty environment value reaches the container" \
     $'\nEMPTY_VALUE=\n' "$docker_args"
+# The image supplies the toolchain, so the container's command is the only place its
+# version can be printed.
+assert_contains "the container prints its Swift version first" \
+    $'bash\n-ec\nswift --version\n' "$docker_args"
 
 # Every SDK type has to hand the caller's build command to the SDK script, which
 # otherwise builds with its own default and reports success for work nobody asked
