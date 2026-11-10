@@ -1718,7 +1718,8 @@ struct MinimumVersion {
         """
       )
     }
-    self.floor = version
+    // The floor is the minor release, not the patch: a `6.2` label must satisfy a `6.2.3` minimum.
+    self.floor = SwiftVersion(majorMinor: "\(version.major).\(version.minor)")
   }
 
   /// A nightly is always kept: it is not a released version this can order.
