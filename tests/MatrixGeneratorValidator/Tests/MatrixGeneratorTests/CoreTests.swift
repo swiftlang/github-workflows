@@ -277,6 +277,25 @@ struct MinimumVersionTests {
     #expect(generated.versions == ["6.2", "6.3"])
   }
 
+  @Test("A patch tools version keeps its own minor release, which is published as major.minor")
+  func patchToolsVersionKeepsItsMinorRelease() throws {
+    let generated = try Generator.run(
+      ["ENABLE_LINUX": "true", "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#],
+      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.2.3")]
+    )
+    #expect(generated.versions == ["6.2", "6.3"])
+  }
+
+  @Test("A patch minimum_swift_version keeps its own minor release")
+  func patchExplicitMinimumKeepsItsMinorRelease() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
+      "MINIMUM_SWIFT_VERSION": "6.2.3",
+    ])
+    #expect(generated.versions == ["6.2", "6.3"])
+  }
+
   @Test("The lowest of all manifests wins")
   func lowestManifestWins() throws {
     let generated = try Generator.run(
