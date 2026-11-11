@@ -83,7 +83,7 @@ jobs:
 
   macos:
     name: "macOS (ARM64)"
-    runs-on: [self-hosted, macos, tahoe, ARM64]
+    runs-on: [self-hosted, macos, goldengate, ARM64]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

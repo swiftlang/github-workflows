@@ -17,7 +17,7 @@ on:
       macos_versions:
         type: string
         description: "macOS version list (JSON)"
-        default: "[\"tahoe\"]"
+        default: "[\"goldengate\"]"
       macos_archs:
         type: string
         description: "macOS arch list (JSON)"
@@ -25,7 +25,7 @@ on:
       macos_swiftly_toolchains:
         type: string
         description: "List of macOS Swiftly toolchain builds to test, each pairing an Xcode version with a Swiftly-managed Swift toolchain (JSON list of objects with xcode_version, swift_version, os_version, arch)"
-        default: "[{\"xcode_version\": \"swift_6.3\", \"swift_version\": \"main-snapshot\", \"os_version\": \"tahoe\", \"arch\": \"ARM64\"}]"
+        default: "[{\"xcode_version\": \"swift_6.3\", \"swift_version\": \"main-snapshot\", \"os_version\": \"goldengate\", \"arch\": \"ARM64\"}]"
       ios_host_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
