@@ -182,7 +182,7 @@ jobs:
           SWIFT_NIGHTLY_RELEASE: ${{ inputs.swift_nightly_release }}
           ENABLE_SUBDIRECTORY_MANIFEST_SEARCH: ${{ inputs.find_subdirectory_manifests }}
         run: |
-          matrix_yaml=$(swift "${SCRIPTS_DIRECTORY}/matrix/generate-matrix.swift")
+          matrix_yaml=$(swift run --package-path "${SCRIPTS_DIRECTORY}/../../matrix-generator" generate-matrix)
           echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
           echo "$matrix_yaml" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

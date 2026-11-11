@@ -37,7 +37,7 @@ public enum GeneratorError: Error, CustomStringConvertible {
   public var description: String {
     switch self {
     case .generatorNotFound(let path):
-      return "generate-matrix.swift not found at \(path)"
+      return "The generate-matrix executable was not found at \(path)"
 
     case .toolNotFound(let tool):
       return "\(tool) is required to run these tests but was not found on PATH"
@@ -64,24 +64,43 @@ private let workflowSuppliedValues = [
   "MACOS_SWIFTLY_TOOLCHAINS": #"[{"xcode_version": "swift_6.3", "swiftly_toolchain": "main-snapshot"}]"#,
 ]
 
-/// Runs `generate-matrix.swift` and decodes what it emitted.
+/// Runs the `generate-matrix` executable and decodes what it emitted.
 ///
 /// This needs no runner, no Swift toolchain for the package under test and no
 /// network. The generator does read `Package.swift` from its working directory,
 /// so runs happen in a scratch directory the helper writes manifests into.
 public struct Generator: Sendable {
-  /// Overridable so CI can point at a checkout elsewhere; otherwise derived from
-  /// this file's location.
-  public static var scriptPath: String {
+  /// The directory SwiftPM builds this package's products into, which is where the
+  /// executable sits beside the test bundle.
+  ///
+  /// The tests run under a helper that lives in the toolchain, so the directory comes from
+  /// where the test bundle itself was loaded: the one `.xctest` path component, which is a
+  /// bundle on macOS and the test binary on Linux, and the directory that holds it.
+  private static func productsDirectory(loadedImage address: UnsafeRawPointer = #dsohandle) -> URL? {
+    var information = Dl_info()
+    guard dladdr(address, &information) != 0, let imagePath = information.dli_fname else {
+      return nil
+    }
+    var url = URL(fileURLWithPath: String(cString: imagePath))
+    while url.path != "/" {
+      if url.lastPathComponent.hasSuffix(".xctest") {
+        return url.deletingLastPathComponent()
+      }
+      url.deleteLastPathComponent()
+    }
+    return nil
+  }
+
+  /// Overridable so CI can point at an executable built elsewhere; otherwise it is the
+  /// one SwiftPM built alongside the tests.
+  public static var executablePath: String {
     if let override = ProcessInfo.processInfo.environment["GENERATE_MATRIX_PATH"] {
       return override
     }
-    // <root>/tests/MatrixGeneratorValidator/Sources/MatrixTestSupport/Generator.swift
-    var url = URL(fileURLWithPath: #filePath)
-    for _ in 0..<5 {
-      url.deleteLastPathComponent()
+    guard let productsDirectory = productsDirectory() else {
+      return "generate-matrix"
     }
-    return url.appendingPathComponent(".github/workflows/scripts/matrix/generate-matrix.swift").path
+    return productsDirectory.appendingPathComponent("generate-matrix").path
   }
 
   /// Runs the generator and returns its raw output, for tests about the output
@@ -91,9 +110,9 @@ public struct Generator: Sendable {
     manifests: [String: String] = [:],
     includePlatformDefaults: Bool = false
   ) throws -> (standardOutput: String, standardError: String, exitCode: Int32) {
-    let script = scriptPath
-    guard FileManager.default.fileExists(atPath: script) else {
-      throw GeneratorError.generatorNotFound(script)
+    let executable = executablePath
+    guard FileManager.default.fileExists(atPath: executable) else {
+      throw GeneratorError.generatorNotFound(executable)
     }
 
     let workDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -131,8 +150,7 @@ public struct Generator: Sendable {
     }
 
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = ["swift", script]
+    process.executableURL = URL(fileURLWithPath: executable)
     process.environment = variables
     process.currentDirectoryURL = workDirectory
 

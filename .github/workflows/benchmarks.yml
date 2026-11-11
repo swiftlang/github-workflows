@@ -151,7 +151,7 @@ jobs:
           MACOS_COMMAND="$threshold_command"
           export LINUX_COMMAND MACOS_COMMAND
 
-          matrix_yaml=$(swift "${SCRIPTS_DIRECTORY}/matrix/generate-matrix.swift")
+          matrix_yaml=$(swift run --package-path "${SCRIPTS_DIRECTORY}/../../matrix-generator" generate-matrix)
           echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
           echo "$matrix_yaml" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
