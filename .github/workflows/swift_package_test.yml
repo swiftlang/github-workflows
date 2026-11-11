@@ -9,7 +9,7 @@ on:
       macos_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
-        default: "[\"swift_6.1\", \"swift_6.2\", \"swift_6.3\", \"swift_6.4\"]"
+        default: "[\"swift_6.2\", \"swift_6.3\", \"swift_6.4\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
