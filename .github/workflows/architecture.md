@@ -43,6 +43,7 @@ The design is intended to be layered, so that adopters may use the whole stack o
 * `toolchain_matrix.yml`: produces a matrix of toolchains with no command attached, for callers supplying their own
 * `execute_matrix.yml`: expands a work definition into one job per entry and dispatches each to its platform. FreeBSD runs in a VM step here rather than through a job runner
 * `generate-matrix` (the `.github/matrix-generator` package): produces the canonical work definition YAML or JSON. It reads the workflow's inputs from the environment and fails the run rather than emitting a matrix that would silently drop a job the caller asked for
+* `.github/actions/generate-matrix`: the composite action that runs the generator from a build cached in the calling repository, keyed on the generator's sources and the Swift toolchain, and builds it when there is none
 * `.github/actions/workflows-scripts`: the composite action that makes the scripts and configuration files of the running commit available and returns their paths
 * `job-runner-linux.sh`, `job-runner-macos.sh`, `job-runner-windows.ps1`: helper scripts which execute the defined work. They handle the complexity of running inside/outside Docker and installing Swift if required.
 

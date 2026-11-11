@@ -416,19 +416,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
 
       - name: Generate matrix
         id: generate
-        run: |
-          matrix_yaml=$(swift run --package-path "${SCRIPTS_DIRECTORY}/../../matrix-generator" generate-matrix)
-          echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
-          echo "$matrix_yaml" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        uses: $/.github/actions/generate-matrix
         env:
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           ENABLE_LINUX: ${{ inputs.enable_linux }}
           ENABLE_MACOS: ${{ inputs.enable_macos }}
           ENABLE_MACOS_SWIFTLY: ${{ inputs.enable_macos_swiftly }}

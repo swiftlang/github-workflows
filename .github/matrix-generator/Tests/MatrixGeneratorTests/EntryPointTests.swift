@@ -186,12 +186,14 @@ struct DefaultAgreementTests {
     // the two runs differ only where the two layers disagree. The enables are
     // held at "true" in both: emptying one would take its whole block away and
     // say nothing about the defaults inside it.
+    let compared = try entryPoint.inputBackedKeys().filter {
+      !EntryPoint.jobGroupEnables.contains($0) && !documented.contains($0)
+    }
+    #expect(!compared.isEmpty, "\(entryPoint) forwards no input to compare")
     var askingTheGenerator = baseline
-    for key in try entryPoint.inputBackedKeys()
-    where !EntryPoint.jobGroupEnables.contains(key) && !documented.contains(key) {
+    for key in compared {
       askingTheGenerator[key] = ""
     }
-    #expect(askingTheGenerator != baseline, "\(entryPoint) forwards no input to compare")
 
     let fromWorkflow = try Generator.run(baseline, manifests: manifest)
     let fromGenerator = try Generator.run(askingTheGenerator, manifests: manifest)

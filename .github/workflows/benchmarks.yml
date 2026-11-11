@@ -85,17 +85,55 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Generate matrix
-        id: generate
+      - name: Compose the benchmark commands and environment
         env:
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           LINUX_USER_ENV_VARS: ${{ inputs.linux_env_vars }}
           MACOS_USER_ENV_VARS: ${{ inputs.macos_env_vars }}
           BENCHMARK_PACKAGE_PATHS: ${{ inputs.benchmark_package_paths }}
           SWIFT_PACKAGE_ARGUMENTS: ${{ inputs.swift_package_arguments }}
+        run: |
+          set -euo pipefail
+
+          # Passes a value to the later steps. The delimiter keeps a value that spans
+          # lines whole.
+          set_environment_variable() {
+            local delimiter
+            delimiter="ghadelimiter_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+            {
+              echo "$1<<$delimiter"
+              echo "$2"
+              echo "$delimiter"
+            } >> "$GITHUB_ENV"
+          }
+
+          # The threshold script reads the package paths from the environment, so
+          # they are added to the caller's own variables rather than replacing
+          # them.
+          with_benchmark_paths() {
+            jq -cn \
+              --argjson user "$(echo "${1:-}" | yq -o=json '. // {}')" \
+              --arg paths "$BENCHMARK_PACKAGE_PATHS" \
+              '$user + {BENCHMARK_PACKAGE_PATHS: $paths}'
+          }
+          LINUX_ENV_VARS=$(with_benchmark_paths "$LINUX_USER_ENV_VARS")
+          MACOS_ENV_VARS=$(with_benchmark_paths "$MACOS_USER_ENV_VARS")
+          set_environment_variable LINUX_ENV_VARS "$LINUX_ENV_VARS"
+          set_environment_variable MACOS_ENV_VARS "$MACOS_ENV_VARS"
+
+          # Single-quoted so ${SCRIPTS_ROOT} survives into the matrix entry and is
+          # expanded on the runner, where the scripts directory is known.
+          threshold_command='${SCRIPTS_ROOT}/check-benchmark-thresholds.sh'
+          if [ -n "$SWIFT_PACKAGE_ARGUMENTS" ]; then
+            threshold_command="$threshold_command $SWIFT_PACKAGE_ARGUMENTS"
+          fi
+          LINUX_COMMAND="$threshold_command"
+          MACOS_COMMAND="$threshold_command"
+          set_environment_variable LINUX_COMMAND "$LINUX_COMMAND"
+          set_environment_variable MACOS_COMMAND "$MACOS_COMMAND"
+      - name: Generate matrix
+        id: generate
+        uses: $/.github/actions/generate-matrix
+        env:
           ENABLE_LINUX: ${{ inputs.enable_linux }}
           ENABLE_MACOS: ${{ inputs.enable_macos }}
           ENABLE_WINDOWS: "false"
@@ -125,37 +163,6 @@ jobs:
           MACOS_SETUP_COMMAND: |
             git config --global --add safe.directory "$(pwd)"
             brew install jemalloc
-        run: |
-          set -euo pipefail
-
-          # The threshold script reads the package paths from the environment, so
-          # they are added to the caller's own variables rather than replacing
-          # them.
-          with_benchmark_paths() {
-            jq -cn \
-              --argjson user "$(echo "${1:-}" | yq -o=json '. // {}')" \
-              --arg paths "$BENCHMARK_PACKAGE_PATHS" \
-              '$user + {BENCHMARK_PACKAGE_PATHS: $paths}'
-          }
-          LINUX_ENV_VARS=$(with_benchmark_paths "$LINUX_USER_ENV_VARS")
-          MACOS_ENV_VARS=$(with_benchmark_paths "$MACOS_USER_ENV_VARS")
-          export LINUX_ENV_VARS MACOS_ENV_VARS
-
-          # Single-quoted so ${SCRIPTS_ROOT} survives into the matrix entry and is
-          # expanded on the runner, where the scripts directory is known.
-          threshold_command='${SCRIPTS_ROOT}/check-benchmark-thresholds.sh'
-          if [ -n "$SWIFT_PACKAGE_ARGUMENTS" ]; then
-            threshold_command="$threshold_command $SWIFT_PACKAGE_ARGUMENTS"
-          fi
-          LINUX_COMMAND="$threshold_command"
-          MACOS_COMMAND="$threshold_command"
-          export LINUX_COMMAND MACOS_COMMAND
-
-          matrix_yaml=$(swift run --package-path "${SCRIPTS_DIRECTORY}/../../matrix-generator" generate-matrix)
-          echo "matrix_yaml<<EOF" >> $GITHUB_OUTPUT
-          echo "$matrix_yaml" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
   benchmarks:
     name: Benchmarks
     needs: generate-matrix

@@ -1,0 +1,89 @@
+name: Generate the job matrix
+description: >-
+  Runs the matrix generator from a cached build of it, and builds it first when
+  no build of this source with this Swift toolchain is cached. The generator
+  reads its inputs from the environment, so set them with `env:` on the step
+  that uses this action. The generated matrix is the `matrix_yaml` output.
+
+outputs:
+  matrix_yaml:
+    description: "The generated matrix."
+    value: ${{ steps.run.outputs.matrix_yaml }}
+
+runs:
+  using: composite
+  steps:
+    - name: Key the generator build
+      id: key
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+
+        package="$(cd "${ACTION_PATH//\\//}/../../matrix-generator" && pwd -P)"
+
+        hash_stdin() {
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum | cut -d' ' -f1
+          else
+            shasum -a 256 | cut -d' ' -f1
+          fi
+        }
+
+        # Everything the built binary depends on: the manifests, the pinned
+        # dependency versions and the sources. hashFiles() only sees the
+        # workspace, and this package is outside it.
+        sources="$(cd "$package" && find . -type f \
+          \( -name 'Package*.swift' -o -name 'Package.resolved' -o -path './Sources/*' \) \
+          | LC_ALL=C sort | while IFS= read -r file; do
+              printf '%s ' "$file"
+              hash_stdin < "$file"
+            done | hash_stdin)"
+        toolchain="$(swift --version 2>&1 | hash_stdin)"
+
+        {
+          echo "package=$package"
+          echo "binary_directory=$RUNNER_TEMP/matrix-generator"
+          echo "key=matrix-generator-$RUNNER_OS-$RUNNER_ARCH-$toolchain-$sources"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Restore the generator
+      id: cache
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.key.outputs.binary_directory }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Build the generator
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        PACKAGE: ${{ steps.key.outputs.package }}
+        BINARY_DIRECTORY: ${{ steps.key.outputs.binary_directory }}
+      run: |
+        set -euo pipefail
+        scratch="$RUNNER_TEMP/matrix-generator-build"
+
+        # A debug build: the generator spends its time waiting on jq and yq, so an
+        # optimized build runs no faster and takes longer to produce.
+        swift build --product generate-matrix --force-resolved-versions \
+          --package-path "$PACKAGE" --scratch-path "$scratch"
+        built="$(swift build --show-bin-path --package-path "$PACKAGE" --scratch-path "$scratch")"
+
+        mkdir -p "$BINARY_DIRECTORY"
+        /bin/cp "$built/generate-matrix" "$BINARY_DIRECTORY/generate-matrix"
+
+    - name: Run the generator
+      id: run
+      shell: bash
+      env:
+        BINARY_DIRECTORY: ${{ steps.key.outputs.binary_directory }}
+      run: |
+        set -euo pipefail
+        matrix_yaml="$("$BINARY_DIRECTORY/generate-matrix")"
+        {
+          echo "matrix_yaml<<EOF"
+          echo "$matrix_yaml"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
