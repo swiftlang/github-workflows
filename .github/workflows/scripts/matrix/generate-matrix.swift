@@ -68,7 +68,7 @@ struct Configuration {
 
   @Input("MACOS_XCODE_VERSIONS") var macOSXcodeVersions: [String] = []
   @Input("MACOS_SWIFT_VERSIONS") var macOSVersions: [String] = []
-  @Input("MACOS_OS") var macOSOS: OSList = "tahoe"
+  @Input("MACOS_OS") var macOSOS: OSList = "goldengate"
   @Input("MACOS_ARCH") var macOSArchitecture = "ARM64"
   @Input("MACOS_RUNNER_POOL") var macOSPool = ""
   @Input("MACOS_COMMAND") var macOSCommands: Commands = "xcrun swift test"

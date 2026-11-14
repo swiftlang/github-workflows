@@ -128,7 +128,7 @@ jobs:
           - runner: [ubuntu-latest]
             test: ./tests/runner-exit-code-tests.sh
             shell: bash
-          - runner: [self-hosted, macos, tahoe, ARM64]
+          - runner: [self-hosted, macos, goldengate, ARM64]
             test: ./tests/runner-exit-code-tests-macos.sh
             shell: bash
           - runner: [windows-latest]

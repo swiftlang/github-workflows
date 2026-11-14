@@ -9,7 +9,7 @@ on:
       macos_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
-        default: "[\"swift_6.1\", \"swift_6.2\", \"swift_6.3\", \"swift_6.4\"]"
+        default: "[\"swift_6.2\", \"swift_6.3\", \"swift_6.4\"]"
       macos_exclude_xcode_versions:
         type: string
         description: "Exclude Xcode version list (JSON)"
@@ -17,7 +17,7 @@ on:
       macos_versions:
         type: string
         description: "macOS version list (JSON)"
-        default: "[\"tahoe\"]"
+        default: "[\"goldengate\"]"
       macos_archs:
         type: string
         description: "macOS arch list (JSON)"
@@ -25,7 +25,7 @@ on:
       macos_swiftly_toolchains:
         type: string
         description: "List of macOS Swiftly toolchain builds to test, each pairing an Xcode version with a Swiftly-managed Swift toolchain (JSON list of objects with xcode_version, swift_version, os_version, arch)"
-        default: "[{\"xcode_version\": \"swift_6.3\", \"swift_version\": \"main-snapshot\", \"os_version\": \"tahoe\", \"arch\": \"ARM64\"}]"
+        default: "[{\"xcode_version\": \"swift_6.3\", \"swift_version\": \"main-snapshot\", \"os_version\": \"goldengate\", \"arch\": \"ARM64\"}]"
       ios_host_xcode_versions:
         type: string
         description: "Xcode version list (JSON)"
@@ -45,7 +45,7 @@ on:
       linux_swift_versions:
         type: string
         description: "Include Linux Swift version list (JSON)"
-        default: "[ \"6.1\", \"6.2\", \"6.3\", \"6.4\", \"nightly-main\", \"nightly-6.4.x\"]"
+        default: "[ \"6.2\", \"6.3\", \"6.4\", \"nightly-main\", \"nightly-6.4.x\"]"
       linux_exclude_swift_versions:
         type: string
         description: "Exclude Linux Swift version list (JSON)"
@@ -86,7 +86,7 @@ on:
         type: string
         description: "Include Windows Swift version list (JSON)"
         # "5.10" is omitted for Windows because the container image is broken.
-        default: "[\"6.1\", \"6.2\", \"6.3\", \"6.4\", \"nightly-main\", \"nightly-6.4.x\"]"
+        default: "[\"6.2\", \"6.3\", \"6.4\", \"nightly-main\", \"nightly-6.4.x\"]"
       windows_exclude_swift_versions:
         type: string
         description: "Exclude Windows Swift version list (JSON)"
@@ -370,7 +370,9 @@ jobs:
               printf "%s\n" $i >> $GITHUB_ENV
             done
       - name: Select Xcode
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
+        run: |
+          echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
+          echo "SDKROOT=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" >> $GITHUB_ENV
       - name: Set up Swiftly environment
         run: |
           . "$HOME/.swiftly/env.sh"

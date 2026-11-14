@@ -340,7 +340,7 @@ on:
       macos_os:
         type: string
         description: "macOS runner label, or a list of them (JSON/YAML array) to run one job per label."
-        default: "tahoe"
+        default: "goldengate"
       macos_arch:
         type: string
         description: "macOS runner architecture label."

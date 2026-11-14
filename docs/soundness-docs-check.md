@@ -79,7 +79,7 @@ This enables the Linux documentation check along with the other soundness checks
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `docs_check_macos_enabled` | boolean | `false` | Enable or disable the job. |
-| `docs_check_macos_version` | string | `tahoe` | macOS version label of the runner to target. |
+| `docs_check_macos_version` | string | `goldengate` | macOS version label of the runner to target. |
 | `docs_check_macos_arch` | string | `ARM64` | Architecture label of the runner to target. |
 | `docs_check_macos_xcode_version` | string | `26.0` | Xcode version to use. |
 | `docs_check_macos_targets` | string | `""` | Space-separated list of documentation targets to check. When empty, targets are read from `.spi.yml` (if present). |
@@ -98,7 +98,7 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
     with:
       docs_check_macos_enabled: true
-      docs_check_macos_version: "tahoe"
+      docs_check_macos_version: "goldengate"
       docs_check_macos_arch: "ARM64"
       docs_check_macos_xcode_version: "26.0"
 ```
