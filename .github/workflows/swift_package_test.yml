@@ -372,7 +372,7 @@ jobs:
       - name: Select Xcode
         run: |
           echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer" >> $GITHUB_ENV
-          echo "SDKROOT=${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" >> $GITHUB_ENV
+          echo "SDKROOT=/Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" >> $GITHUB_ENV
       - name: Set up Swiftly environment
         run: |
           . "$HOME/.swiftly/env.sh"
