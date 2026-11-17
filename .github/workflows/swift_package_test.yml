@@ -1058,7 +1058,7 @@ jobs:
           envs: 'SWIFT_WEB_URL BUILD_FLAGS FREEBSD_ENV_VARS GITHUB_TOKEN'
           release: "${{ matrix.os_version }}"
           arch: "${{ matrix.arch }}"
-          memory: 8192
+          mem: 8192
           cpu: 4
           sync: rsync
           copyback: false
