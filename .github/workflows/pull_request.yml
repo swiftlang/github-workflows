@@ -116,7 +116,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run generator tests
-        working-directory: tests/MatrixGeneratorValidator
+        working-directory: .github/matrix-generator
         run: swift test
 
   runner_exit_code_tests:
@@ -267,6 +267,14 @@ jobs:
               swift build
             command_arguments: []
             env: {}
+
+  benchmarks:
+    name: Benchmarks
+    uses: ./.github/workflows/benchmarks.yml
+    with:
+      name: benchmarks-self-test
+      benchmark_package_paths: '["tests/BenchmarkPackage"]'
+      linux_swift_versions: '["6.3"]'
 
   proposal_validation:
     name: Proposal Validation

@@ -35,15 +35,14 @@ public struct EntryPoint: Sendable, CustomStringConvertible {
   /// Every workflow that generates a matrix by calling the generator.
   public static let all: [EntryPoint] = [packageTest, toolchainMatrix, benchmarks]
 
-  /// This workflow's file in the checkout the generator sits in, so pointing the generator at
-  /// another checkout with `GENERATE_MATRIX_PATH` moves the workflow with it.
+  /// This workflow's file in the checkout these tests sit in.
   public var path: String {
-    // <root>/.github/workflows/scripts/matrix/generate-matrix.swift
-    var url = URL(fileURLWithPath: Generator.scriptPath)
-    for _ in 0..<3 {
+    // <root>/.github/matrix-generator/Tests/MatrixTestSupport/EntryPoint.swift
+    var url = URL(fileURLWithPath: #filePath)
+    for _ in 0..<4 {
       url.deleteLastPathComponent()
     }
-    return url.appendingPathComponent("\(workflow).yml").path
+    return url.appendingPathComponent("workflows/\(workflow).yml").path
   }
 
   /// The enables that gate a whole block of the generator. A knob only one block
