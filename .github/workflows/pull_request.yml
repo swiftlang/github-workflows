@@ -116,7 +116,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run generator tests
-        working-directory: tests/MatrixGeneratorValidator
+        working-directory: .github/matrix-generator
         run: swift test
 
   runner_exit_code_tests:
