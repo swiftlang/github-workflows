@@ -9,7 +9,8 @@ let package = Package(
     .executable(name: "generate-matrix", targets: ["generate-matrix"])
   ],
   targets: [
-    .executableTarget(name: "generate-matrix"),
+    .target(name: "MatrixGenerator"),
+    .executableTarget(name: "generate-matrix", dependencies: ["MatrixGenerator"]),
     .target(name: "MatrixTestSupport", path: "Tests/MatrixTestSupport"),
     .testTarget(
       name: "MatrixGeneratorTests",
