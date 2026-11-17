@@ -1,3 +1,4 @@
 .DS_Store
 .github/matrix-generator/.build/
 tests/TestPackage/.build/
+tests/BenchmarkPackage/.build/

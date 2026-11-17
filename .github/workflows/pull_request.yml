@@ -268,6 +268,14 @@ jobs:
             command_arguments: []
             env: {}
 
+  benchmarks:
+    name: Benchmarks
+    uses: ./.github/workflows/benchmarks.yml
+    with:
+      name: benchmarks-self-test
+      benchmark_package_paths: '["tests/BenchmarkPackage"]'
+      linux_swift_versions: '["6.3"]'
+
   proposal_validation:
     name: Proposal Validation
     uses: ./.github/workflows/proposal_validation.yml
