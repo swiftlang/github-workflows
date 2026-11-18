@@ -134,6 +134,9 @@ jobs:
           - runner: [windows-latest]
             test: ./tests/invoke-program-tests.ps1
             shell: pwsh
+          - runner: [windows-latest]
+            test: ./tests/format-container-arguments-tests.ps1
+            shell: pwsh
     runs-on: ${{ matrix.runner }}
     # A step's own `shell:` cannot read the matrix, so the job sets it for its steps.
     defaults:
@@ -144,7 +147,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Assert failures are not reported as success
+      - name: Run ${{ matrix.test }}
         run: ${{ matrix.test }}
 
   unified_package_test:
