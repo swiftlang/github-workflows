@@ -143,7 +143,8 @@ with:
 Swift is available on every platform. The Linux build runs in the
 `linux_container_image` container (`swift:6.2-jammy` by default), and the macOS
 build uses the Swift toolchain of the runner's Xcode. The Windows build installs
-the Swift version given by `windows_swift_version` (`6.2` by default). The Swift
+the Swift version given by `windows_swift_version` (`6.2` by default) using the
+`install-swift` action, which other workflows can also use on their own. The Swift
 toolchain comes first on `PATH`, so CMake also compiles C and C++ targets with
 its `clang`, which Swift can link against, instead of the MinGW GCC on the
 runner's `PATH`. Set `windows_swift_version` to an empty string to skip

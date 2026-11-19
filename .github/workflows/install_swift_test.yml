@@ -1,0 +1,94 @@
+name: Install Swift Test
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      swift_version:
+        type: string
+        description: "Swift version to install and verify"
+        default: "6.2"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: "Windows (${{ matrix.runner }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-11-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Swift
+        uses: ./.github/actions/install-swift
+        with:
+          swift-version: ${{ inputs.swift_version }}
+      - name: Verify Swift installation
+        env:
+          EXPECTED_VERSION: ${{ inputs.swift_version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $Version = (& swift --version 2>&1) -join "`n"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "swift --version failed:`n$Version"
+            exit 1
+          }
+          Write-Host $Version
+          if (-not $Version.Contains("Swift version $env:EXPECTED_VERSION")) {
+            Write-Error "Expected Swift $env:EXPECTED_VERSION"
+            exit 1
+          }
+          if (-not $env:SDKROOT) {
+            Write-Error "SDKROOT is not set"
+            exit 1
+          }
+
+  unsupported_version:
+    name: "Negative test (unsupported version)"
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install an unsupported Swift version (expected to fail)
+        id: install
+        continue-on-error: true
+        uses: ./.github/actions/install-swift
+        with:
+          swift-version: "0.0"
+      - name: Assert the install failed
+        env:
+          OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          if ($env:OUTCOME -ne "failure") {
+            Write-Error "Expected install to fail for an unsupported version, but outcome was '$env:OUTCOME'"
+            exit 1
+          }
+          Write-Host "Install correctly failed for an unsupported version."
+
+  unsupported_runner:
+    name: "Negative test (unsupported runner)"
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Swift on Linux (expected to fail)
+        id: install
+        continue-on-error: true
+        uses: ./.github/actions/install-swift
+        with:
+          swift-version: ${{ inputs.swift_version }}
+      - name: Assert the install failed
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${OUTCOME}" != "failure" ]; then
+            echo "::error::Expected install to fail on a Linux runner, but outcome was '${OUTCOME}'"
+            exit 1
+          fi
+          echo "Install correctly failed on a Linux runner."
