@@ -1,0 +1,4 @@
+module CSample {
+  header "CSample.h"
+  export *
+}

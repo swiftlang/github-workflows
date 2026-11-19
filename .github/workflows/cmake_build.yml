@@ -74,6 +74,13 @@ on:
         type: string
         description: "macOS command to build the CMake project"
         default: "$CMAKE --build build"
+      windows_swift_version:
+        type: string
+        description: |
+          Swift version to install for the Windows build, such as "6.2" or "nightly-main".
+          It must name one of the scripts/windows/swift/install-swift-<version>.ps1 scripts.
+          Set to an empty string to skip installing Swift.
+        default: "6.2"
       windows_pre_build_command:
         type: string
         description: |
@@ -207,6 +214,27 @@ jobs:
         with:
           cmake-version: ${{ inputs.cmake_version }}
           hash: ${{ matrix.hash }}
+      - name: Locate the workflows scripts
+        id: scripts
+        if: ${{ inputs.windows_swift_version != '' }}
+        uses: $/.github/actions/workflows-scripts
+      - name: Install Swift
+        if: ${{ inputs.windows_swift_version != '' }}
+        env:
+          SCRIPTS_DIRECTORY: ${{ steps.scripts.outputs.scripts_directory_windows }}
+          SWIFT_VERSION: ${{ inputs.windows_swift_version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:SWIFT_VERSION -notmatch '^[A-Za-z0-9._-]+$') {
+            Write-Error "Invalid windows_swift_version '$env:SWIFT_VERSION'"
+            exit 1
+          }
+          $Script = "$env:SCRIPTS_DIRECTORY\windows\swift\install-swift-$env:SWIFT_VERSION.ps1"
+          if (-not (Test-Path -LiteralPath $Script -PathType Leaf)) {
+            Write-Error "Unsupported windows_swift_version '$env:SWIFT_VERSION': $Script does not exist"
+            exit 1
+          }
+          . $Script
       - name: Pre-build
         if: ${{ inputs.windows_pre_build_command != '' }}
         env:
