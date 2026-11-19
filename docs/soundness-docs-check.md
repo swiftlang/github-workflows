@@ -2,8 +2,8 @@
 
 The Soundness workflow can verify that your Swift package's [DocC](https://www.swift.org/documentation/docc/) documentation builds without warnings. Two jobs are available:
 
-- **`docs-check`** — runs on Linux. Enabled by default.
-- **`docs-check-macos`** — runs on a self-hosted macOS runner. Opt-in.
+- **Documentation check** — runs on Linux. Enabled by default.
+- **Documentation check (macOS)** — runs on a self-hosted macOS runner. Opt-in.
 
 Running both lets you catch documentation issues that only surface on one toolchain.
 
@@ -63,7 +63,7 @@ This enables the Linux documentation check along with the other soundness checks
 
 ## Configuration
 
-### Linux job (`docs-check`)
+### Linux job (Documentation check)
 
 | Input | Type | Default | Description |
 |---|---|---|---|
@@ -74,7 +74,7 @@ This enables the Linux documentation check along with the other soundness checks
 | `docs_check_analyze` | boolean | `true` | Set to `false` to skip DocC's analyzer pass. |
 | `linux_pre_build_command` | string | `""` | Shell command to run before the check (e.g., installing system dependencies). |
 
-### macOS job (`docs-check-macos`)
+### macOS job (Documentation check (macOS))
 
 | Input | Type | Default | Description |
 |---|---|---|---|
