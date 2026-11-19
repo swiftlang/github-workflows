@@ -103,9 +103,9 @@ Windows. It removes the boilerplate of installing CMake and wiring up
 
 By default it installs CMake 4.0.3, configures with
 `$CMAKE -G Ninja -B build -S .`, and builds with `$CMAKE --build build`.
-Linux builds run by default. macOS and Windows builds can be enabled with
-`enable_macos_checks` and `enable_windows_checks` respectively. A minimal
-example:
+Linux and Windows builds run by default. The macOS build can be enabled with
+`enable_macos_checks`, and the others can be disabled with
+`enable_linux_checks` and `enable_windows_checks`. A minimal example:
 
 ```yaml
 name: Pull request
@@ -139,6 +139,30 @@ different generator:
 with:
   linux_pre_build_command: "apt-get install -y ninja-build"
 ```
+
+Swift is available on every platform. The Linux build runs in the
+`linux_container_image` container (`swift:6.2-jammy` by default), and the macOS
+build uses the Swift toolchain of the runner's Xcode. The Windows build installs
+the Swift version given by `windows_swift_version` (`6.2` by default) using the
+`install-swift` action, which other workflows can also use on their own. The Swift
+toolchain comes first on `PATH`, so CMake also compiles C and C++ targets with
+its `clang`, which Swift can link against, instead of the MinGW GCC on the
+runner's `PATH`. Set `windows_swift_version` to an empty string to skip
+installing Swift for projects that do not use it:
+
+```yaml
+with:
+  linux_container_image: "swift:6.3-noble"
+  windows_swift_version: "6.3"
+```
+
+Swift links against the release DLL C runtime on Windows. Projects that mix C or
+C++ with Swift should build them with the same runtime, for example by setting
+`CMAKE_MSVC_RUNTIME_LIBRARY` to `MultiThreadedDLL` in their `CMakeLists.txt` or
+passing `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL` in
+`windows_configure_command`. Otherwise, builds without a `CMAKE_BUILD_TYPE` use
+the debug runtime for C and C++, and the linker warns about the mix
+(`LNK4098`).
 
 To pin a different CMake version, override `cmake_version` together with the
 matching per-platform SHA-256 hashes (`linux_x86_64_hash`, `linux_aarch64_hash`,

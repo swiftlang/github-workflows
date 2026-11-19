@@ -1,0 +1,40 @@
+name: 'Install Swift'
+description: 'Download and install a Swift toolchain'
+
+inputs:
+  swift-version:
+    description: >-
+      Swift version to install, such as "6.2" or "nightly-main". It must name one of the
+      .github/workflows/scripts/windows/swift/install-swift-<version>.ps1 scripts.
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check the runner
+      if: ${{ runner.os != 'Windows' }}
+      shell: bash
+      env:
+        RUNNER_OS_NAME: ${{ runner.os }}
+      run: |
+        echo "::error::install-swift supports only Windows runners, not ${RUNNER_OS_NAME}"
+        exit 1
+    - name: Install Swift
+      shell: pwsh
+      env:
+        SWIFT_VERSION: ${{ inputs.swift-version }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        if ($env:SWIFT_VERSION -notmatch '^[A-Za-z0-9._-]+$') {
+          Write-Error "Invalid swift-version '$env:SWIFT_VERSION'"
+          exit 1
+        }
+        # The runner downloads the whole repository at the running commit and places this action
+        # inside it, so the workflows directory is two levels up.
+        $Script = Join-Path $env:ACTION_PATH "..\..\workflows\scripts\windows\swift\install-swift-$env:SWIFT_VERSION.ps1"
+        if (-not (Test-Path -LiteralPath $Script -PathType Leaf)) {
+          Write-Error "Unsupported swift-version '$env:SWIFT_VERSION': $Script does not exist"
+          exit 1
+        }
+        . $Script

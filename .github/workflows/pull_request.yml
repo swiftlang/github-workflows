@@ -290,6 +290,10 @@ jobs:
     name: Install CMake
     uses: ./.github/workflows/install_cmake_test.yml
 
+  install_swift:
+    name: Install Swift
+    uses: ./.github/workflows/install_swift_test.yml
+
   cmake_build:
     name: CMake Build
     uses: ./.github/workflows/cmake_build.yml
