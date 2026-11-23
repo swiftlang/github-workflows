@@ -229,7 +229,7 @@ struct MacOSTests {
     #expect(generated.count == 2)
     for entry in generated.entries {
       #expect(entry.runner.contains("sequoia"), "\(entry.name) ignored macos_os")
-      #expect(!entry.runner.contains("tahoe"), "\(entry.name) used the default OS")
+      #expect(!entry.runner.contains("goldengate"), "\(entry.name) used the default OS")
     }
 
     // An entry naming its own OS still wins over the list.
@@ -249,7 +249,7 @@ struct MacOSTests {
     // leaves the rest of the list with no swiftly coverage at all.
     let generated = try Generator.run([
       "ENABLE_MACOS_SWIFTLY": "true",
-      "MACOS_OS": #"["sequoia","tahoe"]"#,
+      "MACOS_OS": #"["sequoia","goldengate"]"#,
       "MACOS_SWIFTLY_TOOLCHAINS":
         #"[{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot"}]"#,
     ])
@@ -257,17 +257,17 @@ struct MacOSTests {
     #expect(
       generated.names == [
         "macOS Swiftly main-snapshot (Xcode swift_6.3) sequoia",
-        "macOS Swiftly main-snapshot (Xcode swift_6.3) tahoe",
+        "macOS Swiftly main-snapshot (Xcode swift_6.3) goldengate",
       ]
     )
     #expect(generated.entries[0].runner.contains("sequoia"))
-    #expect(generated.entries[1].runner.contains("tahoe"))
+    #expect(generated.entries[1].runner.contains("goldengate"))
 
     // An entry naming its own OS runs there alone. Fanning it out as well would
     // give one entry per configured OS, all on the pinned one and all named alike.
     let pinned = try Generator.run([
       "ENABLE_MACOS_SWIFTLY": "true",
-      "MACOS_OS": #"["sequoia","tahoe"]"#,
+      "MACOS_OS": #"["sequoia","goldengate"]"#,
       "MACOS_SWIFTLY_TOOLCHAINS": """
       [{"xcode_version":"swift_6.3","swiftly_toolchain":"main-snapshot","os_version":"sonoma"},\
       {"xcode_version":"swift_6.2","swiftly_toolchain":"6.2-snapshot"}]
@@ -278,7 +278,7 @@ struct MacOSTests {
       pinned.names == [
         "macOS Swiftly main-snapshot (Xcode swift_6.3) sonoma",
         "macOS Swiftly 6.2-snapshot (Xcode swift_6.2) sequoia",
-        "macOS Swiftly 6.2-snapshot (Xcode swift_6.2) tahoe",
+        "macOS Swiftly 6.2-snapshot (Xcode swift_6.2) goldengate",
       ]
     )
   }
@@ -304,7 +304,7 @@ struct MacOSTests {
     #expect(try names("sequoia") == bare)
     #expect(try names(#"["sequoia"]"#) == bare)
     // Without this the names above would be stable because nothing fans out.
-    #expect(try names(#"["sequoia","tahoe"]"#).count == 2)
+    #expect(try names(#"["sequoia","goldengate"]"#).count == 2)
   }
 }
 

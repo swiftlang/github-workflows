@@ -160,9 +160,11 @@ if [[ -n "$container_image" ]]; then
 
     docker_args+=("$actual_image")
 
+    # Print the Swift version as the first step.
+    inner_command="swift --version"$'\n'
+
     # Check out linked PRs inside the container, where the toolchain under test is.
     # A failure must fail the job.
-    inner_command=""
     if [[ "${CROSS_PR_TESTING:-false}" == "true" && -n "${CROSS_PR_REPO:-}" ]]; then
         # Single-quoted deliberately: these must expand inside the container, from
         # the values passed with -e, not on the host where the paths differ.

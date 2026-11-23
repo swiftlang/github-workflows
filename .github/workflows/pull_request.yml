@@ -116,7 +116,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run generator tests
-        working-directory: tests/MatrixGeneratorValidator
+        working-directory: .github/matrix-generator
         run: swift test
 
   runner_exit_code_tests:
@@ -128,11 +128,14 @@ jobs:
           - runner: [ubuntu-latest]
             test: ./tests/runner-exit-code-tests.sh
             shell: bash
-          - runner: [self-hosted, macos, tahoe, ARM64]
+          - runner: [self-hosted, macos, goldengate, ARM64]
             test: ./tests/runner-exit-code-tests-macos.sh
             shell: bash
           - runner: [windows-latest]
             test: ./tests/invoke-program-tests.ps1
+            shell: pwsh
+          - runner: [windows-latest]
+            test: ./tests/format-container-arguments-tests.ps1
             shell: pwsh
     runs-on: ${{ matrix.runner }}
     # A step's own `shell:` cannot read the matrix, so the job sets it for its steps.
@@ -144,7 +147,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Assert failures are not reported as success
+      - name: Run ${{ matrix.test }}
         run: ${{ matrix.test }}
 
   unified_package_test:
@@ -268,6 +271,14 @@ jobs:
             command_arguments: []
             env: {}
 
+  benchmarks:
+    name: Benchmarks
+    uses: ./.github/workflows/benchmarks.yml
+    with:
+      name: benchmarks-self-test
+      benchmark_package_paths: '["tests/BenchmarkPackage"]'
+      linux_swift_versions: '["6.3"]'
+
   proposal_validation:
     name: Proposal Validation
     uses: ./.github/workflows/proposal_validation.yml
@@ -286,8 +297,7 @@ jobs:
       # Linux uses the default Ninja generator; install Ninja first.
       linux_pre_build_command: "apt-get install -y ninja-build"
       linux_configure_command: "$CMAKE -G Ninja -B build -S tests/CMakeProject"
-      # Windows uses CMake's default generator (MSVC), so Ninja is not required.
-      windows_configure_command: "Invoke-Program cmake -B build -S tests/CMakeProject"
+      windows_configure_command: "Invoke-Program cmake -G Ninja -B build -S tests/CMakeProject"
 
   soundness-docs:
     name: "Soundness - Docs (override_target_name: ${{ matrix.override_target_name }} ; post command: ${{ matrix.post_command }})"

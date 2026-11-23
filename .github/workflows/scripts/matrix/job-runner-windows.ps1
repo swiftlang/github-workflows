@@ -58,6 +58,20 @@ $ErrorActionPreference = "Stop"
 if (-not [string]::IsNullOrEmpty($env:CONTAINER_IMAGE)) {
     Write-Host "Running in Docker container: $env:CONTAINER_IMAGE"
 
+    # An argument cannot be quoted on its way into the container, so one that needs
+    # quoting is refused here, before the daemon wait and the image pull, rather
+    # than run with a different argument than the caller wrote.
+    . "$PSScriptRoot\format-container-arguments.ps1"
+    $containerArguments = ""
+    if (-not [string]::IsNullOrEmpty($CommandArguments) -and $CommandArguments -ne 'null' -and $CommandArguments -ne '[]') {
+        if ($CommandArguments.Trim().StartsWith('[')) {
+            $args_array = $CommandArguments | ConvertFrom-Json
+            $containerArguments = " " + (Format-ContainerCommandArguments $args_array)
+        } else {
+            $containerArguments = " $CommandArguments"
+        }
+    }
+
     # Wait for the Docker daemon, starting the service first - polling alone
     # hangs for the full timeout when the service is not running.
     $maxAttempts = 30
@@ -105,19 +119,7 @@ if (-not [string]::IsNullOrEmpty($env:CONTAINER_IMAGE)) {
     if (-not [string]::IsNullOrEmpty($SetupCommand)) {
         $innerCommand += (Join-CommandLines $SetupCommand) + " && "
     }
-    $innerCommand += "swift --version && " + (Join-CommandLines $Command)
-
-    if (-not [string]::IsNullOrEmpty($CommandArguments) -and $CommandArguments -ne 'null' -and $CommandArguments -ne '[]') {
-        if ($CommandArguments.Trim().StartsWith('[')) {
-            # Quote each argument rather than joining on a space: the command is run
-            # through cmd, so one containing whitespace would otherwise arrive as
-            # several - which the schema's array type promises it will not.
-            $args_array = $CommandArguments | ConvertFrom-Json
-            $innerCommand += " " + (($args_array | ForEach-Object { '"' + $_ + '"' }) -join ' ')
-        } else {
-            $innerCommand += " $CommandArguments"
-        }
-    }
+    $innerCommand += "swift --version && " + (Join-CommandLines $Command) + $containerArguments
 
     $workspace = "C:\source"
     $docker_args = @(

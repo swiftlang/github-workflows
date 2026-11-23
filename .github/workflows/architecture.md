@@ -44,7 +44,8 @@ The design is intended to be layered, so that adopters may use the whole stack o
 * `benchmarks.yml`: top-level workflow for benchmarking, consuming the same matrix layer
 * `toolchain_matrix.yml`: produces a matrix of toolchains with no command attached, for callers supplying their own
 * `execute_matrix.yml`: expands a work definition into one job per entry and dispatches each to its platform. FreeBSD runs in a VM step here rather than through a job runner
-* `generate-matrix.swift`: produces the canonical work definition YAML or JSON. It reads the workflow's inputs from the environment and fails the run rather than emitting a matrix that would silently drop a job the caller asked for
+* `generate-matrix` (the `.github/matrix-generator` package): produces the canonical work definition YAML or JSON. It reads the workflow's inputs from the environment and fails the run rather than emitting a matrix that would silently drop a job the caller asked for
+* `.github/actions/generate-matrix`: the composite action that runs the generator from a build cached in the calling repository, keyed on the generator's sources and the Swift toolchain, and builds it when there is none
 * `.github/actions/workflows-scripts`: the composite action that makes the scripts and configuration files of the running commit available and returns their paths
 * `job-runner-linux.sh`, `job-runner-macos.sh`, `job-runner-windows.ps1`: helper scripts which execute the defined work. They handle the complexity of running inside/outside Docker and installing Swift if required.
 
@@ -68,7 +69,7 @@ To test a change to the workflows or scripts, call the workflow at the branch or
 
 ## Swift version labels
 
-A version list names toolchains with labels: a version such as `6.3`, `nightly-release`, `nightly-main`, or a position counted back from the current release, `current`, `current-1` and `current-2`. A job's name carries the label the caller wrote. Job names are required status checks, so the default lists use the relative labels: a new Swift release changes which versions they name and leaves the checks alone. A caller who writes versions out gets those names, and the two spellings can be mixed in one list.
+A version list names toolchains with labels: a version such as `6.3`, `nightly-release`, `nightly-main`, or a position counted back from the current release, `current`, `current-1` and `current-2`. A job's name carries the label the caller wrote. Job names are required status checks, so the default lists use the relative labels: a new Swift release changes which versions they name and leaves the checks alone. A caller who writes versions out gets those names, and the two spellings can be mixed in one list. Since the name may show only the label, every job's first step is named for the version it resolved to, such as `Print Swift version (6.4)`, and prints the toolchain, container image or Xcode the entry asks for.
 
 The workflow supplies what the relative labels resolve against, in `swift_current_release` and `swift_nightly_release`. They are inputs with defaults in the workflow files rather than values in the generator, so a workflow pinned to a release tag keeps the versions it was released with. Setting `swift_current_release` holds a repository at an earlier release without changing its check names.
 
@@ -85,7 +86,7 @@ Fields every entry carries:
 | `runner` | list of strings | The `runs-on` labels. |
 | `command` | string | The command to run. An entry that omits it takes `execute_matrix.yml`'s `command` input. |
 | `setup_command` | string | Run before the command. Defaults to the `setup_command` input. |
-| `command_arguments` | list of strings | Appended to the command. Defaults to the `command_arguments` input. |
+| `command_arguments` | list of strings | Appended to the command. Defaults to the `command_arguments` input. On Windows in a container, an argument must be printable ASCII with no whitespace and none of `" % & < > ^ \|`, because it cannot be quoted on its way into the container; the job fails before pulling the image otherwise. |
 | `timeout_minutes` | number | The job's timeout. An entry that omits it takes `execute_matrix.yml`'s `job_timeout` input. |
 | `env` | map | Environment variables for the job. The `env` input supplies defaults and an entry's own keys win. |
 
@@ -124,4 +125,4 @@ config:
       swiftly: 6.4.x-snapshot
 ```
 
-The shortest way to see every field a platform takes is to run `swift generate-matrix.swift` with the relevant `ENABLE_*` variable set and read its output.
+The shortest way to see every field a platform takes is to run `swift run --package-path .github/matrix-generator generate-matrix` with the relevant `ENABLE_*` variable set and read its output.

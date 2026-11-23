@@ -153,7 +153,7 @@ jobs:
   macos-build:
     name: "macOS (ARM64)"
     if: ${{ inputs.enable_macos_checks }}
-    runs-on: [self-hosted, macos, tahoe, ARM64]
+    runs-on: [self-hosted, macos, goldengate, ARM64]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

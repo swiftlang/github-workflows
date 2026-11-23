@@ -54,7 +54,7 @@ on:
       docs_check_macos_version:
         type: string
         description: "macOS version for the macOS docs check job."
-        default: "tahoe"
+        default: "goldengate"
       docs_check_macos_arch:
         type: string
         description: "macOS arch for the macOS docs check job."
@@ -137,281 +137,101 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  api-breakage-check:
-    name: API breakage check
-    if: ${{ inputs.api_breakage_check_enabled }}
+  plan-checks:
+    name: Plan checks
     runs-on: ubuntu-latest
-    container:
-      image: ${{ inputs.api_breakage_check_container_image }}
-    timeout-minutes: 40
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          # This is set to true since swift package diagnose-api-breaking-changes is
-          # cloning the repo again and without it being set to true this job won't work for
-          # private repos.
-          persist-credentials: true
-          submodules: true
-          fetch-tags: true
-          fetch-depth: 0  # Fetching tags requires fetch-depth: 0 (https://github.com/actions/checkout/issues/1471)
-      - name: Mark the workspace as safe
-        # https://github.com/actions/checkout/issues/766
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Pre-build
-        # zizmor: ignore[template-injection]
-        run: ${{ inputs.api_breakage_pre_build_command }}
-      - name: Run API breakage check
-        shell: bash
-        env:
-          API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
-          API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
-          API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS: ${{ inputs.api_breakage_check_additional_arguments }}
-        # zizmor: ignore[template-injection]
-        run: |
-          ${{ inputs.linux_pre_build_command }}
-          if [[ -z "${API_BREAKAGE_CHECK_BASELINE}" ]]; then
-            git fetch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} ${GITHUB_BASE_REF}:pull-base-ref
-            BASELINE_REF='pull-base-ref'
-          else
-            BASELINE_REF="${API_BREAKAGE_CHECK_BASELINE}"
-          fi
-          echo "Using baseline: $BASELINE_REF"
-          if [[ -z "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ]]; then
-            swift package diagnose-api-breaking-changes "$BASELINE_REF" ${API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS}
-          else
-            swift package diagnose-api-breaking-changes "$BASELINE_REF" --breakage-allowlist-path "${API_BREAKAGE_CHECK_ALLOWLIST_PATH}" ${API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS}
-          fi
-
-  docs-check:
-    name: Documentation check
-    if: ${{ inputs.docs_check_enabled }}
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ inputs.docs_check_container_image }}
-    timeout-minutes: 20
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run documentation check
-        env:
-          ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
-          DOCC_ANALYZE: ${{ inputs.docs_check_analyze }}
-          DOCS_TARGETS: ${{ inputs.docs_check_targets}}
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: |
-          set -x
-          ${{ inputs.linux_pre_build_command }}
-          analyze_arg=""
-          doc_target_arg=""
-          if [ "${DOCS_TARGETS}" != "" ] ; then
-            doc_target_arg="--doc-targets ${DOCS_TARGETS}"
-          fi
-          if [ "${DOCC_ANALYZE}" != "true" ]; then
-            analyze_arg="--no-analyze"
-          fi
-          "${SCRIPTS_DIRECTORY}/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
-
-  docs-check-macos:
-    name: Documentation check (macOS)
-    if: ${{ inputs.docs_check_macos_enabled }}
-    runs-on: [self-hosted, macos, "${{ inputs.docs_check_macos_version }}", "${{ inputs.docs_check_macos_arch }}"]
-    timeout-minutes: 20
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Select Xcode
-        env:
-          XCODE_VERSION: ${{ inputs.docs_check_macos_xcode_version }}
-        run: echo "DEVELOPER_DIR=/Applications/Xcode_${XCODE_VERSION}.app" >> $GITHUB_ENV
-      - name: Swift version
-        run: xcrun swift --version
-      - name: Clang version
-        run: xcrun clang --version
-      - name: Run documentation check
-        env:
-          ADDITIONAL_DOCC_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
-          DOCC_ANALYZE: ${{ inputs.docs_check_macos_analyze }}
-          DOCS_TARGETS: ${{ inputs.docs_check_macos_targets}}
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: |
-          analyze_arg=""
-          doc_target_arg=""
-          if [ "${DOCS_TARGETS}" != "" ] ; then
-            doc_target_arg="--doc-targets ${DOCS_TARGETS}"
-          fi
-          if [ "${DOCC_ANALYZE}" != "true" ]; then
-            analyze_arg="--no-analyze"
-          fi
-          set -x
-          "${SCRIPTS_DIRECTORY}/check-docs.sh" ${analyze_arg} ${doc_target_arg} --additional-docc-arguments ${ADDITIONAL_DOCC_ARGUMENTS}
-
-  unacceptable-language-check:
-    name: Unacceptable language check
-    if: ${{ inputs.unacceptable_language_check_enabled }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run unacceptable language check
-        env:
-          UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list}}
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: ${SCRIPTS_DIRECTORY}/check-unacceptable-language.sh
-
-  license-header-check:
-    name: License headers check
-    if: ${{ inputs.license_header_check_enabled }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run license header check
-        env:
-          PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: ${SCRIPTS_DIRECTORY}/check-license-header.sh
-
-  broken-symlink-check:
-    name: Broken symlinks check
-    if: ${{ inputs.broken_symlink_check_enabled }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run broken symlinks check
-        env:
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: ${SCRIPTS_DIRECTORY}/check-broken-symlinks.sh
-
-  format-check:
-    name: Format check
-    if: ${{ inputs.format_check_enabled }}
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ inputs.format_check_container_image }}
-    timeout-minutes: 20
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Mark the workspace as safe
-        # https://github.com/actions/checkout/issues/766
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Run format check
-        env:
-          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
-        run: ${SCRIPTS_DIRECTORY}/check-swift-format.sh
-
-  shell-check:
-    name: Shell check
-    if: ${{ inputs.shell_check_enabled }}
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ inputs.shell_check_container_image }}
     timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      check_count: ${{ steps.plan.outputs.check_count }}
+    steps:
+      - name: Locate the workflows scripts
+        id: workflows_scripts
+        uses: $/.github/actions/workflows-scripts
+      - name: Plan the checks
+        id: plan
+        env:
+          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
+          API_BREAKAGE_CHECK_ENABLED: ${{ inputs.api_breakage_check_enabled }}
+          API_BREAKAGE_CHECK_CONTAINER_IMAGE: ${{ inputs.api_breakage_check_container_image }}
+          DOCS_CHECK_ENABLED: ${{ inputs.docs_check_enabled }}
+          DOCS_CHECK_CONTAINER_IMAGE: ${{ inputs.docs_check_container_image }}
+          DOCS_CHECK_MACOS_ENABLED: ${{ inputs.docs_check_macos_enabled }}
+          DOCS_CHECK_MACOS_VERSION: ${{ inputs.docs_check_macos_version }}
+          DOCS_CHECK_MACOS_ARCH: ${{ inputs.docs_check_macos_arch }}
+          UNACCEPTABLE_LANGUAGE_CHECK_ENABLED: ${{ inputs.unacceptable_language_check_enabled }}
+          LICENSE_HEADER_CHECK_ENABLED: ${{ inputs.license_header_check_enabled }}
+          BROKEN_SYMLINK_CHECK_ENABLED: ${{ inputs.broken_symlink_check_enabled }}
+          FORMAT_CHECK_ENABLED: ${{ inputs.format_check_enabled }}
+          FORMAT_CHECK_CONTAINER_IMAGE: ${{ inputs.format_check_container_image }}
+          SHELL_CHECK_ENABLED: ${{ inputs.shell_check_enabled }}
+          SHELL_CHECK_CONTAINER_IMAGE: ${{ inputs.shell_check_container_image }}
+          YAMLLINT_CHECK_ENABLED: ${{ inputs.yamllint_check_enabled }}
+          PYTHON_LINT_CHECK_ENABLED: ${{ inputs.python_lint_check_enabled }}
+        run: |
+          set -euo pipefail
+          matrix=$("${SCRIPTS_DIRECTORY}/soundness/plan-checks.sh")
+          check_count=$(echo "$matrix" | jq '.include | length')
+          echo "::notice::Running $check_count check(s): $(echo "$matrix" | jq -r '[.include[].name] | join(", ")')"
+          echo "check_count=$check_count" >> $GITHUB_OUTPUT
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  check:
+    name: ${{ matrix.name }}
+    needs: plan-checks
+    # GitHub rejects an empty matrix, so this is skipped when every check is turned off.
+    if: ${{ needs.plan-checks.outputs.check_count != '0' }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan-checks.outputs.matrix) }}
     steps:
       - name: Install git
+        if: ${{ matrix.check == 'shell' }}
         run: which git || (apt -q update && apt -yq install git)
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          # The API breakage check clones the repository again with
+          # `swift package diagnose-api-breaking-changes`, which fails for a
+          # private repository unless the credentials persist.
+          persist-credentials: ${{ matrix.check == 'api-breakage' }}
           submodules: true
+          fetch-tags: ${{ matrix.full_history }}
+          # Fetching tags requires fetch-depth: 0 (https://github.com/actions/checkout/issues/1471).
+          # The depth is a string because 0 is falsy, so `&& 0 || 1` would always give 1.
+          fetch-depth: ${{ matrix.full_history && '0' || '1' }}
+      - name: Locate the workflows scripts
+        id: workflows_scripts
+        uses: $/.github/actions/workflows-scripts
       - name: Mark the workspace as safe
+        if: ${{ matrix.container != '' }}
         # https://github.com/actions/checkout/issues/766
         run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Run shellcheck
-        run: |
-          which shellcheck || (apt -q update && apt -yq install shellcheck)
-          git ls-files -z '*.sh' | xargs -0 --no-run-if-empty shellcheck
-
-  yaml-lint-check:
-    name: YAML lint check
-    if: ${{ inputs.yamllint_check_enabled }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run yamllint
+      - name: Pre-build
+        if: ${{ matrix.check == 'api-breakage' }}
         env:
-          CONFIGS_DIRECTORY: ${{ steps.workflows_scripts.outputs.configs_directory }}
-        run: |
-          which yamllint || (apt -q update && apt install -yq yamllint)
-          cd ${GITHUB_WORKSPACE}
-          if [ ! -f ".yamllint.yml" ]; then
-            echo "Downloading default yamllint config file"
-            cat "${CONFIGS_DIRECTORY}/yamllint.yml" > .yamllint.yml
-          fi
-          yamllint --strict --config-file .yamllint.yml .
-
-  python-lint-check:
-    name: Python lint check
-    if: ${{ inputs.python_lint_check_enabled }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          submodules: true
-      - name: Locate the workflows scripts
-        id: workflows_scripts
-        uses: $/.github/actions/workflows-scripts
-      - name: Run flake8
+          API_BREAKAGE_PRE_BUILD_COMMAND: ${{ inputs.api_breakage_pre_build_command }}
+        run: eval "${API_BREAKAGE_PRE_BUILD_COMMAND}"
+      - name: Run check
+        shell: bash
         env:
+          CHECK: ${{ matrix.check }}
+          SCRIPTS_DIRECTORY: ${{ steps.workflows_scripts.outputs.scripts_directory }}
           CONFIGS_DIRECTORY: ${{ steps.workflows_scripts.outputs.configs_directory }}
-        run: |
-          pip3 install flake8 flake8-import-order
-          cd ${GITHUB_WORKSPACE}
-          if [ ! -f ".flake8" ]; then
-            echo "Downloading default flake8 config file"
-            cat "${CONFIGS_DIRECTORY}/.flake8" > .flake8
-          fi
-          flake8
+          LINUX_PRE_BUILD_COMMAND: ${{ inputs.linux_pre_build_command }}
+          API_BREAKAGE_CHECK_BASELINE: ${{ inputs.api_breakage_check_baseline }}
+          API_BREAKAGE_CHECK_ALLOWLIST_PATH: ${{ inputs.api_breakage_check_allowlist_path }}
+          API_BREAKAGE_CHECK_ADDITIONAL_ARGUMENTS: ${{ inputs.api_breakage_check_additional_arguments }}
+          DOCS_CHECK_ADDITIONAL_ARGUMENTS: ${{ inputs.docs_check_additional_arguments }}
+          DOCS_CHECK_ANALYZE: ${{ inputs.docs_check_analyze }}
+          DOCS_CHECK_TARGETS: ${{ inputs.docs_check_targets }}
+          DOCS_CHECK_MACOS_ADDITIONAL_ARGUMENTS: ${{ inputs.docs_check_macos_additional_arguments }}
+          DOCS_CHECK_MACOS_ANALYZE: ${{ inputs.docs_check_macos_analyze }}
+          DOCS_CHECK_MACOS_TARGETS: ${{ inputs.docs_check_macos_targets }}
+          DOCS_CHECK_MACOS_XCODE_VERSION: ${{ inputs.docs_check_macos_xcode_version }}
+          UNACCEPTABLE_WORD_LIST: ${{ inputs.unacceptable_language_check_word_list }}
+          PROJECT_NAME: ${{ inputs.license_header_check_project_name }}
+        run: ${SCRIPTS_DIRECTORY}/soundness/run-check.sh "${CHECK}"

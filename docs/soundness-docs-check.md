@@ -2,8 +2,8 @@
 
 The Soundness workflow can verify that your Swift package's [DocC](https://www.swift.org/documentation/docc/) documentation builds without warnings. Two jobs are available:
 
-- **`docs-check`** — runs on Linux. Enabled by default.
-- **`docs-check-macos`** — runs on a self-hosted macOS runner. Opt-in.
+- **Documentation check** — runs on Linux. Enabled by default.
+- **Documentation check (macOS)** — runs on a self-hosted macOS runner. Opt-in.
 
 Running both lets you catch documentation issues that only surface on one toolchain.
 
@@ -63,7 +63,7 @@ This enables the Linux documentation check along with the other soundness checks
 
 ## Configuration
 
-### Linux job (`docs-check`)
+### Linux job (Documentation check)
 
 | Input | Type | Default | Description |
 |---|---|---|---|
@@ -74,12 +74,12 @@ This enables the Linux documentation check along with the other soundness checks
 | `docs_check_analyze` | boolean | `true` | Set to `false` to skip DocC's analyzer pass. |
 | `linux_pre_build_command` | string | `""` | Shell command to run before the check (e.g., installing system dependencies). |
 
-### macOS job (`docs-check-macos`)
+### macOS job (Documentation check (macOS))
 
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `docs_check_macos_enabled` | boolean | `false` | Enable or disable the job. |
-| `docs_check_macos_version` | string | `tahoe` | macOS version label of the runner to target. |
+| `docs_check_macos_version` | string | `goldengate` | macOS version label of the runner to target. |
 | `docs_check_macos_arch` | string | `ARM64` | Architecture label of the runner to target. |
 | `docs_check_macos_xcode_version` | string | `26.0` | Xcode version to use. |
 | `docs_check_macos_targets` | string | `""` | Space-separated list of documentation targets to check. When empty, targets are read from `.spi.yml` (if present). |
@@ -98,7 +98,7 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
     with:
       docs_check_macos_enabled: true
-      docs_check_macos_version: "tahoe"
+      docs_check_macos_version: "goldengate"
       docs_check_macos_arch: "ARM64"
       docs_check_macos_xcode_version: "26.0"
 ```

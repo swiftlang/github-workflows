@@ -255,14 +255,14 @@ struct OSInputTests {
 
   @Test("A pool label is added to the runner labels only when one is given")
   func macOSPoolLabelIsOptional() throws {
-    let environment = ["ENABLE_MACOS": "true", "MACOS_SWIFT_VERSIONS": #"["6.3"]"#, "MACOS_OS": "tahoe"]
+    let environment = ["ENABLE_MACOS": "true", "MACOS_SWIFT_VERSIONS": #"["6.3"]"#, "MACOS_OS": "goldengate"]
     let without = try Generator.run(environment)
-    #expect(without.entries.first?.runner == ["self-hosted", "macos", "tahoe", "ARM64"])
+    #expect(without.entries.first?.runner == ["self-hosted", "macos", "goldengate", "ARM64"])
 
     var pooled = environment
     pooled["MACOS_RUNNER_POOL"] = "nightly"
     let with = try Generator.run(pooled)
-    #expect(with.entries.first?.runner == ["self-hosted", "macos", "tahoe", "ARM64", "nightly"])
+    #expect(with.entries.first?.runner == ["self-hosted", "macos", "goldengate", "ARM64", "nightly"])
   }
 }
 
@@ -274,6 +274,25 @@ struct MinimumVersionTests {
       ["ENABLE_LINUX": "true", "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#],
       manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.2")]
     )
+    #expect(generated.versions == ["6.2", "6.3"])
+  }
+
+  @Test("A patch tools version keeps its own minor release, which is published as major.minor")
+  func patchToolsVersionKeepsItsMinorRelease() throws {
+    let generated = try Generator.run(
+      ["ENABLE_LINUX": "true", "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#],
+      manifests: ["Package.swift": Generator.manifest(toolsVersion: "6.2.3")]
+    )
+    #expect(generated.versions == ["6.2", "6.3"])
+  }
+
+  @Test("A patch minimum_swift_version keeps its own minor release")
+  func patchExplicitMinimumKeepsItsMinorRelease() throws {
+    let generated = try Generator.run([
+      "ENABLE_LINUX": "true",
+      "LINUX_SWIFT_VERSIONS": #"["6.1","6.2","6.3"]"#,
+      "MINIMUM_SWIFT_VERSION": "6.2.3",
+    ])
     #expect(generated.versions == ["6.2", "6.3"])
   }
 
