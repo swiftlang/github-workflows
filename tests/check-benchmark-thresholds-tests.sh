@@ -41,7 +41,10 @@ mkdir -p "$STUB_DIR"
 REPOSITORY="$WORKDIR/repository"
 mkdir -p "$REPOSITORY/one/Thresholds/6.3" "$REPOSITORY/two/Thresholds/6.3"
 git -C "$REPOSITORY" init --quiet
-git -C "$REPOSITORY" -c user.email=ci@example.com -c user.name=CI commit --quiet --allow-empty -m "empty"
+printf '{\n  "mallocCountTotal" : 100,\n  "retainCount" : 50\n}\n' \
+    >"$REPOSITORY/one/Thresholds/6.3/Existing.p90.json"
+git -C "$REPOSITORY" add .
+git -C "$REPOSITORY" -c user.email=ci@example.com -c user.name=CI commit --quiet -m "thresholds"
 
 export STUB_INVOCATIONS="$WORKDIR/invocations.txt"
 
@@ -60,11 +63,16 @@ for ((index = 1; index <= $#; index++)); do
 done
 case "$*" in
     *"thresholds check"*)
+        # The plugin redraws its progress bar as a line per update when not on a terminal.
+        printf '\033[1A\033[K 50%% [-----   ] ETA: 00:00:01 | Existing\n'
+        printf 'measuring\n'
         exit "${STUB_CHECK_STATUS:-0}"
         ;;
     *"thresholds update"*)
         if [[ "${STUB_UPDATE_STATUS:-0}" == "0" ]]; then
-            printf '{"wallClock":100}\n' >"$package_path/Thresholds/6.3/Benchmark.p90.json"
+            printf '{\n  "wallClock" : 100\n}\n' >"$package_path/Thresholds/6.3/Benchmark.p90.json"
+            printf '{\n  "mallocCountTotal" : 90,\n  "retainCount" : 50\n}\n' \
+                >"$package_path/Thresholds/6.3/Existing.p90.json"
         fi
         exit "${STUB_UPDATE_STATUS:-0}"
         ;;
@@ -74,6 +82,7 @@ STUB
 chmod +x "$STUB_DIR/swift"
 
 CHECK_LOG="$WORKDIR/check.log"
+STEP_SUMMARY="$WORKDIR/step-summary.md"
 
 # run_check <check_status> <update_status> <paths> [argument ...] - echoes the
 # exit status; the log is left in $CHECK_LOG and the stub's invocations in
@@ -82,12 +91,14 @@ run_check() {
     local check_status="$1" update_status="$2" paths="$3"
     shift 3
     : >"$STUB_INVOCATIONS"
+    : >"$STEP_SUMMARY"
     git -C "$REPOSITORY" checkout --quiet -- . 2>/dev/null
     git -C "$REPOSITORY" clean --quiet -fd
     (
         cd "$REPOSITORY" || exit 1
         PATH="$STUB_DIR:$PATH" \
         SWIFT_VERSION="6.3" \
+        GITHUB_STEP_SUMMARY="$STEP_SUMMARY" \
         STUB_CHECK_STATUS="$check_status" \
         STUB_UPDATE_STATUS="$update_status" \
         BENCHMARK_PACKAGE_PATHS="$paths" \
@@ -154,12 +165,17 @@ assert_status "a newline-separated list of paths is accepted" "0" \
 assert_contains "both paths are checked" "--package-path two" "$(cat "$STUB_INVOCATIONS")"
 
 # The workflow passes "[]" when a caller named no paths. The container images carry no
-# jq, so recognizing it must not need one: PATH holds the stubbed toolchain and nothing
-# else.
+# jq, so recognizing it must not need one: PATH holds the stubbed toolchain and the
+# few tools the script needs (awk, git, grep, mktemp, rm), and nothing else.
+TOOLS_DIR="$WORKDIR/tools"
+mkdir -p "$TOOLS_DIR"
+for tool in awk git grep mktemp rm; do
+    ln -s "$(command -v "$tool")" "$TOOLS_DIR/$tool"
+done
 : >"$STUB_INVOCATIONS"
 empty_list_status=$(
     cd "$REPOSITORY" \
-        && PATH="$STUB_DIR" SWIFT_VERSION="6.3" \
+        && PATH="$STUB_DIR:$TOOLS_DIR" SWIFT_VERSION="6.3" \
             BENCHMARK_PACKAGE_PATHS="[]" \
             "$SCRIPT" >"$CHECK_LOG" 2>&1
     echo "$?"
@@ -186,6 +202,29 @@ assert_status "a regression fails the job" "1" "$(run_check 1 0 "one")"
 assert_contains "the regression is recalculated" "thresholds update" "$(cat "$STUB_INVOCATIONS")"
 assert_contains "the diff is printed" "=== BEGIN DIFF (one) ===" "$(cat "$CHECK_LOG")"
 assert_contains "the diff holds the new threshold" "Benchmark.p90.json" "$(cat "$CHECK_LOG")"
+
+# The job log is for a person: progress-bar redraws bury the results, so they are dropped,
+# and the noisy plugin output sits in groups GitHub folds away.
+assert_lacks "progress bar redraws are dropped" "ETA:" "$(cat "$CHECK_LOG")"
+assert_contains "other plugin output is kept" "measuring" "$(cat "$CHECK_LOG")"
+assert_contains "the check output is folded away" "::group::Check thresholds for one" \
+    "$(cat "$CHECK_LOG")"
+
+# The step summary is the overview a person reads without opening the log.
+assert_contains "the step summary shows the metric that moved" '-  "mallocCountTotal" : 100,' \
+    "$(cat "$STEP_SUMMARY")"
+assert_contains "the step summary shows the new value" '+  "mallocCountTotal" : 90,' \
+    "$(cat "$STEP_SUMMARY")"
+assert_lacks "a metric that did not move is left out of the summary" '"retainCount"' \
+    "$(cat "$STEP_SUMMARY")"
+
+# Tooling scrapes the diff from the log: the marker must be followed directly by the diff.
+marker_and_next=$(grep -A1 -F '=== BEGIN DIFF (one) ===' "$CHECK_LOG" | tail -1)
+assert_contains "the diff follows its marker" "diff --git" "$marker_and_next"
+
+assert_status "measurements within their thresholds pass again" "0" "$(run_check 0 0 "one")"
+assert_contains "the step summary says all is well" "within their thresholds" \
+    "$(cat "$STEP_SUMMARY")"
 
 # A build error: neither the check nor the update can run, so there is nothing to diff.
 assert_status "a build error fails the job" "2" "$(run_check 1 2 "one")"
