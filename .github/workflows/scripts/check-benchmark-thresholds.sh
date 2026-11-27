@@ -64,14 +64,37 @@ else
   benchmark_package_paths="."
 fi
 
+# The benchmark plugin redraws a progress bar on every update, and a CI log keeps each
+# redraw as a line of its own: thousands of lines that bury the results.
+drop_progress_lines() {
+  grep --line-buffered -v 'ETA: ' || true
+}
+
+# Runs the plugin with its progress bar removed, and returns the plugin's status
+# rather than the filter's.
+swift_package_quietly() {
+  swift_package "$@" 2>&1 | drop_progress_lines
+  return "${PIPESTATUS[0]}"
+}
+
 run_one() {
   local benchmark_package_path="$1"
 
-  swift_package "$benchmark_package_path" benchmark thresholds check --format metricP90AbsoluteThresholds --path "${benchmark_package_path}/Thresholds/${swift_version}/"
+  echo "::group::Check thresholds for ${benchmark_package_path}"
+  swift_package_quietly "$benchmark_package_path" benchmark thresholds check --format metricP90AbsoluteThresholds --path "${benchmark_package_path}/Thresholds/${swift_version}/"
   local rc="$?"
+  echo "::endgroup::"
 
   # The measurements are within their thresholds, so there is nothing to recalculate.
   if [[ "$rc" == 0 ]]; then
+    if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+      {
+        echo "### Benchmarks in \`${benchmark_package_path}\` (Swift ${swift_version})"
+        echo
+        echo "All measurements are within their thresholds."
+        echo
+      } >>"$GITHUB_STEP_SUMMARY"
+    fi
     return 0
   fi
 
@@ -80,20 +103,48 @@ run_one() {
   # apart: if that also fails it was a build error.
   log "Recalculating thresholds for ${benchmark_package_path}..."
 
-  swift_package "$benchmark_package_path" benchmark thresholds update --format metricP90AbsoluteThresholds --path "${benchmark_package_path}/Thresholds/${swift_version}/"
-  local update_rc="$?"
+  local update_output
+  update_output=$(mktemp)
+  echo "::group::Recalculate thresholds for ${benchmark_package_path}"
+  swift_package_quietly "$benchmark_package_path" benchmark thresholds update --format metricP90AbsoluteThresholds --path "${benchmark_package_path}/Thresholds/${swift_version}/" | tee "$update_output"
+  local update_rc="${PIPESTATUS[0]}"
+  echo "::endgroup::"
 
   if [[ "$update_rc" != 0 ]]; then
+    # The compiler's diagnostics are in the folded group; repeat the end of them where
+    # a reader looking for the cause will see them.
+    tail -n 40 "$update_output"
+    rm -f "$update_output"
     error "Benchmark in ${benchmark_package_path} failed to run due to build error."
     return "$update_rc"
+  fi
+
+  rm -f "$update_output"
+
+  git add --intent-to-add "${benchmark_package_path}/Thresholds/"
+
+  local thresholds_diff
+  thresholds_diff=$(git diff HEAD -- "${benchmark_package_path}/Thresholds/")
+
+  # GitHub colors a fenced diff on the job's summary page, which shows what moved without
+  # opening the log. -U0 leaves out the unchanged metrics around each change.
+  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    {
+      echo "### Benchmark thresholds that moved in \`${benchmark_package_path}\` (Swift ${swift_version})"
+      echo
+      echo '```diff'
+      git diff -U0 HEAD -- "${benchmark_package_path}/Thresholds/"
+      echo '```'
+    } >>"$GITHUB_STEP_SUMMARY"
   fi
 
   # Use echo, not log, so the diff is clean for tooling that scrapes it out of
   # the job log. The marker carries the package path, so a multi-package run's
   # diffs can be told apart.
+  echo "::group::Thresholds diff for ${benchmark_package_path}"
   echo "=== BEGIN DIFF (${benchmark_package_path}) ==="
-  git add --intent-to-add "${benchmark_package_path}/Thresholds/"
-  git diff HEAD -- "${benchmark_package_path}/Thresholds/"
+  echo "$thresholds_diff"
+  echo "::endgroup::"
   return 1
 }
 
@@ -101,10 +152,8 @@ overall_rc=0
 failed=()
 while IFS= read -r path; do
   [ -z "$path" ] && continue
-  echo "::group::Running benchmarks for $path"
   run_one "$path"
   rc=$?
-  echo "::endgroup::"
   if [[ "$rc" -ne 0 ]]; then
     overall_rc=$rc
     failed+=("$path")
