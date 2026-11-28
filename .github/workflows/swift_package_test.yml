@@ -469,23 +469,12 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v7
-        if: ${{ matrix.os_version != 'amazonlinux2' }}
-      - name: Checkout repository
-        uses: actions/checkout@v1
-        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
-      - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
-        with:
-          repository: swiftlang/github-workflows
-          path: ${{ github.event.repository.name }}/github-workflows
-          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
@@ -554,23 +543,12 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v7
-        if: ${{ matrix.os_version != 'amazonlinux2' }}
-      - name: Checkout repository
-        uses: actions/checkout@v1
-        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
-      - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
-        with:
-          repository: swiftlang/github-workflows
-          path: ${{ github.event.repository.name }}/github-workflows
-          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
@@ -624,23 +602,12 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v7
-        if: ${{ matrix.os_version != 'amazonlinux2' }}
-      - name: Checkout repository
-        uses: actions/checkout@v1
-        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
-      - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
-        with:
-          repository: swiftlang/github-workflows
-          path: ${{ github.event.repository.name }}/github-workflows
-          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
@@ -694,23 +661,12 @@ jobs:
         run: clang --version
       - name: Checkout repository
         uses: actions/checkout@v7
-        if: ${{ matrix.os_version != 'amazonlinux2' }}
-      - name: Checkout repository
-        uses: actions/checkout@v1
-        if: ${{ matrix.os_version == 'amazonlinux2' }}
       - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version != 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
+        if: ${{ github.repository != 'swiftlang/github-workflows' }}
         uses: actions/checkout@v7
         with:
           repository: swiftlang/github-workflows
           path: github-workflows
-      - name: Checkout swiftlang/github-workflows repository
-        if: ${{ matrix.os_version == 'amazonlinux2' && github.repository != 'swiftlang/github-workflows' }}
-        uses: actions/checkout@v1
-        with:
-          repository: swiftlang/github-workflows
-          path: ${{ github.event.repository.name }}/github-workflows
-          ref: main
       - name: Determine script-root path
         id: script_path
         run: |
