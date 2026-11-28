@@ -74,6 +74,12 @@ on:
         type: string
         description: "macOS command to build the CMake project"
         default: "$CMAKE --build build"
+      windows_swift_version:
+        type: string
+        description: |
+          Swift version to install for the Windows build with the install-swift action, such as
+          "6.2" or "nightly-main". Set to an empty string to skip installing Swift.
+        default: "6.2"
       windows_pre_build_command:
         type: string
         description: |
@@ -207,6 +213,11 @@ jobs:
         with:
           cmake-version: ${{ inputs.cmake_version }}
           hash: ${{ matrix.hash }}
+      - name: Install Swift
+        if: ${{ inputs.windows_swift_version != '' }}
+        uses: $/.github/actions/install-swift
+        with:
+          swift-version: ${{ inputs.windows_swift_version }}
       - name: Pre-build
         if: ${{ inputs.windows_pre_build_command != '' }}
         env:
